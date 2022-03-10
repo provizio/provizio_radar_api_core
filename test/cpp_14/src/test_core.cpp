@@ -14,7 +14,12 @@
 
 #include "provizio/radar_api/core.h"
 
-int main()
+int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
+
+    provizio_test();
+
     return 0;
 }

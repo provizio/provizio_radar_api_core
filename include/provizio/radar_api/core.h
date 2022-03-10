@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RADAR_API_CORE
-#define RADAR_API_CORE
+#ifndef PROVIZIO_RADAR_API_CORE
+#define PROVIZIO_RADAR_API_CORE
 
+#include "provizio/radar_api/common.h"
 #include "provizio/radar_api/radar_point_cloud.h"
 
-#endif // RADAR_API_CORE
+PROVIZIO__EXTERN_C void provizio_test(void);
+
+#endif // PROVIZIO_RADAR_API_CORE

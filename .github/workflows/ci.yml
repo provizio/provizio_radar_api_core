@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  build-nix:
+    name: Build provizio_radar_api_core with Static Code Analysis enabled
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        build_type: [Debug, Release]
+        cc: [gcc, clang]
+    env:
+      CC: ${{matrix.cc}}
+      STATIC_ANALYSIS: ON
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}"
+
+  build-windows:
+    name: Build provizio_radar_api_core with Static Code Analysis enabled
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        build_type: [Debug, Release]
+    env:
+      STATIC_ANALYSIS: ON
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/build.bat "${{matrix.build_type}}" -DSTATIC_ANALYSIS="$env:STATIC_ANALYSIS"
+  
+  test-nix-asan:
+    name: Test provizio_radar_api_core with ASan+LSan+UBsan enabled
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        build_type: [Debug, Release]
+        cc: [gcc, clang]
+    env:
+      CC: ${{matrix.cc}}
+      STATIC_ANALYSIS: OFF
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_ASAN=ON
+      - run: .github/workflows/test.sh
+
+  test-nix-tsan:
+    name: Test provizio_radar_api_core with TSan enabled
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        build_type: [Debug, Release]
+        cc: [gcc, clang]
+    env:
+      CC: ${{matrix.cc}}
+      STATIC_ANALYSIS: OFF
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_TSAN=ON
+      - run: .github/workflows/test.sh
+
+  test-nix-msan:
+    name: Test provizio_radar_api_core with MSan enabled
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04]
+        build_type: [Debug, Release]
+        cc: [clang]
+    env:
+      CC: ${{matrix.cc}}
+      STATIC_ANALYSIS: OFF
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_MSAN=ON
+      - run: .github/workflows/test.sh
+
+  test-windows:
+    name: Test provizio_radar_api_core
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        build_type: [Debug, Release]
+    env:
+      STATIC_ANALYSIS: OFF
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/build.bat "${{matrix.build_type}}" -DSTATIC_ANALYSIS="$env:STATIC_ANALYSIS"
+      - run: .github/workflows/test.bat "${{matrix.build_type}}"

@@ -1,4 +1,4 @@
-Checks:             '*,-abseil*,-fuchsia*,-llvm-header-guard,-modernize-use-trailing-return-type,-google-runtime-references'
+Checks:             '*,-abseil*,-fuchsia*,-llvm-header-guard,-modernize-use-trailing-return-type,-google-runtime-references,-llvmlibc-*'
 WarningsAsErrors:   '*'
 FormatStyle:        file
 CheckOptions:

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Provizio Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.1.0)
+# Use as:
+# build.sh [CMake arguments]
 
-add_executable(provizio_radar_api_core_test_c_99 src/test_core.c)
-target_link_libraries(provizio_radar_api_core_test_c_99 provizio_radar_api_core)
-set_property(TARGET provizio_radar_api_core_test_c_99 PROPERTY C_STANDARD 99) # As defined by MISRA
-add_test(NAME provizio_radar_api_core_test_c_99 COMMAND provizio_radar_api_core_test_c_99)
+set -eu
+
+cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
+
+export CC=${CC:-"gcc"}
+if [ -z "${CXX:-}" ]; then
+    case "${CC}" in
+        gcc)
+            export CXX=g++
+            ;;
+        clang)
+            export CXX=clang++
+            ;;
+        *)
+            ;;
+    esac
+fi
+
+mkdir -p ../../build
+cd ../../build
+
+cmake .. $@
+cmake --build . -- -j 16
