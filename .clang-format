@@ -1,0 +1,25 @@
+BasedOnStyle: Microsoft
+
+NamespaceIndentation: All
+
+---
+Language: CSharp
+DisableFormat: true
+---
+Language: Java
+DisableFormat: true
+---
+Language: JavaScript
+DisableFormat: true
+---
+Language: ObjC
+DisableFormat: true
+---
+Language: Proto
+DisableFormat: true
+---
+Language: TableGen
+DisableFormat: true
+---
+Language: TextProto
+DisableFormat: true
