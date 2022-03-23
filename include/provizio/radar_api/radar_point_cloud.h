@@ -65,8 +65,9 @@ PROVIZIO__EXTERN_C typedef struct provizio_radar_point_cloud_packet_header
 {
     provizio_radar_point_cloud_packet_protocol_header protocol_header;
 
-    uint32_t frame_index;           // 0-based
-    uint64_t timestamp;             // Time of the frame capture measured in milliseconds since the UNIX epoch
+    uint32_t frame_index; // 0-based
+    uint64_t timestamp;   // Time of the frame capture measured in absolute number of nanoseconds since the start of the
+                          // GPS Epoch (midnight on Jan 6, 1980)
     uint16_t radar_position_id;     // Either one of provizio_radar_position enum values or a custom position id
     uint16_t total_points_in_frame; // Number of points in the entire frame
     uint16_t num_points_in_packet;  // Number of points in this single packet
