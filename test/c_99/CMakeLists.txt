@@ -14,7 +14,9 @@
 
 cmake_minimum_required(VERSION 3.1.0)
 
-add_executable(provizio_radar_api_core_test_c_99 src/test_core.c)
-target_link_libraries(provizio_radar_api_core_test_c_99 provizio_radar_api_core)
+add_executable(provizio_radar_api_core_test_c_99 src/test_main.c src/test_common.c src/test_util.c src/test_radar_point_cloud.c)
+target_link_libraries(provizio_radar_api_core_test_c_99 provizio_radar_api_core unity_testing m)
 set_property(TARGET provizio_radar_api_core_test_c_99 PROPERTY C_STANDARD 99) # As defined by MISRA
+add_dependencies(provizio_radar_api_core_test_c_99 unity)
+
 add_test(NAME provizio_radar_api_core_test_c_99 COMMAND provizio_radar_api_core_test_c_99)

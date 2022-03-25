@@ -12,14 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "provizio/radar_api/core.h"
+#include "provizio/socket.h"
 
-int main(int argc, char *argv[])
+int provizio_sockets_initialize(void)
 {
-    (void)argc;
-    (void)argv;
-
-    provizio_test();
-
+#ifdef _WIN32
+    WSADATA wsa_data;
+    return WSAStartup(MAKEWORD(1, 1), &wsa_data);
+#else
     return 0;
+#endif
+}
+
+int provizio_sockets_deinitialize(void)
+{
+#ifdef _WIN32
+    return WSACleanup();
+#else
+    return 0;
+#endif
+}
+
+int provizio_socket_close(PROVIZIO__SOCKET sock)
+{
+#ifdef _WIN32
+    return closesocket(sock);
+#else
+    return close(sock);
+#endif
+}
+
+bool provizio_socket_valid(PROVIZIO__SOCKET sock)
+{
+#ifdef _WIN32
+    return sock != INVALID_SOCKET;
+#else
+    return sock != -1;
+#endif
 }

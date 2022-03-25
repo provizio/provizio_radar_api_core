@@ -14,5 +14,28 @@
 
 cmake_minimum_required(VERSION 3.1.0)
 
+# Include support for ExternalProject_Add
+include(ExternalProject)
+
+# Resolve Unity unit test framework (https://github.com/provizio/Unity)
+set(UNITY_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/unity_build")
+set(UNITY_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/unity")
+set(UNITY_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
+set(UNITY_GITHUB_PROJECT "provizio/Unity")
+set(UNITY_GITHUB_BRANCH "provizio")
+set(UNITY_INSTALL_DIR "${UNITY_BINARY_DIR}/install")
+ExternalProject_Add(unity
+    GIT_REPOSITORY "https://github.com/${UNITY_GITHUB_PROJECT}.git"
+    GIT_TAG "${UNITY_GITHUB_BRANCH}"
+    PREFIX "${UNITY_PREFIX}"
+    SOURCE_DIR "${UNITY_SOURCE_DIR}"
+    BINARY_DIR "${UNITY_BINARY_DIR}"
+    CMAKE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}" "-DCMAKE_INSTALL_PREFIX=${UNITY_INSTALL_DIR}" "-DUNITY_CONFIG_DIR=${CMAKE_CURRENT_SOURCE_DIR}/include"
+    INSTALL_DIR "${UNITY_INSTALL_DIR}"
+)
+include_directories("${UNITY_INSTALL_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+link_directories("${UNITY_INSTALL_DIR}/lib")
+add_definitions(-DUNITY_INCLUDE_CONFIG_H)
+
 add_subdirectory(c_99)
 add_subdirectory(cpp_14)

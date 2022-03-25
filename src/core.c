@@ -13,10 +13,3 @@
 // limitations under the License.
 
 #include "provizio/radar_api/core.h"
-
-#include <stdio.h>
-
-void provizio_test(void)
-{
-    printf("Hello from provizio_test!\n");
-}

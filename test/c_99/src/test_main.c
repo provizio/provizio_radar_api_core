@@ -12,10 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PROVIZIO_RADAR_API_CORE
-#define PROVIZIO_RADAR_API_CORE
+#include "unity/unity.h"
 
-#include "provizio/common.h"
-#include "provizio/radar_api/radar_point_cloud.h"
+#include "provizio/socket.h"
 
-#endif // PROVIZIO_RADAR_API_CORE
+void setUp(void)
+{
+    provizio_sockets_initialize();
+}
+
+void tearDown(void)
+{
+    provizio_sockets_deinitialize();
+}
+
+void provizio_run_test_common(void);
+void provizio_run_test_util(void);
+void provizio_run_test_radar_point_cloud(void);
+void provizio_run_test_core(void);
+
+int main(int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+
+    UNITY_BEGIN();
+
+    RUN_TEST(provizio_run_test_common);
+    RUN_TEST(provizio_run_test_util);
+    RUN_TEST(provizio_run_test_radar_point_cloud);
+
+    return UNITY_END();
+}
