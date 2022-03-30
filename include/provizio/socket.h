@@ -26,6 +26,7 @@
 #include <winsock2.h>
 
 #define PROVIZIO__SOCKET SOCKET
+#define PROVIZIO__RECV_RETURN_TYPE int
 
 #else
 
@@ -35,10 +36,9 @@
 #include <unistd.h>
 
 #define PROVIZIO__SOCKET int
+#define PROVIZIO__RECV_RETURN_TYPE ssize_t
 
 #endif
-
-#include <stdbool.h>
 
 /**
  * @brief Enables sockets operations - to be called once prior to any other API calls
@@ -46,7 +46,7 @@
  * @return 0 if successfull, non-zero error code otherwise
  * @note Required in Windows, unless WSAStartup is called somewhere else, can be omitted in other platforms
  */
-PROVIZIO__EXTERN_C int provizio_sockets_initialize(void);
+PROVIZIO__EXTERN_C int32_t provizio_sockets_initialize(void);
 
 /**
  * @brief Terminates sockets operations - to be called once after all the other API calls
@@ -54,15 +54,15 @@ PROVIZIO__EXTERN_C int provizio_sockets_initialize(void);
  * @return 0 if successfull, non-zero error code otherwise
  * @note Required in Windows, unless WSACleanup is called somewhere else, can be omitted in other platforms
  */
-PROVIZIO__EXTERN_C int provizio_sockets_deinitialize(void);
+PROVIZIO__EXTERN_C int32_t provizio_sockets_deinitialize(void);
 
 /**
  * @brief Checks if `socket` returned a valid socket object
  *
  * @param sock `socket`-returned socket object
- * @return true if valid, false otherwise
+ * @return nonzero if valid, 0 otherwise
  */
-PROVIZIO__EXTERN_C bool provizio_socket_valid(PROVIZIO__SOCKET sock);
+PROVIZIO__EXTERN_C int32_t provizio_socket_valid(PROVIZIO__SOCKET sock);
 
 /**
  * @brief Closes a previously opened socket
@@ -70,6 +70,14 @@ PROVIZIO__EXTERN_C bool provizio_socket_valid(PROVIZIO__SOCKET sock);
  * @param sock `socket`-returned socket object
  * @return 0 if successfull, non-zero error code otherwise
  */
-PROVIZIO__EXTERN_C int provizio_socket_close(PROVIZIO__SOCKET sock);
+PROVIZIO__EXTERN_C int32_t provizio_socket_close(PROVIZIO__SOCKET sock);
+
+/**
+ * @brief Sets a timeout for recv operations on a previously opened socket
+ *
+ * @param timeout Timeout in nanoseconds
+ * @return 0 if successfull, error code otherwise
+ */
+PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout);
 
 #endif // PROVIZIO_SOCKET

@@ -58,10 +58,11 @@ int make_test_pointcloud(uint16_t frame_index, uint64_t timestamp, uint16_t rada
     float velocity = (velocity_min + velocity_max) / 2.0F;
     float signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) / 2.0F;
 
-    while (num_points > 0)
+    uint16_t num_points_left = num_points;
+    while (num_points_left > 0)
     {
-        const uint16_t points_in_packet = num_points < PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET
-                                              ? num_points
+        const uint16_t points_in_packet = num_points_left < PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET
+                                              ? num_points_left
                                               : PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET;
 
         provizio_radar_point_cloud_packet packet;
@@ -99,7 +100,7 @@ int make_test_pointcloud(uint16_t frame_index, uint64_t timestamp, uint16_t rada
             return result;
         }
 
-        num_points -= points_in_packet;
+        num_points_left -= points_in_packet;
     }
 
     // All sent
@@ -150,8 +151,8 @@ int send_test_point_cloud(uint16_t port, uint16_t frame_index, uint64_t timestam
     struct sockaddr_in my_address;
     memset(&my_address, 0, sizeof(my_address));
     my_address.sin_family = AF_INET;
-    my_address.sin_port = 0;                        // Any port
-    my_address.sin_addr.s_addr = htonl(INADDR_ANY); // Any address
+    my_address.sin_port = 0;                 // Any port
+    my_address.sin_addr.s_addr = INADDR_ANY; // Any address
 
     if (bind(sock, (struct sockaddr *)&my_address, sizeof(my_address)) != 0)
     {
@@ -243,7 +244,7 @@ void test_provizio_radar_point_cloud_packet_size(void)
     provizio_set_on_warning(NULL);
 }
 
-void test_receives_correct_pointclouds(void)
+void test_receives_single_radar_point_cloud(void)
 {
     const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 17;
@@ -273,6 +274,28 @@ void test_receives_correct_pointclouds(void)
     TEST_ASSERT_EQUAL_UINT16(radar_position_id, callback_data.last_point_cloud.radar_position_id);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data.last_point_cloud.num_points_expected);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data.last_point_cloud.num_points_received);
+
+    // First point
+    TEST_ASSERT_EQUAL_FLOAT(12.33F, callback_data.last_point_cloud.radar_points[0].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(1.17F, callback_data.last_point_cloud.radar_points[0].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(11.97F, callback_data.last_point_cloud.radar_points[0].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(5.31F, callback_data.last_point_cloud.radar_points[0].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(29.73F, callback_data.last_point_cloud.radar_points[0].signal_to_noise_ratio);
+
+    // Last point
+    TEST_ASSERT_EQUAL_FLOAT(29.5F, callback_data.last_point_cloud.radar_points[num_points - 1].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(-1.4375F, callback_data.last_point_cloud.radar_points[num_points - 1].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(22.4543F, callback_data.last_point_cloud.radar_points[num_points - 1].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(-1.95574F, callback_data.last_point_cloud.radar_points[num_points - 1].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(42.63091F,
+                            callback_data.last_point_cloud.radar_points[num_points - 1].signal_to_noise_ratio);
+
+    // Next after last (should be all zero)
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data.last_point_cloud.radar_points[num_points].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data.last_point_cloud.radar_points[num_points].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data.last_point_cloud.radar_points[num_points].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data.last_point_cloud.radar_points[num_points].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data.last_point_cloud.radar_points[num_points].signal_to_noise_ratio);
 }
 
 void provizio_run_test_radar_point_cloud(void)
@@ -280,5 +303,5 @@ void provizio_run_test_radar_point_cloud(void)
     memset(provizio_test_radar_point_cloud_warning, 0, sizeof(provizio_test_radar_point_cloud_warning));
 
     test_provizio_radar_point_cloud_packet_size();
-    test_receives_correct_pointclouds();
+    test_receives_single_radar_point_cloud();
 }

@@ -14,39 +14,57 @@
 
 #include "provizio/socket.h"
 
-int provizio_sockets_initialize(void)
+int32_t provizio_sockets_initialize(void)
 {
 #ifdef _WIN32
     WSADATA wsa_data;
-    return WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    return (int32_t)WSAStartup(MAKEWORD(1, 1), &wsa_data);
 #else
     return 0;
 #endif
 }
 
-int provizio_sockets_deinitialize(void)
+int32_t provizio_sockets_deinitialize(void)
 {
 #ifdef _WIN32
-    return WSACleanup();
+    return (int32_t)WSACleanup();
 #else
     return 0;
 #endif
 }
 
-int provizio_socket_close(PROVIZIO__SOCKET sock)
+int32_t provizio_socket_valid(PROVIZIO__SOCKET sock)
 {
 #ifdef _WIN32
-    return closesocket(sock);
+    return (int32_t)(sock != INVALID_SOCKET);
 #else
-    return close(sock);
+    return (int32_t)(sock != -1);
 #endif
 }
 
-bool provizio_socket_valid(PROVIZIO__SOCKET sock)
+int32_t provizio_socket_close(PROVIZIO__SOCKET sock)
 {
 #ifdef _WIN32
-    return sock != INVALID_SOCKET;
+    return (int32_t)closesocket(sock);
 #else
-    return sock != -1;
+    return (int32_t)close(sock);
 #endif
+}
+
+int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout)
+{
+    int32_t status;
+#ifdef _WIN32
+    const uint32_t timeout_ms = (uint32_t)(timeout / 1000000ULL);
+    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout_ms, sizeof(timeout_ms));
+#else
+    const uint64_t seconds_to_nanoseconds = 1000000000ULL;
+    const uint64_t microseconds_to_nanoseconds = 1000ULL;
+    struct timeval tv;
+    tv.tv_sec = (time_t)(timeout / seconds_to_nanoseconds);
+    tv.tv_usec = (suseconds_t)((timeout % seconds_to_nanoseconds) / microseconds_to_nanoseconds);
+    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+#endif
+
+    return status;
 }
