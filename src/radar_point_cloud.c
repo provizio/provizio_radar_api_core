@@ -44,17 +44,25 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
 {
     provizio_radar_point_cloud *point_cloud = NULL;
 
+    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet_header->radar_position_id);
     const uint32_t frame_index = provizio_get_protocol_field_uint32_t(&packet_header->frame_index);
     const uint16_t total_points_in_frame = provizio_get_protocol_field_uint16_t(&packet_header->total_points_in_frame);
 
     if (frame_index < (uint32_t)0x0000ffff && context->impl.latest_frame > (uint32_t)0xffff0000)
     {
-        // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's drop all
-        // we have so far, resetting the state of the API.
-        memset(&context->impl.point_clouds_being_received, 0,
-               sizeof(provizio_radar_point_cloud) *
-                   PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT);
-        context->impl.latest_frame = 0;
+        // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
+        // state of the API to avoid complicated state-related issues.
+        provizio_radar_point_cloud_api_context_init(context->callback, context->user_data, context);
+    }
+
+    if (context->radar_position_id == provizio_radar_position_unknown)
+    {
+        context->radar_position_id = radar_position_id;
+    }
+    else if (context->radar_position_id != radar_position_id)
+    {
+        provizio_warning("provizio_get_point_cloud_being_received: context received a packet from a wrong radar");
+        return NULL;
     }
 
     if (context->impl.latest_frame < frame_index)
@@ -128,57 +136,80 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
 
     if (num_points > PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET)
     {
-        provizio_warning("num_points_in_packet exceeds PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET!");
+        provizio_warning("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
+                         "PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET!");
         return 0;
     }
 
     return sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
 }
 
-void provizio_radar_point_cloud_api_context_create(provizio_radar_point_cloud_callback callback, void *user_data,
-                                                   provizio_radar_point_cloud_api_context *out_context)
+void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback, void *user_data,
+                                                 provizio_radar_point_cloud_api_context *context)
 {
-    memset(out_context, 0, sizeof(provizio_radar_point_cloud_api_context));
+    memset(context, 0, sizeof(provizio_radar_point_cloud_api_context));
 
-    out_context->callback = callback;
-    out_context->user_data = user_data;
+    context->callback = callback;
+    context->user_data = user_data;
+    context->radar_position_id = provizio_radar_position_unknown;
 }
 
-int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
-                                                 provizio_radar_point_cloud_packet *packet, size_t packet_size)
+void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_callback callback, void *user_data,
+                                                  provizio_radar_point_cloud_api_context *contexts, size_t num_contexts)
+{
+    for (size_t i = 0; i < num_contexts; ++i)
+    {
+        provizio_radar_point_cloud_api_context_init(callback, user_data, &contexts[i]);
+    }
+}
+
+int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)
 {
     if (packet_size < sizeof(provizio_radar_point_cloud_packet_protocol_header))
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: insufficient packet_size");
+        provizio_error("provizio_check_radar_point_cloud_packet: insufficient packet_size");
         return EPROTO;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.packet_type) !=
         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE)
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: unexpected packet_type");
+        provizio_error("provizio_check_radar_point_cloud_packet: unexpected packet_type");
         return EPROTO;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version) >
         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION)
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: Incompatible protocol version");
+        provizio_error("provizio_check_radar_point_cloud_packet: Incompatible protocol version");
         return EPROTO;
     }
 
     if (packet_size < sizeof(provizio_radar_point_cloud_packet_header))
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: insufficient packet_size");
+        provizio_error("provizio_check_radar_point_cloud_packet: insufficient packet_size");
         return EPROTO;
     }
 
     if (packet_size != provizio_radar_point_cloud_packet_size(&packet->header))
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: incorrect packet_size");
+        provizio_error("provizio_check_radar_point_cloud_packet: incorrect packet_size");
         return EPROTO;
     }
 
+    if (provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id) == provizio_radar_position_unknown)
+    {
+        provizio_error("provizio_check_radar_point_cloud_packet: the value of radar_position_id can't be "
+                       "provizio_radar_position_unknown");
+        return EPROTO;
+    }
+
+    return 0;
+}
+
+int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cloud_api_context *context,
+                                                         provizio_radar_point_cloud_packet *packet)
+{
     provizio_radar_point_cloud *cloud = provizio_get_point_cloud_being_received(context, &packet->header);
     if (!cloud)
     {
@@ -196,7 +227,7 @@ int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_
     // Use uint32_t to avoid overflowing uint16_t
     if ((uint32_t)cloud->num_points_received + (uint32_t)num_points_in_packet > (uint32_t)cloud->num_points_expected)
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet: Too many points received");
+        provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received");
         return EPROTO;
     }
 
@@ -212,8 +243,79 @@ int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_
     return 0;
 }
 
+int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
+                                                 provizio_radar_point_cloud_packet *packet, size_t packet_size)
+{
+    const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
+    if (check_status != 0)
+    {
+        return check_status;
+    }
+
+    return provizio_handle_radar_point_cloud_packet_checked(context, packet);
+}
+
+provizio_radar_point_cloud_api_context *provizio_get_provizio_radar_point_cloud_api_context_by_position_id(
+    provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, provizio_radar_point_cloud_packet *packet)
+{
+    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id);
+    assert(radar_position_id != provizio_radar_position_unknown);
+
+    for (size_t i = 0; i < num_contexts; ++i)
+    {
+        if (contexts[i].radar_position_id == radar_position_id)
+        {
+            // Found the correct context
+            return &contexts[i];
+        }
+    }
+
+    // There is no context for this radar_position_id yet, let's look for a yet unused context
+    for (size_t i = 0; i < num_contexts; ++i)
+    {
+        provizio_radar_point_cloud_api_context *context = &contexts[i];
+        if (context->radar_position_id == provizio_radar_position_unknown)
+        {
+            // Found!
+            return context;
+        }
+    }
+
+    // Not found
+    provizio_error("provizio_get_provizio_radar_point_cloud_api_context_by_position_id: Out of available contexts");
+    return NULL;
+}
+
+int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts, size_t num_contexts,
+                                                  provizio_radar_point_cloud_packet *packet, size_t packet_size)
+{
+    const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
+    if (check_status != 0)
+    {
+        return check_status;
+    }
+
+    provizio_radar_point_cloud_api_context *context =
+        provizio_get_provizio_radar_point_cloud_api_context_by_position_id(contexts, num_contexts, packet);
+
+    if (!context)
+    {
+        // Error message has been already posted by provizio_get_provizio_radar_point_cloud_api_context_by_position_id
+        return EBUSY;
+    }
+
+    return provizio_handle_radar_point_cloud_packet_checked(context, packet);
+}
+
 int32_t provizio_handle_possible_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
                                                           const void *payload, size_t payload_size)
+{
+    return provizio_handle_possible_radars_point_cloud_packet(context, 1, payload, payload_size);
+}
+
+int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts,
+                                                           size_t num_contexts, const void *payload,
+                                                           size_t payload_size)
 {
     if (payload_size < sizeof(provizio_radar_point_cloud_packet_header))
     {
@@ -236,33 +338,30 @@ int32_t provizio_handle_possible_radar_point_cloud_packet(provizio_radar_point_c
         return EPROTO;
     }
 
-    return provizio_handle_radar_point_cloud_packet(context, (provizio_radar_point_cloud_packet *)payload,
-                                                    payload_size);
+    return num_contexts != 1
+               ? provizio_handle_radars_point_cloud_packet(contexts, num_contexts,
+                                                           (provizio_radar_point_cloud_packet *)payload, payload_size)
+               : provizio_handle_radar_point_cloud_packet(contexts, (provizio_radar_point_cloud_packet *)payload,
+                                                          payload_size);
 }
 
-int32_t provizio_radar_point_cloud_api_context_open(provizio_radar_point_cloud_api_context *context, uint16_t udp_port,
-                                                    uint64_t receive_timeout)
+int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout, uint8_t check_connection,
+                                               provizio_radar_point_cloud_api_connection *out_connection)
 {
-    if (context->impl.sock != 0)
-    {
-        provizio_error("provizio_radar_point_cloud_api_context_open: Already opened!");
-        return EBUSY;
-    }
-
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (!provizio_socket_valid(sock))
     {
-        provizio_error("provizio_radar_point_cloud_api_context_open: Failed to create a UDP socket!");
+        provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!");
         return sock;
     }
 
-    int32_t status;
+    int32_t status = 0;
     if (receive_timeout)
     {
         status = (int32_t)provizio_socket_set_recv_timeout(sock, receive_timeout);
         if (status != 0)
         {
-            provizio_error("provizio_radar_point_cloud_api_context_open: Setting receive_timeout failed!");
+            provizio_error("provizio_radar_point_cloud_api_connect: Setting receive_timeout failed!");
             provizio_socket_close(sock);
             return status;
         }
@@ -277,42 +376,69 @@ int32_t provizio_radar_point_cloud_api_context_open(provizio_radar_point_cloud_a
     status = (int32_t)bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
     if (status != 0)
     {
-        provizio_error("provizio_radar_point_cloud_api_context_open: Failed to bind a UDP socket!");
+        provizio_error("provizio_radar_point_cloud_api_connect: Failed to bind a UDP socket!");
         provizio_socket_close(sock);
         return status;
     }
 
-    context->impl.sock = sock;
+    if (check_connection)
+    {
+        provizio_radar_point_cloud_packet packet;
+        int32_t received = (int32_t)recv(sock, &packet, sizeof(packet), 0);
+        if (received == (int32_t)-1)
+        {
+            int32_t error_code = (int32_t)errno;
+            if (error_code == (int32_t)EWOULDBLOCK)
+            {
+                return EAGAIN;
+            }
+
+            return error_code;
+        }
+    }
+
+    out_connection->sock = sock;
     return 0;
 }
 
-int32_t provizio_radar_point_cloud_api_receive_packet(provizio_radar_point_cloud_api_context *context)
+int32_t provizio_radar_point_cloud_api_context_receive_packet(provizio_radar_point_cloud_api_context *context,
+                                                              provizio_radar_point_cloud_api_connection *connection)
+{
+    return provizio_radar_point_cloud_api_contexts_receive_packet(context, 1, connection);
+}
+
+int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_point_cloud_api_context *contexts,
+                                                               size_t num_contexts,
+                                                               provizio_radar_point_cloud_api_connection *connection)
 {
     provizio_radar_point_cloud_packet packet;
 
-    int received = recv(context->impl.sock, &packet, sizeof(packet), 0);
-    if (received == -1)
+    int32_t received = (int32_t)recv(connection->sock, &packet, sizeof(packet), 0);
+    if (received == (int32_t)-1)
     {
         if (errno != EAGAIN && errno != EWOULDBLOCK)
         {
-            provizio_error("provizio_radar_point_cloud_api_receive_packet: Failed to receive");
+            provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive");
             return (int32_t)errno;
         }
 
         return (int32_t)EAGAIN;
     }
 
-    return provizio_handle_radar_point_cloud_packet(context, &packet, (size_t)received);
+    return num_contexts != 1
+               ? provizio_handle_radars_point_cloud_packet(contexts, num_contexts, &packet, (size_t)received)
+               : provizio_handle_radar_point_cloud_packet(contexts, &packet, (size_t)received);
 }
 
-int32_t provizio_radar_point_cloud_api_context_close(provizio_radar_point_cloud_api_context *context)
+int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_connection *connection)
 {
-    int32_t status = provizio_socket_close(context->impl.sock);
+    int32_t status = provizio_socket_close(connection->sock);
     if (status != 0)
     {
-        provizio_error("provizio_radar_point_cloud_api_context_close: provizio_socket_close failed!");
+        provizio_error("provizio_radar_point_cloud_api_close: provizio_socket_close failed!");
         return status;
     }
 
+    connection->sock = PROVIZIO__INVALID_SOCKET;
     return 0;
 }

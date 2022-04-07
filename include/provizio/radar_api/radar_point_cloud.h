@@ -156,7 +156,6 @@ typedef void (*provizio_radar_point_cloud_callback)(const provizio_radar_point_c
 #define PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT 2
 typedef struct provizio_radar_point_cloud_api_context_impl
 {
-    PROVIZIO__SOCKET sock;
     uint32_t latest_frame;
     provizio_radar_point_cloud
         point_clouds_being_received[PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT];
@@ -169,78 +168,163 @@ typedef struct provizio_radar_point_cloud_api_context
 {
     provizio_radar_point_cloud_callback callback;
     void *user_data;
+    uint16_t radar_position_id;
 
     provizio_radar_point_cloud_api_context_impl impl;
 } provizio_radar_point_cloud_api_context;
 
+typedef struct provizio_radar_point_cloud_api_connection
+{
+    PROVIZIO__SOCKET sock;
+} provizio_radar_point_cloud_api_connection;
+
 /**
- * @brief Initializes a provizio_radar_point_cloud_api_context object
+ * @brief Initializes a provizio_radar_point_cloud_api_context object to handle a single radar
  *
  * @param callback Function to be called on receiving a complete or partial radar point cloud
  * @param user_data Custom argument to be passed to the callback, may be NULL
- * @param out_context The provizio_radar_point_cloud_api_context object to be initialized
+ * @param context The provizio_radar_point_cloud_api_context object to initialize
+ *
+ * @warning radar_position_id of all packets handled by this context must be same
  */
-PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_context_create(
-    provizio_radar_point_cloud_callback callback, void *user_data, provizio_radar_point_cloud_api_context *out_context);
+PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback,
+                                                                    void *user_data,
+                                                                    provizio_radar_point_cloud_api_context *context);
 
 /**
- * @brief Handles a single radar point cloud UDP packet
+ * @brief Initializes multiple provizio_radar_point_cloud_api_context objects to handle packets from multiple radars
  *
- * @param context Previously created provizio_radar_point_cloud_api_context (doesn't have to be opened)
+ * @param callback Function to be called on receiving a complete or partial radar point cloud
+ * @param user_data Custom argument to be passed to the callback, may be NULL
+ * @param contexts Array of num_contexts of provizio_radar_point_cloud_api_context objects to initialize
+ * @param num_contexts Number of contexts (i.e. max numbers of radars to handle) to initialize
+ */
+PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_callback callback,
+                                                                     void *user_data,
+                                                                     provizio_radar_point_cloud_api_context *contexts,
+                                                                     size_t num_contexts);
+
+/**
+ * @brief Handles a single radar point cloud UDP packet from a single radar
+ *
+ * @param context Previously initialized provizio_radar_point_cloud_api_context
  * @param packet Valid provizio_radar_point_cloud_packet
  * @param packet_size The size of the packet, to check data is valid and avoid out-of-bounds access
  * @return 0 in case the packet was handled successfully, EAGAIN in case the packet was skipped as obsolete, other error
- * code in case of an error
+ * code in case of another error
+ *
+ * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
                                                                     provizio_radar_point_cloud_packet *packet,
                                                                     size_t packet_size);
 
 /**
- * @brief Handles a single Provizio Radar API UDP packet, that can be a provizio_radar_point_cloud_packet or something
- * else
+ * @brief Handles a single radar point cloud UDP packet from one of multiple radars
  *
- * @param context Previously created provizio_radar_point_cloud_api_context (doesn't have to be opened)
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_point_cloud_api_context objects
+ * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
+ * @param packet Valid provizio_radar_point_cloud_packet
+ * @param packet_size The size of the packet, to check data is valid and avoid out-of-bounds access
+ * @return 0 in case the packet was handled successfully, EAGAIN in case the packet was skipped as obsolete, EBUSY in
+ * case num_contexts is not enough, other error code in case of another error
+ */
+PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts,
+                                                                     size_t num_contexts,
+                                                                     provizio_radar_point_cloud_packet *packet,
+                                                                     size_t packet_size);
+
+/**
+ * @brief Handles a single Provizio Radar API UDP packet from a single radar, that can be a correct
+ * provizio_radar_point_cloud_packet or something else
+ *
+ * @param context Previously initialized provizio_radar_point_cloud_api_context
  * @param payload The payload of the UDP packet
  * @param payload_size The size of the payload in bytes
  * @return 0 if it's a provizio_radar_point_cloud_packet and it was handled successfully, EAGAIN if it's not a
  * provizio_radar_point_cloud_packet, other error code if it's a provizio_radar_point_cloud_packet but its handling
- * failed
+ * failed for another reason
+ *
+ * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
+ * be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_point_cloud_packet(
     provizio_radar_point_cloud_api_context *context, const void *payload, size_t payload_size);
 
+/**
+ * @brief Handles a single Provizio Radar API UDP packet from one of multiple radars, that can be a correct
+ * provizio_radar_point_cloud_packet or something else
+ *
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_point_cloud_api_context objects
+ * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
+ * @param payload The payload of the UDP packet
+ * @param payload_size The size of the payload in bytes
+ * @return 0 if it's a provizio_radar_point_cloud_packet and it was handled successfully, EAGAIN if it's not a
+ * provizio_radar_point_cloud_packet, EBUSY in case num_contexts is not enough, other error code if it's a
+ * provizio_radar_point_cloud_packet but its handling failed for another reason
+ *
+ * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
+ * be same (returns an error otherwise)
+ */
+PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
+    provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
+
 #define PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT ((uint16_t)7769)
 
 /**
- * @brief Opens a provizio_radar_point_cloud_api_context to start receiving packets by UDP
+ * @brief Connect to the radar point clouds API to start receiving packets by UDP
  *
- * @param context Previously created provizio_radar_point_cloud_api_context, shouldn't be opened yet
  * @param udp_port UDP port to receive from, by default = PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT
  * @param receive_timeout Max number of nanoseconds provizio_radar_point_cloud_api_receive_packet should wait for a
  * packet, or 0 to wait as long as required
- * @return 0 if successfull, error code otherwise
- */
-PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_open(provizio_radar_point_cloud_api_context *context,
-                                                                       uint16_t udp_port, uint64_t receive_timeout);
-
-/**
- * @brief Receive and handle the next UDP packet using a previously opened provizio_radar_point_cloud_api_context
- *
- * @param context Previously created and opened provizio_radar_point_cloud_api_context
- * @return 0 if received successfully, EAGAIN if timed out, other error value if failed
+ * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
+ * returning a successful result
+ * @param provizio_radar_point_cloud_api_connection to store the connection handle
+ * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t
-provizio_radar_point_cloud_api_receive_packet(provizio_radar_point_cloud_api_context *context);
+provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout, uint8_t check_connection,
+                                       provizio_radar_point_cloud_api_connection *out_connection);
 
 /**
- * @brief Closes a previously opened provizio_radar_point_cloud_api_context
+ * @brief Receive and handle the next UDP packet from a single radar using a previously connected API and a previously
+ * initialized provizio_radar_point_cloud_api_context
  *
- * @param context Previously created and opened provizio_radar_point_cloud_api_context
+ * @param context provizio_radar_point_cloud_api_context previously initialized with
+ * provizio_radar_point_cloud_api_context_init
+ * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * provizio_radar_point_cloud_api_connect
+ * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
+ *
+ * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
+ */
+PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_receive_packet(
+    provizio_radar_point_cloud_api_context *context, provizio_radar_point_cloud_api_connection *connection);
+
+/**
+ * @brief Receive and handle the next UDP packet from one of multiple radars using a previously connected API and a
+ * previously initialized array of provizio_radar_point_cloud_api_context objects
+ *
+ * @param contexts Array of provizio_radar_point_cloud_api_context objects previously initialized with
+ * provizio_radar_point_cloud_api_contexts_init
+ * @param num_contexts Number of objects in contexts
+ * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * provizio_radar_point_cloud_api_connect
+ * @return 0 if received successfully, EAGAIN if timed out or the received packet was obsolete, EBUSY in case
+ * num_contexts is not enough, other error value if failed for another reason
+ */
+PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_contexts_receive_packet(
+    provizio_radar_point_cloud_api_context *contexts, size_t num_contexts,
+    provizio_radar_point_cloud_api_connection *connection);
+
+/**
+ * @brief Closes a previously connected radar point clouds API
+ *
+ * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * provizio_radar_point_cloud_api_connect
  * @return 0 if successfull, error code otherwise
  */
-PROVIZIO__EXTERN_C int32_t
-provizio_radar_point_cloud_api_context_close(provizio_radar_point_cloud_api_context *context);
+PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_connection *connection);
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
 static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_header, packet_type) == 0,

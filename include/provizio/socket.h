@@ -26,6 +26,7 @@
 #include <winsock2.h>
 
 #define PROVIZIO__SOCKET SOCKET
+#define PROVIZIO__INVALID_SOCKET INVALID_SOCKET
 #define PROVIZIO__RECV_RETURN_TYPE int
 
 #else
@@ -36,6 +37,7 @@
 #include <unistd.h>
 
 #define PROVIZIO__SOCKET int
+#define PROVIZIO__INVALID_SOCKET ((int)-1)
 #define PROVIZIO__RECV_RETURN_TYPE ssize_t
 
 #endif
