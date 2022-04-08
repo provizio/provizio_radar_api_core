@@ -16,6 +16,10 @@ cmake_minimum_required(VERSION 3.1.0)
 
 project(provizio_radar_api_core VERSION 0.1.0)
 
+# Enable CTest
+include(CTest)
+enable_testing()
+
 # Release by default
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -31,30 +35,44 @@ endif(NOT DEFINED TLS_VERIFY)
 
 # ccache
 find_program(CCACHE ccache)
-if(CCACHE AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
+if(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
   message("ccache found!")
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE}")
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE}")
-endif(CCACHE AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
+endif(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
 
 # Static analysis disabled by default
 if(NOT STATIC_ANALYSIS)
   set(STATIC_ANALYSIS
         "OFF"
-        CACHE STRING "Static analysis")
+        CACHE STRING "Enable Static Analysis")
 endif(NOT STATIC_ANALYSIS)
+
+# Generating code coverage info is disabled by default
+if(NOT ENABLE_COVERAGE)
+  set(ENABLE_COVERAGE
+        "OFF"
+        CACHE STRING "Enable Code Coverage Checks")
+endif(NOT ENABLE_COVERAGE)
 
 # Linux/macOS specific checks
 if(UNIX)
   # clang-tidy (use as clang-tidy;arguments)
+  set(CMAKE_C_CLANG_TIDY
+    ""
+    CACHE STRING "clang-tidy binary and config (C)")
   set(CMAKE_CXX_CLANG_TIDY
     ""
-    CACHE STRING "clang-tidy binary and config")
+    CACHE STRING "clang-tidy binary and config (C++)")
   
   # Automatically enable clang-tidy if STATIC_ANALYSIS is turned on
-  if(NOT CMAKE_CXX_CLANG_TIDY AND STATIC_ANALYSIS)
+  if(NOT CMAKE_C_CLANG_TIDY AND STATIC_ANALYSIS)
     message(STATUS "STATIC_ANALYSIS is enabled. Turning on clang-tidy.")
     find_program(CLANG_TIDY_PATH clang-tidy)
     if(CLANG_TIDY_PATH)
+      set(CMAKE_C_CLANG_TIDY
+        "${CLANG_TIDY_PATH}"
+        CACHE STRING "clang-tidy binary and config" FORCE)
       set(CMAKE_CXX_CLANG_TIDY
         "${CLANG_TIDY_PATH}"
         CACHE STRING "clang-tidy binary and config" FORCE)
@@ -132,17 +150,45 @@ if(UNIX)
   if(ENABLE_TSAN)
     message("Enabling TSan")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread")
   elseif(ENABLE_MSAN)
     message("Enabling MSan")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=memory")
   elseif(ENABLE_ASAN)
     message("Enabling ASan, LSan (GCC) and UBSan")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
-    endif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
+    endif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
   endif(ENABLE_TSAN)
 endif(UNIX)
+
+if(ENABLE_COVERAGE)
+  if(BUILD_TESTING)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        message("Enabling code coverage checking")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
+
+        add_custom_target(code_coverage
+          COMMAND lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info"
+          COMMAND genhtml "${CMAKE_BINARY_DIR}/lcov.info" -o "${CMAKE_BINARY_DIR}/code_coverage_report" > "${CMAKE_BINARY_DIR}/genhtml.out" 2>&1
+          COMMAND cat "${CMAKE_BINARY_DIR}/genhtml.out"
+          COMMAND grep "lines.*100\.0\%" "${CMAKE_BINARY_DIR}/genhtml.out")
+      else(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        message(WARNING "Can't enable code coverage checking as only GCC is supported")
+      endif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    else(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      message(WARNING "Can't enable code coverage checking as only Debug builds are supported")
+    endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  else(BUILD_TESTING)
+    message(WARNING "Can't enable code coverage checking as BUILD_TESTING is off")
+  endif(BUILD_TESTING)
+endif(ENABLE_COVERAGE)
 
 # Enable generating compile_commands.json to be used by tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -161,9 +207,7 @@ add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_p
 target_include_directories(provizio_radar_api_core PUBLIC include)
 set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA
 
-# Enable CTest
-include(CTest)
-enable_testing()
+# Add tests, if enabled
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif(BUILD_TESTING)
