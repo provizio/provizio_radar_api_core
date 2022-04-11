@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "unity/unity.h"
-
 #include "provizio/socket.h"
 
 void setUp(void)
@@ -26,21 +24,19 @@ void tearDown(void)
     provizio_sockets_deinitialize();
 }
 
-void provizio_run_test_common(void);
-void provizio_run_test_util(void);
-void provizio_run_test_radar_point_cloud(void);
-void provizio_run_test_core(void);
+int provizio_run_test_common(void);
+int provizio_run_test_util(void);
+int provizio_run_test_radar_point_cloud(void);
 
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
-    UNITY_BEGIN();
+    int result = 0;
+    result = result ? result : provizio_run_test_common();
+    result = result ? result : provizio_run_test_util();
+    result = result ? result : provizio_run_test_radar_point_cloud();
 
-    RUN_TEST(provizio_run_test_common);
-    RUN_TEST(provizio_run_test_util);
-    RUN_TEST(provizio_run_test_radar_point_cloud);
-
-    return UNITY_END();
+    return result;
 }

@@ -77,9 +77,9 @@ PROVIZIO__EXTERN_C int32_t provizio_socket_close(PROVIZIO__SOCKET sock);
 /**
  * @brief Sets a timeout for recv operations on a previously opened socket
  *
- * @param timeout Timeout in nanoseconds
+ * @param timeout_ns Timeout in nanoseconds
  * @return 0 if successfull, error code otherwise
  */
-PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout);
+PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout_ns);
 
 #endif // PROVIZIO_SOCKET

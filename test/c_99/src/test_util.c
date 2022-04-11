@@ -18,7 +18,7 @@
 
 #include "provizio/util.h"
 
-void test_provizio_set_protocol_field_uint8_t(void)
+static void test_provizio_set_protocol_field_uint8_t(void)
 {
     uint8_t test_buffer[3];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -33,7 +33,7 @@ void test_provizio_set_protocol_field_uint8_t(void)
     TEST_ASSERT_EQUAL_UINT8(0xef, test_buffer[2]);
 }
 
-void test_provizio_set_protocol_field_uint16_t(void)
+static void test_provizio_set_protocol_field_uint16_t(void)
 {
     uint8_t test_buffer[3];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -49,7 +49,7 @@ void test_provizio_set_protocol_field_uint16_t(void)
     TEST_ASSERT_EQUAL_UINT8(0xde, test_buffer[2]);
 }
 
-void test_provizio_set_protocol_field_uint32_t(void)
+static void test_provizio_set_protocol_field_uint32_t(void)
 {
     uint8_t test_buffer[5];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -69,7 +69,7 @@ void test_provizio_set_protocol_field_uint32_t(void)
     TEST_ASSERT_EQUAL_UINT8(0xef, test_buffer[4]);
 }
 
-void test_provizio_set_protocol_field_uint64_t(void)
+static void test_provizio_set_protocol_field_uint64_t(void)
 {
     uint8_t test_buffer[9];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -97,7 +97,7 @@ void test_provizio_set_protocol_field_uint64_t(void)
     TEST_ASSERT_EQUAL_UINT8(0xef, test_buffer[8]);
 }
 
-void test_provizio_set_protocol_field_float(void)
+static void test_provizio_set_protocol_field_float(void)
 {
     uint8_t test_buffer[5];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -117,7 +117,7 @@ void test_provizio_set_protocol_field_float(void)
     TEST_ASSERT_EQUAL_FLOAT(test_float, to_float);
 }
 
-void test_provizio_get_protocol_field_uint8_t(void)
+static void test_provizio_get_protocol_field_uint8_t(void)
 {
     uint8_t test_buffer[3] = {0x01, 0x23, 0x45};
     TEST_ASSERT_EQUAL_UINT8(0x01, provizio_get_protocol_field_uint8_t(&test_buffer[0]));
@@ -125,7 +125,7 @@ void test_provizio_get_protocol_field_uint8_t(void)
     TEST_ASSERT_EQUAL_UINT8(0x45, provizio_get_protocol_field_uint8_t(&test_buffer[2]));
 }
 
-void test_provizio_get_protocol_field_uint16_t(void)
+static void test_provizio_get_protocol_field_uint16_t(void)
 {
     uint8_t test_buffer[3] = {0x01, 0x23, 0x45};
 
@@ -136,7 +136,7 @@ void test_provizio_get_protocol_field_uint16_t(void)
     TEST_ASSERT_EQUAL_UINT16((uint16_t)0x2345, provizio_get_protocol_field_uint16_t((uint16_t *)&test_buffer[1]));
 }
 
-void test_provizio_get_protocol_field_uint32_t(void)
+static void test_provizio_get_protocol_field_uint32_t(void)
 {
     uint8_t test_buffer[5] = {0x01, 0x23, 0x45, 0x67, 0x89};
 
@@ -147,7 +147,7 @@ void test_provizio_get_protocol_field_uint32_t(void)
     TEST_ASSERT_EQUAL_UINT32((uint32_t)0x23456789, provizio_get_protocol_field_uint32_t((uint32_t *)&test_buffer[1]));
 }
 
-void test_provizio_get_protocol_field_uint64_t(void)
+static void test_provizio_get_protocol_field_uint64_t(void)
 {
     uint8_t test_buffer[9] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x1f};
 
@@ -160,7 +160,7 @@ void test_provizio_get_protocol_field_uint64_t(void)
                              provizio_get_protocol_field_uint64_t((uint64_t *)&test_buffer[1]));
 }
 
-void test_provizio_get_protocol_field_float(void)
+static void test_provizio_get_protocol_field_float(void)
 {
     uint8_t test_buffer[5];
     memset(test_buffer, 0, sizeof(test_buffer));
@@ -176,16 +176,20 @@ void test_provizio_get_protocol_field_float(void)
     TEST_ASSERT_EQUAL_FLOAT(test_float, provizio_get_protocol_field_float((float *)&test_buffer[1]));
 }
 
-void provizio_run_test_util(void)
+int provizio_run_test_util(void)
 {
-    test_provizio_set_protocol_field_uint8_t();
-    test_provizio_set_protocol_field_uint16_t();
-    test_provizio_set_protocol_field_uint32_t();
-    test_provizio_set_protocol_field_uint64_t();
-    test_provizio_set_protocol_field_float();
-    test_provizio_get_protocol_field_uint8_t();
-    test_provizio_get_protocol_field_uint16_t();
-    test_provizio_get_protocol_field_uint32_t();
-    test_provizio_get_protocol_field_uint64_t();
-    test_provizio_get_protocol_field_float();
+    UNITY_BEGIN();
+
+    RUN_TEST(test_provizio_set_protocol_field_uint8_t);
+    RUN_TEST(test_provizio_set_protocol_field_uint16_t);
+    RUN_TEST(test_provizio_set_protocol_field_uint32_t);
+    RUN_TEST(test_provizio_set_protocol_field_uint64_t);
+    RUN_TEST(test_provizio_set_protocol_field_float);
+    RUN_TEST(test_provizio_get_protocol_field_uint8_t);
+    RUN_TEST(test_provizio_get_protocol_field_uint16_t);
+    RUN_TEST(test_provizio_get_protocol_field_uint32_t);
+    RUN_TEST(test_provizio_get_protocol_field_uint64_t);
+    RUN_TEST(test_provizio_get_protocol_field_float);
+
+    return UNITY_END();
 }

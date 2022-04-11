@@ -47,7 +47,7 @@ int32_t provizio_socket_close(PROVIZIO__SOCKET sock)
 #endif
 }
 
-int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout)
+int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout_ns)
 {
     int32_t status;
 #ifdef _WIN32
@@ -57,9 +57,9 @@ int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout
     const uint64_t seconds_to_nanoseconds = 1000000000ULL;
     const uint64_t microseconds_to_nanoseconds = 1000ULL;
     struct timeval tv;
-    tv.tv_sec = (time_t)(timeout / seconds_to_nanoseconds);
-    tv.tv_usec = (suseconds_t)((timeout % seconds_to_nanoseconds) / microseconds_to_nanoseconds);
-    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+    tv.tv_sec = (time_t)(timeout_ns / seconds_to_nanoseconds);
+    tv.tv_usec = (suseconds_t)((timeout_ns % seconds_to_nanoseconds) / microseconds_to_nanoseconds);
+    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 #endif
 
     return status;

@@ -275,7 +275,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
  * @brief Connect to the radar point clouds API to start receiving packets by UDP
  *
  * @param udp_port UDP port to receive from, by default = PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT
- * @param receive_timeout Max number of nanoseconds provizio_radar_point_cloud_api_receive_packet should wait for a
+ * @param receive_timeout_ns Max number of nanoseconds provizio_radar_point_cloud_api_receive_packet should wait for a
  * packet, or 0 to wait as long as required
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
@@ -283,7 +283,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
  * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t
-provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout, uint8_t check_connection,
+provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
                                        provizio_radar_point_cloud_api_connection *out_connection);
 
 /**

@@ -51,11 +51,11 @@ uint64_t provizio_ntohll(uint64_t v)
     if (*(const char *)(&test_value) == test_value)
     {
         // Byte order needs to be reversed
-        return ((uint64_t)ntohl(v & 0xFFFFFFFF) << 32) | ntohl(v >> 32);
+        return ((uint64_t)ntohl(v & 0xFFFFFFFF) << 32) | ntohl(v >> 32); // LCOV_EXCL_LINE: host CPU arch dependent
     }
     else
     {
-        return v;
+        return v; // LCOV_EXCL_LINE: host CPU arch dependent
     }
 }
 

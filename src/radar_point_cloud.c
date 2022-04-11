@@ -98,7 +98,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         }
     }
 
-    // We have to drop the oldest incomplete point cloud unless it's newer than packet_header
+    // We have to drop (well, return incomplete) the oldest incomplete point cloud unless it's newer than packet_header
     if (!result)
     {
         for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
@@ -345,25 +345,32 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
                                                           payload_size);
 }
 
-int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout, uint8_t check_connection,
+int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
                                                provizio_radar_point_cloud_api_connection *out_connection)
 {
+    memset(out_connection, 0, sizeof(provizio_radar_point_cloud_api_connection));
+    out_connection->sock = PROVIZIO__INVALID_SOCKET;
+
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (!provizio_socket_valid(sock))
     {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!");
         return sock;
+        // LCOV_EXCL_STOP
     }
 
     int32_t status = 0;
-    if (receive_timeout)
+    if (receive_timeout_ns)
     {
-        status = (int32_t)provizio_socket_set_recv_timeout(sock, receive_timeout);
+        status = (int32_t)provizio_socket_set_recv_timeout(sock, receive_timeout_ns);
         if (status != 0)
         {
-            provizio_error("provizio_radar_point_cloud_api_connect: Setting receive_timeout failed!");
+            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+            provizio_error("provizio_radar_point_cloud_api_connect: Setting timeout failed!");
             provizio_socket_close(sock);
             return status;
+            // LCOV_EXCL_STOP
         }
     }
 
@@ -387,13 +394,16 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
         int32_t received = (int32_t)recv(sock, &packet, sizeof(packet), 0);
         if (received == (int32_t)-1)
         {
-            int32_t error_code = (int32_t)errno;
+            const int32_t error_code = (int32_t)errno;
+
+            provizio_socket_close(sock);
+
             if (error_code == (int32_t)EWOULDBLOCK)
             {
                 return EAGAIN;
             }
 
-            return error_code;
+            return error_code; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
         }
     }
 

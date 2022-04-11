@@ -22,17 +22,17 @@
 char provizio_test_common_warning[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
 char provizio_test_common_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
 
-void test_provizio_common_on_warning(const char *warning)
+static void test_provizio_common_on_warning(const char *warning)
 {
-    strcpy(provizio_test_common_warning, warning);
+    strncpy(provizio_test_common_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
 }
 
-void test_provizio_common_on_error(const char *error)
+static void test_provizio_common_on_error(const char *error)
 {
-    strcpy(provizio_test_common_error, error);
+    strncpy(provizio_test_common_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
 }
 
-void test_provizio_warnings(void)
+static void test_provizio_warnings(void)
 {
     // Check it doen't crash
     provizio_warning("test_warning");
@@ -48,7 +48,7 @@ void test_provizio_warnings(void)
     TEST_ASSERT_EQUAL_STRING("test_warning_2", provizio_test_common_warning); // Check it didn't change
 }
 
-void test_provizio_errors(void)
+static void test_provizio_errors(void)
 {
     // Check it doen't crash
     provizio_error("test_error");
@@ -64,11 +64,15 @@ void test_provizio_errors(void)
     TEST_ASSERT_EQUAL_STRING("test_error_2", provizio_test_common_error); // Check it didn't change
 }
 
-void provizio_run_test_common(void)
+int provizio_run_test_common(void)
 {
     memset(provizio_test_common_warning, 0, sizeof(provizio_test_common_warning));
     memset(provizio_test_common_error, 0, sizeof(provizio_test_common_error));
 
-    test_provizio_warnings();
-    test_provizio_errors();
+    UNITY_BEGIN();
+
+    RUN_TEST(test_provizio_warnings);
+    RUN_TEST(test_provizio_errors);
+
+    return UNITY_END();
 }
