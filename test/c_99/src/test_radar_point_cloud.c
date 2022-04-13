@@ -69,12 +69,13 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
     const float signal_to_noise_ratio_min = 2.0F;
     const float signal_to_noise_ratio_max = 50.0F;
     const float signal_to_noise_ratio_step = 3.73F;
+    const float half = 0.5F;
 
-    float frame_x = (x_min + x_max) / 2.0F;
-    float frame_y = (y_min + y_max) / 2.0F;
-    float frame_z = (z_min + z_max) / 2.0F;
-    float frame_velocity = (velocity_min + velocity_max) / 2.0F;
-    float frame_signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) / 2.0F;
+    float frame_x = (x_min + x_max) * half;
+    float frame_y = (y_min + y_max) * half;
+    float frame_z = (z_min + z_max) * half;
+    float frame_velocity = (velocity_min + velocity_max) * half;
+    float frame_signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) * half;
 
     uint16_t num_points_left = drop_after_num_points;
     while (num_points_left > 0)
@@ -83,11 +84,11 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
                                               ? num_points_left
                                               : PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET;
 
-        float x;
-        float y;
-        float z;
-        float velocity;
-        float signal_to_noise_ratio;
+        float x = 0;
+        float y = 0;
+        float z = 0;
+        float velocity = 0;
+        float signal_to_noise_ratio = 0;
 
         for (size_t i = 0; i < num_radars; ++i)
         {
@@ -110,7 +111,7 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
 
             for (uint16_t i = 0; i < points_in_packet; ++i)
             {
-#define PROVIZIO__NEXT_TEST_VALUE(v) v##_min + fmodf(v + v##_step - v##_min, v##_max - v##_min)
+#define PROVIZIO__NEXT_TEST_VALUE(v) ((v##_min) + fmodf((v) + (v##_step) - (v##_min), (v##_max) - (v##_min)))
                 x = PROVIZIO__NEXT_TEST_VALUE(x);
                 y = PROVIZIO__NEXT_TEST_VALUE(y);
                 z = PROVIZIO__NEXT_TEST_VALUE(z);
@@ -197,7 +198,7 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     my_address.sin_port = 0;                 // Any port
     my_address.sin_addr.s_addr = INADDR_ANY; // Any address
 
-    int32_t status;
+    int32_t status = -1;
     if ((status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address))) != 0)
     {
         // LCOV_EXCL_START: No need to achieve 100% coverage in test code
@@ -513,26 +514,40 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[0].num_points_received);
 
     // First point
-    TEST_ASSERT_EQUAL_FLOAT(12.33F, callback_data->last_point_clouds[0].radar_points[0].x_meters);
-    TEST_ASSERT_EQUAL_FLOAT(1.17F, callback_data->last_point_clouds[0].radar_points[0].y_meters);
-    TEST_ASSERT_EQUAL_FLOAT(11.97F, callback_data->last_point_clouds[0].radar_points[0].z_meters);
-    TEST_ASSERT_EQUAL_FLOAT(5.31F, callback_data->last_point_clouds[0].radar_points[0].velocity_m_s);
-    TEST_ASSERT_EQUAL_FLOAT(29.73F, callback_data->last_point_clouds[0].radar_points[0].signal_to_noise_ratio);
+    TEST_ASSERT_EQUAL_FLOAT(12.33F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[0].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(1.17F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[0].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(11.97F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[0].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(5.31F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[0].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(29.73F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[0].signal_to_noise_ratio);
 
     // Last point
-    TEST_ASSERT_EQUAL_FLOAT(29.5F, callback_data->last_point_clouds[0].radar_points[num_points - 1].x_meters);
-    TEST_ASSERT_EQUAL_FLOAT(-1.4375F, callback_data->last_point_clouds[0].radar_points[num_points - 1].y_meters);
-    TEST_ASSERT_EQUAL_FLOAT(22.4543F, callback_data->last_point_clouds[0].radar_points[num_points - 1].z_meters);
-    TEST_ASSERT_EQUAL_FLOAT(-1.95574F, callback_data->last_point_clouds[0].radar_points[num_points - 1].velocity_m_s);
-    TEST_ASSERT_EQUAL_FLOAT(42.63091F,
+    TEST_ASSERT_EQUAL_FLOAT(29.5F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points - 1].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(-1.4375F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points - 1].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(22.4543F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points - 1].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(-1.95574F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points - 1].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(42.63091F, // NOLINT
                             callback_data->last_point_clouds[0].radar_points[num_points - 1].signal_to_noise_ratio);
 
     // Next after last (should be all zero)
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[0].radar_points[num_points].x_meters);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[0].radar_points[num_points].y_meters);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[0].radar_points[num_points].z_meters);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[0].radar_points[num_points].velocity_m_s);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[0].radar_points[num_points].signal_to_noise_ratio);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points].x_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points].y_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points].z_meters);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                            callback_data->last_point_clouds[0].radar_points[num_points].signal_to_noise_ratio);
 
     free(callback_data);
 }
@@ -587,27 +602,39 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
         TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[i].num_points_received);
 
         // First point
-        TEST_ASSERT_EQUAL_FLOAT(12.33F, callback_data->last_point_clouds[i].radar_points[0].x_meters);
-        TEST_ASSERT_EQUAL_FLOAT(1.17F, callback_data->last_point_clouds[i].radar_points[0].y_meters);
-        TEST_ASSERT_EQUAL_FLOAT(11.97F, callback_data->last_point_clouds[i].radar_points[0].z_meters);
-        TEST_ASSERT_EQUAL_FLOAT(5.31F, callback_data->last_point_clouds[i].radar_points[0].velocity_m_s);
-        TEST_ASSERT_EQUAL_FLOAT(29.73F, callback_data->last_point_clouds[i].radar_points[0].signal_to_noise_ratio);
+        TEST_ASSERT_EQUAL_FLOAT(12.33F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[0].x_meters);
+        TEST_ASSERT_EQUAL_FLOAT(1.17F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[0].y_meters);
+        TEST_ASSERT_EQUAL_FLOAT(11.97F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[0].z_meters);
+        TEST_ASSERT_EQUAL_FLOAT(5.31F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[0].velocity_m_s);
+        TEST_ASSERT_EQUAL_FLOAT(29.73F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[0].signal_to_noise_ratio);
 
         // Last point
-        TEST_ASSERT_EQUAL_FLOAT(29.5F, callback_data->last_point_clouds[i].radar_points[num_points - 1].x_meters);
-        TEST_ASSERT_EQUAL_FLOAT(-1.4375F, callback_data->last_point_clouds[i].radar_points[num_points - 1].y_meters);
-        TEST_ASSERT_EQUAL_FLOAT(22.4543F, callback_data->last_point_clouds[i].radar_points[num_points - 1].z_meters);
-        TEST_ASSERT_EQUAL_FLOAT(-1.95574F,
+        TEST_ASSERT_EQUAL_FLOAT(29.5F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points - 1].x_meters);
+        TEST_ASSERT_EQUAL_FLOAT(-1.4375F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points - 1].y_meters);
+        TEST_ASSERT_EQUAL_FLOAT(22.4543F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points - 1].z_meters);
+        TEST_ASSERT_EQUAL_FLOAT(-1.95574F, // NOLINT
                                 callback_data->last_point_clouds[i].radar_points[num_points - 1].velocity_m_s);
-        TEST_ASSERT_EQUAL_FLOAT(42.63091F,
+        TEST_ASSERT_EQUAL_FLOAT(42.63091F, // NOLINT
                                 callback_data->last_point_clouds[i].radar_points[num_points - 1].signal_to_noise_ratio);
 
         // Next after last (should be all zero)
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[i].radar_points[num_points].x_meters);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[i].radar_points[num_points].y_meters);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[i].radar_points[num_points].z_meters);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, callback_data->last_point_clouds[i].radar_points[num_points].velocity_m_s);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F,
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points].x_meters);
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points].y_meters);
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points].z_meters);
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
+                                callback_data->last_point_clouds[i].radar_points[num_points].velocity_m_s);
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, // NOLINT
                                 callback_data->last_point_clouds[i].radar_points[num_points].signal_to_noise_ratio);
     }
 
@@ -637,7 +664,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     thread_data.num_points = num_points;
     thread_data.stop_condition.mutex = &mutex;
     thread_data.stop_condition.stop_flag = &stop_flag;
-    pthread_t thread;
+    pthread_t thread = 0;
     TEST_ASSERT_EQUAL(0, pthread_create(&thread, NULL, &test_stop_when_ordered_thread, &thread_data));
 
     test_provizio_radar_point_cloud_callback_data *callback_data =
@@ -677,6 +704,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
 {
     const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint64_t receive_timeout_ns = 100000000ULL; // 0.1s
+    const int32_t thousand = 1000;
 
     provizio_radar_point_cloud_api_context context;
     provizio_radar_point_cloud_api_context_init(NULL, NULL, &context);
@@ -691,7 +719,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
                             provizio_radar_point_cloud_api_connect(port_number, receive_timeout_ns, 1, &connection));
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
     int32_t took_time_ms =
-        (int32_t)((time_now.tv_sec - time_was.tv_sec) * 1000 + (time_now.tv_usec - time_was.tv_usec) / 1000);
+        (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
     TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms);
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 
@@ -702,7 +730,8 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_was, NULL));
     TEST_ASSERT_EQUAL_INT32(EAGAIN, provizio_radar_point_cloud_api_context_receive_packet(&context, &connection));
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
-    took_time_ms = (int32_t)((time_now.tv_sec - time_was.tv_sec) * 1000 + (time_now.tv_usec - time_was.tv_usec) / 1000);
+    took_time_ms =
+        (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
     TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms);
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 

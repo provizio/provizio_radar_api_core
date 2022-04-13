@@ -24,11 +24,11 @@
     {                                                                                                                  \
         if (PROVIZIO__IS_ALIGNED(FIELD))                                                                               \
         {                                                                                                              \
-            *FIELD = VALUE;                                                                                            \
+            *(FIELD) = (VALUE);                                                                                        \
         }                                                                                                              \
         else                                                                                                           \
         {                                                                                                              \
-            memcpy(FIELD, &VALUE, sizeof(*FIELD));                                                                     \
+            memcpy((FIELD), &(VALUE), sizeof(*(FIELD)));                                                               \
         }                                                                                                              \
     } while (0)
 
@@ -37,26 +37,27 @@
     {                                                                                                                  \
         if (PROVIZIO__IS_ALIGNED(FIELD))                                                                               \
         {                                                                                                              \
-            VALUE = *FIELD;                                                                                            \
+            (VALUE) = *(FIELD);                                                                                        \
         }                                                                                                              \
         else                                                                                                           \
         {                                                                                                              \
-            memcpy(&VALUE, FIELD, sizeof(VALUE));                                                                      \
+            memcpy(&(VALUE), (FIELD), sizeof(VALUE));                                                                  \
         }                                                                                                              \
     } while (0)
 
 uint64_t provizio_ntohll(uint64_t v)
 {
+    const size_t bits_32 = 32;
+    const uint64_t bits_32_mask = 0xFFFFFFFF;
+
     const int test_value = 1;
     if (*(const char *)(&test_value) == test_value)
     {
-        // Byte order needs to be reversed
-        return ((uint64_t)ntohl(v & 0xFFFFFFFF) << 32) | ntohl(v >> 32); // LCOV_EXCL_LINE: host CPU arch dependent
+        // Byte order needs to be reversed (lcov excluded as it's host CPU arch dependent)
+        return ((uint64_t)ntohl(v & bits_32_mask) << bits_32) | ntohl(v >> bits_32); // LCOV_EXCL_LINE
     }
-    else
-    {
-        return v; // LCOV_EXCL_LINE: host CPU arch dependent
-    }
+
+    return v; // LCOV_EXCL_LINE: host CPU arch dependent
 }
 
 uint64_t provizio_htonll(uint64_t v)
@@ -100,28 +101,28 @@ uint8_t provizio_get_protocol_field_uint8_t(const uint8_t *field)
 
 uint16_t provizio_get_protocol_field_uint16_t(const uint16_t *field)
 {
-    uint16_t value;
+    uint16_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
     return ntohs(value);
 }
 
 uint32_t provizio_get_protocol_field_uint32_t(const uint32_t *field)
 {
-    uint32_t value;
+    uint32_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
     return ntohl(value);
 }
 
 uint64_t provizio_get_protocol_field_uint64_t(const uint64_t *field)
 {
-    uint64_t value;
+    uint64_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
     return provizio_ntohll(value);
 }
 
 float provizio_get_protocol_field_float(const float *field)
 {
-    float value;
+    float value = 0;
     PROVIZIO__GET_FIELD(field, value);
     return value;
 }

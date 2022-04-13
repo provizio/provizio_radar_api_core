@@ -49,7 +49,7 @@ int32_t provizio_socket_close(PROVIZIO__SOCKET sock)
 
 int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout_ns)
 {
-    int32_t status;
+    int32_t status = -1;
 #ifdef _WIN32
     const uint32_t timeout_ms = (uint32_t)(timeout / 1000000ULL);
     status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout_ms, sizeof(timeout_ms));

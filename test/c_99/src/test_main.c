@@ -14,12 +14,12 @@
 
 #include "provizio/socket.h"
 
-void setUp(void)
+void setUp(void) // NOLINT: this exact name is required by the unit testing framework
 {
     provizio_sockets_initialize();
 }
 
-void tearDown(void)
+void tearDown(void) // NOLINT: this exact name is required by the unit testing framework
 {
     provizio_sockets_deinitialize();
 }
