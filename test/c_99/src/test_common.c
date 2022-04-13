@@ -24,12 +24,12 @@ char provizio_test_common_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
 
 static void test_provizio_common_on_warning(const char *warning)
 {
-    strncpy(provizio_test_common_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
+    strncpy(provizio_test_common_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 static void test_provizio_common_on_error(const char *error)
 {
-    strncpy(provizio_test_common_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
+    strncpy(provizio_test_common_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 static void test_provizio_warnings(void)

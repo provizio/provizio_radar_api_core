@@ -24,6 +24,7 @@ void provizio_return_point_cloud(provizio_radar_point_cloud_api_context *context
                                  provizio_radar_point_cloud *point_cloud)
 {
     // First of all, make sure all older but incomplete point clouds have been already returned
+#pragma unroll
     for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         provizio_radar_point_cloud *other_point_cloud = &context->impl.point_clouds_being_received[i];
@@ -74,6 +75,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     }
 
     // Look for a point cloud already being received
+#pragma unroll
     for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         point_cloud = &context->impl.point_clouds_being_received[i];
@@ -92,6 +94,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     provizio_radar_point_cloud *result = NULL;
 
     // Look for an empty point cloud to be used
+#pragma unroll
     for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         point_cloud = &context->impl.point_clouds_being_received[i];
@@ -104,6 +107,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     // We have to drop (well, return incomplete) the oldest incomplete point cloud unless it's newer than packet_header
     if (!result)
     {
+#pragma unroll
         for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
         {
             point_cloud = &context->impl.point_clouds_being_received[i];

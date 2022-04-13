@@ -33,12 +33,12 @@ char provizio_test_radar_point_cloud_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
 
 static void test_provizio_radar_point_cloud_on_warning(const char *warning)
 {
-    strncpy(provizio_test_radar_point_cloud_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
+    strncpy(provizio_test_radar_point_cloud_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 static void test_provizio_radar_point_cloud_on_error(const char *error)
 {
-    strncpy(provizio_test_radar_point_cloud_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH);
+    strncpy(provizio_test_radar_point_cloud_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 typedef int32_t (*provizio_radar_point_cloud_packet_callback)(const provizio_radar_point_cloud_packet *packet,
@@ -1122,6 +1122,7 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
 int32_t provizio_run_test_radar_point_cloud(void)
 {
     memset(provizio_test_radar_point_cloud_warning, 0, sizeof(provizio_test_radar_point_cloud_warning));
+    memset(provizio_test_radar_point_cloud_error, 0, sizeof(provizio_test_radar_point_cloud_error));
 
     UNITY_BEGIN();
 
