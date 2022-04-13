@@ -99,6 +99,7 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
             signal_to_noise_ratio = frame_signal_to_noise_ratio;
 
             provizio_radar_point_cloud_packet packet;
+            memset(&packet, 0, sizeof(packet));
             provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.packet_type,
                                                  PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
             provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version,
@@ -215,6 +216,7 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     target_address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     send_point_cloud_packet_data send_data;
+    memset(&send_data, 0, sizeof(send_data));
     send_data.sock = sock;
     send_data.target_address = (struct sockaddr *)&target_address;
     send_data.further_callback = on_packet_sent;
