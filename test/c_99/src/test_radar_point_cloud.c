@@ -18,8 +18,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <time.h>
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#else
+#include <sys/time.h>
+#endif
 
 #include "unity/unity.h"
 
@@ -40,6 +47,50 @@ static void test_provizio_radar_point_cloud_on_error(const char *error)
 {
     strncpy(provizio_test_radar_point_cloud_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
+
+#ifdef WIN32
+/**
+ * @brief Tests-purpose implementation of *nix gettimeofday for Windows so we can measure how much time specific calls
+ * take
+ *
+ * @param tv Output timeval (doesn't actually do epochs correction as only used in tests to measure time intervals)
+ * @param tz Ignored
+ * @return int Always 0 (i.e. never expected to fail)
+ */
+static int gettimeofday(struct timeval *tv, void *tz)
+{
+    // We don't specify timezone in these tests anyway
+    (void)tz;
+
+    SYSTEMTIME system_time;
+    GetSystemTime(&system_time);
+
+    FILETIME file_time;
+    SystemTimeToFileTime(&system_time, &file_time);
+
+    const uint64_t time = ((uint64_t)file_time.dwLowDateTime) + (((uint64_t)file_time.dwHighDateTime) << 32);
+    tv->tv_sec = (int32_t)(time / 10000000L);
+    tv->tv_usec = (int32_t)(system_time.wMilliseconds * 1000);
+
+    return 0;
+}
+
+/**
+ * @brief Tests-purpose implementation of *nix nanosleep for Windows (though only supports milliseconds precision)
+ *
+ * @param req How long to sleep
+ * @param rem Ignored
+ */
+static void nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    // We don't use rem in these tests anyway
+    (void)rem;
+
+    const time_t sec_conversion = 1000;
+    const time_t nsec_conversion = 1000000;
+    Sleep((uint32_t)(req->tv_sec * sec_conversion + req->tv_nsec / nsec_conversion));
+}
+#endif
 
 typedef int32_t (*provizio_radar_point_cloud_packet_callback)(const provizio_radar_point_cloud_packet *packet,
                                                               void *user_data);
@@ -110,7 +161,7 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
             provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
             provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, points_in_packet);
 
-            for (uint16_t i = 0; i < points_in_packet; ++i)
+            for (uint16_t j = 0; j < points_in_packet; ++j)
             {
 #define PROVIZIO__NEXT_TEST_VALUE(v) ((v##_min) + fmodf((v) + (v##_step) - (v##_min), (v##_max) - (v##_min)))
                 x = PROVIZIO__NEXT_TEST_VALUE(x);
@@ -120,11 +171,11 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
                 signal_to_noise_ratio = PROVIZIO__NEXT_TEST_VALUE(signal_to_noise_ratio);
 #undef PROVIZIO__NEXT_TEST_VALUE
 
-                provizio_set_protocol_field_float(&packet.radar_points[i].x_meters, x);
-                provizio_set_protocol_field_float(&packet.radar_points[i].y_meters, y);
-                provizio_set_protocol_field_float(&packet.radar_points[i].z_meters, z);
-                provizio_set_protocol_field_float(&packet.radar_points[i].velocity_m_s, velocity);
-                provizio_set_protocol_field_float(&packet.radar_points[i].signal_to_noise_ratio, signal_to_noise_ratio);
+                provizio_set_protocol_field_float(&packet.radar_points[j].x_meters, x);
+                provizio_set_protocol_field_float(&packet.radar_points[j].y_meters, y);
+                provizio_set_protocol_field_float(&packet.radar_points[j].z_meters, z);
+                provizio_set_protocol_field_float(&packet.radar_points[j].velocity_m_s, velocity);
+                provizio_set_protocol_field_float(&packet.radar_points[j].signal_to_noise_ratio, signal_to_noise_ratio);
             }
 
             const int32_t result = callback(&packet, user_data);
@@ -160,8 +211,10 @@ static int32_t send_point_cloud_packet(const provizio_radar_point_cloud_packet *
 {
     send_point_cloud_packet_data *data = (send_point_cloud_packet_data *)user_data;
 
-    const int32_t sent = sendto(data->sock, packet, provizio_radar_point_cloud_packet_size(&packet->header), 0,
-                                data->target_address, sizeof(struct sockaddr_in));
+    // Conversion to int32_t may be required as sendto may return different types in different platforms
+    const int32_t sent = (int32_t)sendto(data->sock, (const char *)packet, // NOLINT
+                                         (uint16_t)provizio_radar_point_cloud_packet_size(&packet->header), 0,
+                                         data->target_address, sizeof(struct sockaddr_in));
 
     if (sent < 0)
     {
@@ -188,8 +241,9 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     if (!provizio_socket_valid(sock))
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+        const int32_t status = errno;
         provizio_error("send_test_pointcloud: Failed to create a UDP socket!");
-        return 1;
+        return status;
         // LCOV_EXCL_STOP
     }
 
@@ -252,7 +306,7 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
     const uint64_t time_between_frames = 100000000ULL;
     struct timespec time_between_frames_timespec;
     time_between_frames_timespec.tv_sec = 0;
-    time_between_frames_timespec.tv_nsec = time_between_frames;
+    time_between_frames_timespec.tv_nsec = (int32_t)time_between_frames;
 
     uint32_t frame_index = first_frame_index;
     uint64_t timestamp = initial_timestamp;
@@ -668,7 +722,8 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     thread_data.num_points = num_points;
     thread_data.stop_condition.mutex = &mutex;
     thread_data.stop_condition.stop_flag = &stop_flag;
-    pthread_t thread = 0;
+    pthread_t thread;
+    memset(&thread, 0, sizeof(thread)); // Required by clang-tidy to avoid having non-initialized vars
     TEST_ASSERT_EQUAL(0, pthread_create(&thread, NULL, &test_stop_when_ordered_thread, &thread_data));
 
     test_provizio_radar_point_cloud_callback_data *callback_data =

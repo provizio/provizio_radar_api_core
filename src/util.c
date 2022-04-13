@@ -57,7 +57,8 @@ uint64_t provizio_ntohll(uint64_t v)
         // lcov excluded as it's host CPU arch dependent
         // linting disabled as ntohl implementation is up to a platform (it uses asm instructions in some platforms,
         // which clang-tidy hates)
-        return ((uint64_t)ntohl(v & bits_32_mask) << bits_32) | ntohl(v >> bits_32); // NOLINT // LCOV_EXCL_LINE
+        return ((uint64_t)ntohl((uint32_t)(v & bits_32_mask)) << bits_32) | // NOLINT // LCOV_EXCL_LINE
+               ntohl((uint32_t)(v >> bits_32));                             // NOLINT // LCOV_EXCL_LINE
     }
 
     return v; // LCOV_EXCL_LINE: host CPU arch dependent

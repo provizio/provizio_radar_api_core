@@ -362,8 +362,9 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     if (!provizio_socket_valid(sock))
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+        const int32_t status = errno;
         provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!");
-        return sock;
+        return status;
         // LCOV_EXCL_STOP
     }
 
@@ -401,7 +402,7 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     if (check_connection)
     {
         provizio_radar_point_cloud_packet packet;
-        int32_t received = (int32_t)recv(sock, &packet, sizeof(packet), 0);
+        int32_t received = (int32_t)recv(sock, (char *)&packet, sizeof(packet), 0);
         if (received == (int32_t)-1)
         {
             const int32_t error_code = (int32_t)errno;
@@ -433,7 +434,7 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
 {
     provizio_radar_point_cloud_packet packet;
 
-    int32_t received = (int32_t)recv(connection->sock, &packet, sizeof(packet), 0);
+    int32_t received = (int32_t)recv(connection->sock, (char *)&packet, sizeof(packet), 0);
     if (received == (int32_t)-1)
     {
         if (errno != EAGAIN && errno != EWOULDBLOCK)
