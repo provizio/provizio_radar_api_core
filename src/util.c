@@ -53,8 +53,11 @@ uint64_t provizio_ntohll(uint64_t v)
     const int test_value = 1;
     if (*(const char *)(&test_value) == test_value)
     {
-        // Byte order needs to be reversed (lcov excluded as it's host CPU arch dependent)
-        return ((uint64_t)ntohl(v & bits_32_mask) << bits_32) | ntohl(v >> bits_32); // LCOV_EXCL_LINE
+        // Byte order needs to be reversed
+        // lcov excluded as it's host CPU arch dependent
+        // linting disabled as ntohl implementation is up to a platform (it uses asm instructions in some platforms,
+        // which clang-tidy hates)
+        return ((uint64_t)ntohl(v & bits_32_mask) << bits_32) | ntohl(v >> bits_32); // NOLINT // LCOV_EXCL_LINE
     }
 
     return v; // LCOV_EXCL_LINE: host CPU arch dependent
@@ -73,13 +76,17 @@ void provizio_set_protocol_field_uint8_t(uint8_t *field, uint8_t value)
 
 void provizio_set_protocol_field_uint16_t(uint16_t *field, uint16_t value)
 {
-    value = htons(value);
+    // linting disabled as htons implementation is up to a platform (it uses asm instructions in some platforms,
+    // which clang-tidy hates)
+    value = htons(value); // NOLINT
     PROVIZIO__SET_FIELD(field, value);
 }
 
 void provizio_set_protocol_field_uint32_t(uint32_t *field, uint32_t value)
 {
-    value = htonl(value);
+    // linting disabled as htonl implementation is up to a platform (it uses asm instructions in some platforms,
+    // which clang-tidy hates)
+    value = htonl(value); // NOLINT
     PROVIZIO__SET_FIELD(field, value);
 }
 
@@ -103,20 +110,27 @@ uint16_t provizio_get_protocol_field_uint16_t(const uint16_t *field)
 {
     uint16_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
-    return ntohs(value);
+
+    // linting disabled as ntohs implementation is up to a platform (it uses asm instructions in some platforms,
+    // which clang-tidy hates)
+    return ntohs(value); // NOLINT
 }
 
 uint32_t provizio_get_protocol_field_uint32_t(const uint32_t *field)
 {
     uint32_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
-    return ntohl(value);
+
+    // linting disabled as ntohl implementation is up to a platform (it uses asm instructions in some platforms,
+    // which clang-tidy hates)
+    return ntohl(value); // NOLINT
 }
 
 uint64_t provizio_get_protocol_field_uint64_t(const uint64_t *field)
 {
     uint64_t value = 0;
     PROVIZIO__GET_FIELD(field, value);
+
     return provizio_ntohll(value);
 }
 
@@ -124,5 +138,6 @@ float provizio_get_protocol_field_float(const float *field)
 {
     float value = 0;
     PROVIZIO__GET_FIELD(field, value);
+
     return value;
 }

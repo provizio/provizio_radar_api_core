@@ -381,7 +381,9 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     struct sockaddr_in my_address;
     memset(&my_address, 0, sizeof(my_address));
     my_address.sin_family = AF_INET;
-    my_address.sin_port = htons(udp_port);
+    // linting disabled in next line as htons implementation is up to a platform (it uses asm instructions in some
+    // platforms, which clang-tidy hates)
+    my_address.sin_port = htons(udp_port);   // NOLINT
     my_address.sin_addr.s_addr = INADDR_ANY; // Any address
 
     status = (int32_t)bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));

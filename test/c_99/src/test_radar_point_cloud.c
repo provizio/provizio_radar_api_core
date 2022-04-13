@@ -212,7 +212,9 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     struct sockaddr_in target_address;
     memset(&target_address, 0, sizeof(target_address));
     target_address.sin_family = AF_INET;
-    target_address.sin_port = htons(port);
+    // linting disabled in next line as htons implementation is up to a platform (it uses asm instructions in some
+    // platforms, which clang-tidy hates)
+    target_address.sin_port = htons(port); // NOLINT
     target_address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     send_point_cloud_packet_data send_data;
