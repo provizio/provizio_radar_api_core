@@ -46,7 +46,7 @@ else(WIN32)
 endif(WIN32)
 
 if(MSVC)
-  # Make stack 8MB large (as default MSVCs 1Mb is not enough for storing api contexts)
+  # Make stack 8Mb large (as default MSVCs 1Mb is not enough for storing api contexts)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")
 endif(MSVC)
 

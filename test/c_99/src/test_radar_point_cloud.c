@@ -1155,8 +1155,8 @@ static void test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as
     api_connetion.sock = PROVIZIO__INVALID_SOCKET;
 
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
-    TEST_ASSERT_NOT_EQUAL_INT32(0, provizio_radar_point_cloud_api_contexts_receive_packet(NULL, 0, &api_connetion));
-    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive",
+    TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_contexts_receive_packet(NULL, 0, &api_connetion));
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_context_receive_packet: Not connected",
                              provizio_test_radar_point_cloud_error);
     provizio_set_on_error(NULL);
 }
@@ -1168,8 +1168,8 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
     api_connetion.sock = PROVIZIO__INVALID_SOCKET;
 
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
-    TEST_ASSERT_NOT_EQUAL_INT32(0, provizio_radar_point_cloud_api_close(&api_connetion));
-    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close: provizio_socket_close failed!",
+    TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_close(&api_connetion));
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close: Not connected",
                              provizio_test_radar_point_cloud_error);
     provizio_set_on_error(NULL);
 }

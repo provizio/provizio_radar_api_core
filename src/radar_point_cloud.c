@@ -432,6 +432,12 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
                                                                size_t num_contexts,
                                                                provizio_radar_point_cloud_api_connection *connection)
 {
+    if (!provizio_socket_valid(connection->sock))
+    {
+        provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Not connected");
+        return EINVAL;
+    }
+
     provizio_radar_point_cloud_packet packet;
 
     int32_t received = (int32_t)recv(connection->sock, (char *)&packet, sizeof(packet), 0);
@@ -439,8 +445,10 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
     {
         if (errno != EAGAIN && errno != EWOULDBLOCK)
         {
+            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
             provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive");
             return (int32_t)errno;
+            // LCOV_EXCL_STOP
         }
 
         return (int32_t)EAGAIN;
@@ -453,11 +461,19 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
 
 int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_connection *connection)
 {
+    if (!provizio_socket_valid(connection->sock))
+    {
+        provizio_error("provizio_radar_point_cloud_api_close: Not connected");
+        return EINVAL;
+    }
+
     int32_t status = provizio_socket_close(connection->sock);
     if (status != 0)
     {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_radar_point_cloud_api_close: provizio_socket_close failed!");
         return status;
+        // LCOV_EXCL_START
     }
 
     connection->sock = PROVIZIO__INVALID_SOCKET;
