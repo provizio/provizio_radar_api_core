@@ -534,7 +534,7 @@ static void test_provizio_handle_radars_point_cloud_packet_bad_packet(void)
 
 static void test_receives_single_radar_point_cloud_from_single_radar(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10001 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
@@ -612,7 +612,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
 
 static void test_receives_single_radar_point_cloud_from_2_radars(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10002 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_front_center};
@@ -702,7 +702,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
 
 static void test_receive_radar_point_cloud_timeout_ok(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10003 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint16_t first_frame_index = 500;
     const uint64_t initial_timestamp = 0x0123456789abcdef;
     uint16_t radar_position_id = provizio_radar_position_rear_left;
@@ -761,7 +761,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
 
 static void test_receive_radar_point_cloud_timeout_fails(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10004 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint64_t receive_timeout_ns = 100000000ULL; // 0.1s
     const int32_t thousand = 1000;
 
@@ -799,7 +799,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
 
 static void test_receive_radar_point_cloud_frame_indices_overflow(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10005 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_indices[3] = {0xfffffffe, 0xffffffff, 0};
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
@@ -850,7 +850,7 @@ static void test_receive_radar_point_cloud_frame_indices_overflow(void)
 
 static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10006 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 100;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
@@ -903,7 +903,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
 
 static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10007 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_indices[3] = {17, 18, 19};
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
@@ -949,7 +949,7 @@ static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
 
 static void test_receive_radar_point_cloud_too_many_points(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10008 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 120;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
@@ -989,7 +989,7 @@ static void test_receive_radar_point_cloud_too_many_points(void)
 
 static void test_receive_radar_point_cloud_not_enough_contexts(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10009 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[3] = {provizio_radar_position_rear_left, provizio_radar_position_front_center,
@@ -1134,7 +1134,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ok(void)
 
 static void test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken(void)
 {
-    const uint16_t port_number = 10000 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+    const uint16_t port_number = 10010 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
 
     provizio_radar_point_cloud_api_connection ok_connection;
     provizio_radar_point_cloud_api_connection failed_connection;
