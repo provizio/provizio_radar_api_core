@@ -18,4 +18,4 @@
 cd /D "%~dp0"
 
 cd ..\..\build
-ctest -C "%1"
+ctest --output-on-failure -C "%1"
