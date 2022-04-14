@@ -241,9 +241,9 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     if (!provizio_socket_valid(sock))
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        const int32_t status = errno;
+        const int32_t status = (int32_t)errno;
         provizio_error("send_test_pointcloud: Failed to create a UDP socket!");
-        return status;
+        return status != 0 ? status : (int32_t)-1;
         // LCOV_EXCL_STOP
     }
 

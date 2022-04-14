@@ -409,7 +409,7 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
 
             provizio_socket_close(sock);
 
-            if (error_code == (int32_t)EWOULDBLOCK)
+            if (error_code == 0 || error_code == (int32_t)EWOULDBLOCK)
             {
                 return EAGAIN;
             }
@@ -443,11 +443,12 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
     int32_t received = (int32_t)recv(connection->sock, (char *)&packet, sizeof(packet), 0);
     if (received == (int32_t)-1)
     {
-        if (errno != EAGAIN && errno != EWOULDBLOCK)
+        if (errno != 0 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+            const int32_t status_code = errno;
             provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive");
-            return (int32_t)errno;
+            return (int32_t)status_code;
             // LCOV_EXCL_STOP
         }
 
