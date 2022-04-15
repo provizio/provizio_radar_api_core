@@ -17,5 +17,6 @@
 
 #include "provizio/common.h"
 #include "provizio/radar_api/radar_point_cloud.h"
+#include "provizio/util.h"
 
 #endif // PROVIZIO_RADAR_API_CORE

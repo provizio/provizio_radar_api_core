@@ -45,11 +45,6 @@ else(WIN32)
   set(MATH_LIB m)
 endif(WIN32)
 
-if(MSVC)
-  # Make stack 8Mb large (as default MSVCs 1Mb is not enough for storing api contexts)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")
-endif(MSVC)
-
 add_executable(provizio_radar_api_core_test_c_99 src/test_main.c src/test_common.c src/test_util.c src/test_radar_point_cloud.c)
 target_link_libraries(provizio_radar_api_core_test_c_99 provizio_radar_api_core unity_testing ${MATH_LIB} ${PTHREAD_LIB})
 set_property(TARGET provizio_radar_api_core_test_c_99 PROPERTY C_STANDARD 99) # As defined by MISRA

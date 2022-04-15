@@ -175,7 +175,7 @@ if(ENABLE_COVERAGE)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
 
         add_custom_target(code_coverage
-          COMMAND lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info"
+          COMMAND lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info" --exclude '/usr/include/*' --exclude '/usr/lib/*' --exclude '/usr/local/*'
           COMMAND genhtml "${CMAKE_BINARY_DIR}/lcov.info" -o "${CMAKE_BINARY_DIR}/code_coverage_report" > "${CMAKE_BINARY_DIR}/genhtml.out" 2>&1
           COMMAND cat "${CMAKE_BINARY_DIR}/genhtml.out"
           COMMAND grep "lines.*100\.0\%" "${CMAKE_BINARY_DIR}/genhtml.out")

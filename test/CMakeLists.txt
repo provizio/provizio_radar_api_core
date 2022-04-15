@@ -37,5 +37,10 @@ include_directories("${UNITY_INSTALL_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/
 link_directories("${UNITY_INSTALL_DIR}/lib")
 add_definitions(-DUNITY_INCLUDE_CONFIG_H)
 
+if(MSVC)
+  # Make stack 8Mb large (as default MSVCs 1Mb is not enough for storing api contexts)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")
+endif(MSVC)
+
 add_subdirectory(c_99)
 add_subdirectory(cpp_14)

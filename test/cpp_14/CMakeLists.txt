@@ -14,8 +14,9 @@
 
 cmake_minimum_required(VERSION 3.1.0)
 
-add_executable(provizio_radar_api_core_test_cpp_14 src/test_core.cpp)
-target_link_libraries(provizio_radar_api_core_test_cpp_14 provizio_radar_api_core unity_testing)
+find_package(Threads)
+add_executable(provizio_radar_api_core_test_cpp_14 src/smoketest.cpp)
+target_link_libraries(provizio_radar_api_core_test_cpp_14 provizio_radar_api_core Threads::Threads)
 set_property(TARGET provizio_radar_api_core_test_cpp_14 PROPERTY CXX_STANDARD 14)
 add_dependencies(provizio_radar_api_core_test_cpp_14 unity)
 

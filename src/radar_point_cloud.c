@@ -363,8 +363,12 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         const int32_t status = errno;
-        provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!");
-        return status;
+        provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!"
+#ifdef _WIN32
+                       " Have you called provizio_sockets_initialize or WSAStartup?"
+#endif
+        );
+        return status != 0 ? status : -1;
         // LCOV_EXCL_STOP
     }
 
@@ -474,7 +478,7 @@ int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_conn
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_radar_point_cloud_api_close: provizio_socket_close failed!");
         return status;
-        // LCOV_EXCL_START
+        // LCOV_EXCL_STOP
     }
 
     connection->sock = PROVIZIO__INVALID_SOCKET;
