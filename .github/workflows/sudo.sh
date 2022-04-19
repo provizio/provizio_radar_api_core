@@ -16,8 +16,10 @@
 
 set -eu
 
-if [[ $OSTYPE == "darwin"* ]]; then
+if [[ "${OSTYPE}" == "darwin"* ]]; then
     SUDO=""
+elif [[ "${GITHUB_RUNNER_SKIP_SUDO:-}" == "YES" ]]; then
+    SUDO="echo"
 else
     SUDO="sudo"
 fi

@@ -7,10 +7,10 @@ on:
 jobs:
   build-nix:
     name: Build provizio_radar_api_core with Static Code Analysis enabled
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -23,10 +23,10 @@ jobs:
 
   build-windows:
     name: Build provizio_radar_api_core with Static Code Analysis enabled
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [windows-latest]
+        runner: [windows-latest]
         build_type: [Debug, Release]
     env:
       STATIC_ANALYSIS: ON
@@ -36,10 +36,10 @@ jobs:
   
   test-nix-asan:
     name: Test provizio_radar_api_core with ASan+LSan+UBsan enabled
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -53,10 +53,10 @@ jobs:
 
   test-nix-tsan:
     name: Test provizio_radar_api_core with TSan enabled
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-18.04, macos-latest]
+        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -70,10 +70,10 @@ jobs:
 
   test-nix-msan:
     name: Test provizio_radar_api_core with MSan enabled
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-18.04]
+        runner: [ubuntu-latest, ubuntu-18.04]
         build_type: [Debug, Release]
         cc: [clang]
     env:
@@ -87,10 +87,10 @@ jobs:
 
   test-windows:
     name: Test provizio_radar_api_core
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [windows-latest]
+        runner: [windows-latest]
         build_type: [Debug, Release]
     env:
       STATIC_ANALYSIS: OFF
@@ -101,10 +101,10 @@ jobs:
 
   code-coverage:
     name: Code coverage checks on provizio_radar_api_core
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        runner: [ubuntu-latest]
         build_type: [Debug]
         cc: [gcc]
     env:
