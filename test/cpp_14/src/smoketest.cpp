@@ -35,24 +35,31 @@ namespace
     std::unique_ptr<void, std::function<void(void *)>> make_guard(const PROVIZIO__SOCKET sock)
     {
         // LCOV_EXCL_START: lcov isn't great at handling C++ lambdas
-        return std::unique_ptr<void, std::function<void(void *)>>(nullptr, [sock](void *) {
-            if (provizio_socket_valid(sock) && provizio_socket_close(sock) != 0)
-            {
-                throw std::runtime_error{"Failed to close a socket"};
-            }
-        });
+        return std::unique_ptr<void, std::function<void(void *)>>{
+            nullptr, [sock](void *ignored) {
+                (void)ignored;
+
+                if (provizio_socket_valid(sock) != 0 && provizio_socket_close(sock) != 0)
+                {
+                    throw std::runtime_error{"Failed to close a socket"};
+                }
+            }};
         // LCOV_EXCL_STOP
     }
 
     std::unique_ptr<void, std::function<void(void *)>> make_guard(provizio_radar_point_cloud_api_connection &connection)
     {
         // LCOV_EXCL_START: lcov isn't great at handling C++ lambdas
-        return std::unique_ptr<void, std::function<void(void *)>>(nullptr, [&](void *) {
-            if (provizio_socket_valid(connection.sock) && provizio_radar_point_cloud_api_close(&connection) != 0)
-            {
-                throw std::runtime_error{"Failed to close an API connection"}; // LCOV_EXCL_LINE: Shouldn't happen
-            }
-        });
+        return std::unique_ptr<void, std::function<void(void *)>>{
+            nullptr, [&](void *ignored) {
+                (void)ignored;
+
+                if (provizio_socket_valid(connection.sock) != 0 &&
+                    provizio_radar_point_cloud_api_close(&connection) != 0)
+                {
+                    throw std::runtime_error{"Failed to close an API connection"}; // LCOV_EXCL_LINE: Shouldn't happen
+                }
+            }};
         // LCOV_EXCL_STOP
     }
 
@@ -99,26 +106,29 @@ int main(int argc, char *argv[])
                 const auto socket_guard = make_guard(send_socket);
                 const std::chrono::milliseconds sleep_between_frames{100};
 
-                if (!provizio_socket_valid(send_socket))
+                if (provizio_socket_valid(send_socket) == 0)
                 {
                     throw std::runtime_error{"Failed to open a socket"}; // LCOV_EXCL_LINE: Shouldn't happen
                 }
 
-                sockaddr_in my_address;
+                sockaddr_in my_address; // NOLINT: Initialized in the very next line
                 std::memset(&my_address, 0, sizeof(my_address));
                 my_address.sin_family = AF_INET;
                 my_address.sin_port = 0;
                 my_address.sin_addr.s_addr = INADDR_ANY;
 
-                if (bind(send_socket, reinterpret_cast<const sockaddr *>(&my_address), sizeof(my_address)) != 0)
+                if (bind(send_socket,
+                         reinterpret_cast<const sockaddr *>(&my_address), // NOLINT: reinterpret_cast is required here
+                         sizeof(my_address)) != 0)
                 {
                     throw std::runtime_error{"Failed to bind a socket"}; // LCOV_EXCL_LINE: Shouldn't happen
                 }
 
-                sockaddr_in target_address;
+                sockaddr_in target_address; // NOLINT: Initialized in the very next line
                 std::memset(&target_address, 0, sizeof(target_address));
                 target_address.sin_family = AF_INET;
-                target_address.sin_port = htons(port_number);
+                target_address.sin_port =
+                    htons(port_number); // NOLINT: clang-tidy doesn't like htons, but it's defined a system header
                 target_address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
                 provizio_radar_point_cloud_packet packet;
@@ -138,13 +148,15 @@ int main(int argc, char *argv[])
                 provizio_set_protocol_field_float(&packet.radar_points[0].signal_to_noise_ratio,
                                                   point_signal_to_noise_ratio);
 
-                for (auto frame_index = start_frame_index; !finish; ++frame_index)
+                for (auto frame_index = start_frame_index; !finish; ++frame_index) // NOLINT: Don't unroll
                 {
                     provizio_set_protocol_field_uint32_t(&packet.header.frame_index, frame_index);
 
+                    // reinterpret_cast is required here (due to the underlying C API)
                     if (sendto(send_socket, reinterpret_cast<const char *>(&packet), // NOLINT
-                               (uint16_t)provizio_radar_point_cloud_packet_size(&packet.header), 0,
-                               reinterpret_cast<const sockaddr *>(&target_address), sizeof(target_address)) == -1)
+                               static_cast<uint16_t>(provizio_radar_point_cloud_packet_size(&packet.header)), 0,
+                               reinterpret_cast<const sockaddr *>(&target_address), // NOLINT
+                               sizeof(target_address)) == -1)
                     {
                         throw std::runtime_error{"Failed to send a packet!"}; // LCOV_EXCL_LINE: Shouldn't happen
                     }
@@ -166,7 +178,9 @@ int main(int argc, char *argv[])
 
             auto received_point_cloud = std::make_unique<provizio_radar_point_cloud>();
             auto callback = [&](const provizio_radar_point_cloud *point_cloud,
-                                provizio_radar_point_cloud_api_context *) {
+                                provizio_radar_point_cloud_api_context *ignored) {
+                (void)ignored;
+
                 std::memcpy(received_point_cloud.get(), point_cloud, sizeof(provizio_radar_point_cloud));
                 finish = true;
             };
@@ -177,7 +191,7 @@ int main(int argc, char *argv[])
 
             provizio_radar_point_cloud_api_connection connection;
             const auto connection_guard = make_guard(connection);
-            if ((error_code = provizio_radar_point_cloud_api_connect(port_number, timeout_ns, true, &connection)) != 0)
+            if ((error_code = provizio_radar_point_cloud_api_connect(port_number, timeout_ns, 1, &connection)) != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen
                 std::lock_guard<std::mutex> lock{exception_in_thread_mutex};

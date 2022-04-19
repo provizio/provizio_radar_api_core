@@ -35,17 +35,17 @@
 #include "provizio/util.h"
 
 #define PROVIZIO__TEST_MAX_MESSAGE_LENGTH 1024
-char provizio_test_radar_point_cloud_warning[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
-char provizio_test_radar_point_cloud_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];
+static char provizio_test_warning[PROVIZIO__TEST_MAX_MESSAGE_LENGTH]; // NOLINT: non-const global by design
+static char provizio_test_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];   // NOLINT: non-const global by design
 
 static void test_provizio_radar_point_cloud_on_warning(const char *warning)
 {
-    strncpy(provizio_test_radar_point_cloud_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
+    strncpy(provizio_test_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 static void test_provizio_radar_point_cloud_on_error(const char *error)
 {
-    strncpy(provizio_test_radar_point_cloud_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
+    strncpy(provizio_test_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
 }
 
 #ifdef WIN32
@@ -128,8 +128,7 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
     float frame_velocity = (velocity_min + velocity_max) * half;
     float frame_signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) * half;
 
-    uint16_t num_points_left = drop_after_num_points;
-    while (num_points_left > 0)
+    for (uint16_t num_points_left = drop_after_num_points; num_points_left > 0;) // NOLINT: The loop is just fine
     {
         const uint16_t points_in_packet = num_points_left < PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET
                                               ? num_points_left
@@ -161,7 +160,8 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
             provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
             provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, points_in_packet);
 
-            for (uint16_t j = 0; j < points_in_packet; ++j)
+#pragma unroll(8)
+            for (uint16_t j = 0; j < points_in_packet; ++j) // NOLINT: The loop is just fine
             {
 #define PROVIZIO__NEXT_TEST_VALUE(v) ((v##_min) + fmodf((v) + (v##_step) - (v##_min), (v##_max) - (v##_min)))
                 x = PROVIZIO__NEXT_TEST_VALUE(x);
@@ -198,7 +198,7 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
     return 0;
 }
 
-typedef struct send_point_cloud_packet_data
+typedef struct send_point_cloud_packet_data // NOLINT: it's aligned exactly as it's supposed to
 {
     PROVIZIO__SOCKET sock;
     struct sockaddr *target_address;
@@ -311,8 +311,9 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
     uint32_t frame_index = first_frame_index;
     uint64_t timestamp = initial_timestamp;
     int32_t status = 0;
-    while ((status = send_test_point_cloud(port, frame_index, timestamp, radar_position_ids, num_radars, num_points,
-                                           num_points, on_packet_sent, user_data)) == 0)
+    while ((status = send_test_point_cloud(port, frame_index, timestamp, // NOLINT: don't unroll the loop
+                                           radar_position_ids, num_radars, num_points, num_points, on_packet_sent,
+                                           user_data)) == 0)
     {
         ++frame_index;
         timestamp += time_between_frames;
@@ -323,13 +324,13 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
 }
 
 #define PROVIZIO__TEST_CALLBACK_DATA_NUM_POINT_CLOUDS 4
-typedef struct test_provizio_radar_point_cloud_callback_data
+typedef struct test_provizio_radar_point_cloud_callback_data // NOLINT: it's aligned exactly as it's supposed to
 {
     int32_t called_times;
     provizio_radar_point_cloud last_point_clouds[PROVIZIO__TEST_CALLBACK_DATA_NUM_POINT_CLOUDS];
 } test_provizio_radar_point_cloud_callback_data;
 
-typedef struct test_receive_packet_on_packet_sent_callback_data
+typedef struct test_receive_packet_on_packet_sent_callback_data // NOLINT: it's aligned exactly as it's supposed to
 {
     provizio_radar_point_cloud_api_context *contexts;
     size_t num_contexts;
@@ -365,7 +366,7 @@ static int32_t test_receive_packet_on_packet_sent(const provizio_radar_point_clo
                                                                          data->connection));
 }
 
-typedef struct test_stop_when_ordered_callback_data
+typedef struct test_stop_when_ordered_callback_data // NOLINT: it's aligned exactly as it's supposed to
 {
     pthread_mutex_t *mutex;
     int32_t *stop_flag;
@@ -384,7 +385,7 @@ static int32_t test_stop_when_ordered(const provizio_radar_point_cloud_packet *p
     return stop;
 }
 
-typedef struct test_stop_when_ordered_thread_data
+typedef struct test_stop_when_ordered_thread_data // NOLINT: it's aligned exactly as it's supposed to
 {
     uint16_t port;
     uint32_t first_frame_index;
@@ -429,7 +430,7 @@ static void test_provizio_radar_point_cloud_packet_size(void)
     TEST_ASSERT_EQUAL_UINT64(0, provizio_radar_point_cloud_packet_size(&header));
     TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
                              "PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET!",
-                             provizio_test_radar_point_cloud_warning);
+                             provizio_test_warning);
     provizio_set_on_warning(NULL);
 }
 
@@ -453,15 +454,13 @@ static void test_provizio_check_radar_point_cloud_packet(void)
     TEST_ASSERT_EQUAL_INT32(EPROTO,
                             provizio_handle_radar_point_cloud_packet(
                                 &api_context, &packet, sizeof(provizio_radar_point_cloud_packet_protocol_header) - 1));
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
 
     // Check incorrect packet type
     provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.packet_type,
                                          PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE + 1);
     TEST_ASSERT_EQUAL_INT32(EPROTO, provizio_handle_radar_point_cloud_packet(&api_context, &packet, sizeof(packet)));
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: unexpected packet_type",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: unexpected packet_type", provizio_test_error);
     provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.packet_type,
                                          PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
 
@@ -470,28 +469,25 @@ static void test_provizio_check_radar_point_cloud_packet(void)
                                          PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION + 1);
     TEST_ASSERT_EQUAL_INT32(EPROTO, provizio_handle_radar_point_cloud_packet(&api_context, &packet, sizeof(packet)));
     TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: Incompatible protocol version",
-                             provizio_test_radar_point_cloud_error);
+                             provizio_test_error);
     provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version,
                                          PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION);
 
     // Check failure due to size < sizeof(provizio_radar_point_cloud_packet_header)
     TEST_ASSERT_EQUAL_INT32(EPROTO, provizio_handle_radar_point_cloud_packet(
                                         &api_context, &packet, sizeof(provizio_radar_point_cloud_packet_header) - 1));
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
 
     // Check size mismatch as specified and as estimated by header (i.e. number of points in packet)
     provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, num_points);
     TEST_ASSERT_EQUAL_INT32(
         EPROTO, provizio_handle_radar_point_cloud_packet(
                     &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header) - 1)); // 1 byte less
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect packet_size",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect packet_size", provizio_test_error);
     TEST_ASSERT_EQUAL_INT32(
         EPROTO, provizio_handle_radar_point_cloud_packet(
                     &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header) + 1)); // 1 byte more
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect packet_size",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect packet_size", provizio_test_error);
 
     // Check fails on radar_position_id = provizio_radar_position_unknown
     provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, provizio_radar_position_unknown);
@@ -499,7 +495,7 @@ static void test_provizio_check_radar_point_cloud_packet(void)
                                         &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: the value of radar_position_id can't be "
                              "provizio_radar_position_unknown",
-                             provizio_test_radar_point_cloud_error);
+                             provizio_test_error);
 
     // Empty frame
     provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, provizio_radar_position_front_center);
@@ -527,8 +523,7 @@ static void test_provizio_handle_radars_point_cloud_packet_bad_packet(void)
     TEST_ASSERT_EQUAL_INT32(EPROTO,
                             provizio_handle_radars_point_cloud_packet(
                                 NULL, 0, &bad_packet, sizeof(bad_packet.header.protocol_header) - 1)); // Size too small
-    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
@@ -551,7 +546,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = &api_context;
     send_test_callback_data.num_contexts = 1;
@@ -633,7 +628,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = api_contexts;
     send_test_callback_data.num_contexts = num_contexts;
@@ -649,7 +644,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     // 2 point clouds received - one per radar
     TEST_ASSERT_EQUAL_INT32(num_radars, callback_data->called_times);
 
-    for (size_t i = 0; i < num_radars; ++i)
+    for (size_t i = 0; i < num_radars; ++i) // NOLINT: The loop is just fine
     {
         const size_t radar_index = 1 - i; // As last_point_clouds is sorted from latest to oldest
         TEST_ASSERT_EQUAL_UINT32(frame_index, callback_data->last_point_clouds[i].frame_index);
@@ -722,8 +717,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     thread_data.num_points = num_points;
     thread_data.stop_condition.mutex = &mutex;
     thread_data.stop_condition.stop_flag = &stop_flag;
-    pthread_t thread;
-    memset(&thread, 0, sizeof(thread)); // Required by clang-tidy to avoid having non-initialized vars
+    pthread_t thread; // NOLINT: Its value is set in the very next line
     TEST_ASSERT_EQUAL(0, pthread_create(&thread, NULL, &test_stop_when_ordered_thread, &thread_data));
 
     test_provizio_radar_point_cloud_callback_data *callback_data =
@@ -735,7 +729,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     provizio_radar_point_cloud_api_connection connection;
     TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, receive_timeout_ns, 1, &connection));
 
-    while (callback_data->called_times == 0)
+    while (callback_data->called_times == 0) // NOLINT: No need to unroll
     {
         TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_context_receive_packet(&api_context, &connection));
     }
@@ -753,7 +747,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     TEST_ASSERT_LESS_OR_EQUAL(2, callback_data->called_times); // Can be called twice as it could start receiving after
                                                                // some packets of its first frame had been sent
     TEST_ASSERT_EQUAL(num_points, callback_data->last_point_clouds[0].num_points_received);
-    TEST_ASSERT_TRUE(callback_data->called_times == 1 ||
+    TEST_ASSERT_TRUE(callback_data->called_times == 1 || // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
                      callback_data->last_point_clouds[1].num_points_received < num_points);
 
     free(callback_data);
@@ -779,7 +773,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
     int32_t took_time_ms =
         (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
-    TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms);
+    TEST_ASSERT_GREATER_OR_EQUAL_INT32(90, took_time_ms); // Allow missing 10ms due to system timer's inaccuracy
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 
     // It doesn't fail when checking connection is disabled
@@ -791,7 +785,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
     took_time_ms =
         (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
-    TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms);
+    TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms); // Allow missing 10ms due to system timer's inaccuracy
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 
     TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_close(&connection));
@@ -816,7 +810,7 @@ static void test_receive_radar_point_cloud_frame_indices_overflow(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = &api_context;
     send_test_callback_data.num_contexts = 1;
@@ -867,7 +861,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = &api_context;
     send_test_callback_data.num_contexts = 1;
@@ -884,7 +878,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(EAGAIN, status);
     TEST_ASSERT_EQUAL_STRING("provizio_get_point_cloud_being_received: context received a packet from a wrong radar",
-                             provizio_test_radar_point_cloud_warning);
+                             provizio_test_warning);
     provizio_set_on_warning(NULL);
 
     // Send and correctly receive a frame now as the radar position is correct
@@ -920,14 +914,14 @@ static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = &api_context;
     send_test_callback_data.num_contexts = 1;
     send_test_callback_data.connection = &connection;
 
     // Send 3 incomplete frames
-    for (size_t i = 0; i < sizeof(frame_indices) / sizeof(frame_indices[0]); ++i)
+    for (size_t i = 0; i < sizeof(frame_indices) / sizeof(frame_indices[0]); ++i) // NOLINT: Don't unroll the loop
     {
         status = send_test_point_cloud(port_number, frame_indices[i], timestamp, &radar_position_id, 1, num_points,
                                        num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
@@ -961,7 +955,7 @@ static void test_receive_radar_point_cloud_too_many_points(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     test_receive_packet_on_packet_sent_callback_data send_test_callback_data;
     memset(&send_test_callback_data, 0, sizeof(send_test_callback_data));
@@ -980,7 +974,7 @@ static void test_receive_radar_point_cloud_too_many_points(void)
                                    num_extra_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(EPROTO, status);
     TEST_ASSERT_EQUAL_STRING("provizio_handle_radar_point_cloud_packet_checked: Too many points received",
-                             provizio_test_radar_point_cloud_error);
+                             provizio_test_error);
     provizio_set_on_error(NULL);
 
     status = provizio_radar_point_cloud_api_close(&connection);
@@ -1011,7 +1005,7 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
     provizio_radar_point_cloud_api_connection connection;
     int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
-    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
     send_test_callback_data.contexts = api_contexts;
     send_test_callback_data.num_contexts = num_contexts;
@@ -1023,7 +1017,7 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
     TEST_ASSERT_EQUAL_INT32(EBUSY, status);
     TEST_ASSERT_EQUAL_STRING(
         "provizio_get_provizio_radar_point_cloud_api_context_by_position_id: Out of available contexts",
-        provizio_test_radar_point_cloud_error);
+        provizio_test_error);
     provizio_set_on_error(NULL);
 
     status = provizio_radar_point_cloud_api_close(&connection);
@@ -1108,7 +1102,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ok(void)
     const size_t num_contexts = sizeof(api_contexts) / sizeof(api_contexts[0]);
     provizio_radar_point_cloud_api_contexts_init(NULL, NULL, api_contexts, num_contexts);
 
-    for (size_t i = 0; i < num_contexts; ++i)
+    for (size_t i = 0; i < num_contexts; ++i) // NOLINT: Don't unroll the loop
     {
         provizio_radar_point_cloud_packet packet;
         memset(&packet, 0, sizeof(packet));
@@ -1144,7 +1138,7 @@ static void test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken(
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
     TEST_ASSERT_NOT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, 0, 0, &failed_connection));
     TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_connect: Failed to bind a UDP socket!",
-                             provizio_test_radar_point_cloud_error);
+                             provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
@@ -1157,7 +1151,7 @@ static void test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
     TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_contexts_receive_packet(NULL, 0, &api_connetion));
     TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_context_receive_packet: Not connected",
-                             provizio_test_radar_point_cloud_error);
+                             provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
@@ -1169,15 +1163,14 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
 
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
     TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_close(&api_connetion));
-    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close: Not connected",
-                             provizio_test_radar_point_cloud_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close: Not connected", provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
 int32_t provizio_run_test_radar_point_cloud(void)
 {
-    memset(provizio_test_radar_point_cloud_warning, 0, sizeof(provizio_test_radar_point_cloud_warning));
-    memset(provizio_test_radar_point_cloud_error, 0, sizeof(provizio_test_radar_point_cloud_error));
+    memset(provizio_test_warning, 0, sizeof(provizio_test_warning));
+    memset(provizio_test_error, 0, sizeof(provizio_test_error));
 
     UNITY_BEGIN();
 

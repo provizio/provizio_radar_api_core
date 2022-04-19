@@ -1,4 +1,4 @@
-Checks:             '*,-abseil*,-fuchsia*,-llvm-header-guard,-modernize-use-trailing-return-type,-google-runtime-references,-llvmlibc-*',-bugprone-easily-swappable-parameters
+Checks:             '*,-abseil*,-fuchsia*,-llvm-header-guard,-modernize-use-trailing-return-type,-google-runtime-references,-llvmlibc-*,-bugprone-easily-swappable-parameters,-android-cloexec-socket,-readability-function-cognitive-complexity,-misc-no-recursion'
 WarningsAsErrors:   '*'
 FormatStyle:        file
 CheckOptions:

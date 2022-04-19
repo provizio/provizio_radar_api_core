@@ -164,6 +164,7 @@ void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_call
 void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_callback callback, void *user_data,
                                                   provizio_radar_point_cloud_api_context *contexts, size_t num_contexts)
 {
+#pragma unroll(5)
     for (size_t i = 0; i < num_contexts; ++i)
     {
         provizio_radar_point_cloud_api_context_init(callback, user_data, &contexts[i]);
@@ -268,6 +269,7 @@ provizio_radar_point_cloud_api_context *provizio_get_provizio_radar_point_cloud_
     const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id);
     assert(radar_position_id != provizio_radar_position_unknown);
 
+#pragma unroll(5)
     for (size_t i = 0; i < num_contexts; ++i)
     {
         if (contexts[i].radar_position_id == radar_position_id)
@@ -278,6 +280,7 @@ provizio_radar_point_cloud_api_context *provizio_get_provizio_radar_point_cloud_
     }
 
     // There is no context for this radar_position_id yet, let's look for a yet unused context
+#pragma unroll(5)
     for (size_t i = 0; i < num_contexts; ++i)
     {
         provizio_radar_point_cloud_api_context *context = &contexts[i];
@@ -452,7 +455,7 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
             const int32_t status_code = errno;
             provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive");
-            return (int32_t)status_code;
+            return (int32_t)status_code; // NOLINT: Type cast is platform specific
             // LCOV_EXCL_STOP
         }
 

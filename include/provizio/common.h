@@ -75,9 +75,9 @@ PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char 
 PROVIZIO__EXTERN_C void provizio_warning(const char *message);
 
 /**
- * @brief Informs about a warning
+ * @brief Informs about an error
  *
- * @param message Warning message
+ * @param message Error message
  * @see provizio_set_on_error for more details
  * @return PROVIZIO__EXTERN_C
  */

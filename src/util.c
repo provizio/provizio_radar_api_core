@@ -79,27 +79,27 @@ void provizio_set_protocol_field_uint16_t(uint16_t *field, uint16_t value)
 {
     // linting disabled as htons implementation is up to a platform (it uses asm instructions in some platforms,
     // which clang-tidy hates)
-    value = htons(value); // NOLINT
-    PROVIZIO__SET_FIELD(field, value);
+    value = htons(value);              // NOLINT
+    PROVIZIO__SET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 }
 
 void provizio_set_protocol_field_uint32_t(uint32_t *field, uint32_t value)
 {
     // linting disabled as htonl implementation is up to a platform (it uses asm instructions in some platforms,
     // which clang-tidy hates)
-    value = htonl(value); // NOLINT
-    PROVIZIO__SET_FIELD(field, value);
+    value = htonl(value);              // NOLINT
+    PROVIZIO__SET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 }
 
 void provizio_set_protocol_field_uint64_t(uint64_t *field, uint64_t value)
 {
     value = provizio_htonll(value);
-    PROVIZIO__SET_FIELD(field, value);
+    PROVIZIO__SET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 }
 
 void provizio_set_protocol_field_float(float *field, float value)
 {
-    PROVIZIO__SET_FIELD(field, value);
+    PROVIZIO__SET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 }
 
 uint8_t provizio_get_protocol_field_uint8_t(const uint8_t *field)
@@ -110,7 +110,7 @@ uint8_t provizio_get_protocol_field_uint8_t(const uint8_t *field)
 uint16_t provizio_get_protocol_field_uint16_t(const uint16_t *field)
 {
     uint16_t value = 0;
-    PROVIZIO__GET_FIELD(field, value);
+    PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
     // linting disabled as ntohs implementation is up to a platform (it uses asm instructions in some platforms,
     // which clang-tidy hates)
@@ -120,7 +120,7 @@ uint16_t provizio_get_protocol_field_uint16_t(const uint16_t *field)
 uint32_t provizio_get_protocol_field_uint32_t(const uint32_t *field)
 {
     uint32_t value = 0;
-    PROVIZIO__GET_FIELD(field, value);
+    PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
     // linting disabled as ntohl implementation is up to a platform (it uses asm instructions in some platforms,
     // which clang-tidy hates)
@@ -130,7 +130,7 @@ uint32_t provizio_get_protocol_field_uint32_t(const uint32_t *field)
 uint64_t provizio_get_protocol_field_uint64_t(const uint64_t *field)
 {
     uint64_t value = 0;
-    PROVIZIO__GET_FIELD(field, value);
+    PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
     return provizio_ntohll(value);
 }
@@ -138,7 +138,7 @@ uint64_t provizio_get_protocol_field_uint64_t(const uint64_t *field)
 float provizio_get_protocol_field_float(const float *field)
 {
     float value = 0;
-    PROVIZIO__GET_FIELD(field, value);
+    PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
     return value;
 }

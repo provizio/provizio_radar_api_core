@@ -16,8 +16,8 @@
 
 #include <stdio.h>
 
-void (*provizio_warning_function)(const char *) = NULL;
-void (*provizio_error_function)(const char *) = NULL;
+static void (*provizio_warning_function)(const char *) = NULL; // NOLINT: non-const global by design
+static void (*provizio_error_function)(const char *) = NULL;   // NOLINT: non-const global by design
 
 void provizio_set_on_warning(void (*warning_function)(const char *))
 {
