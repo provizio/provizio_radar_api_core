@@ -219,6 +219,13 @@ if(WIN32)
   target_link_libraries(provizio_radar_api_core ws2_32)
 endif(WIN32)
 
+# Installation config
+install(TARGETS provizio_radar_api_core
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+install(DIRECTORY include/provizio TYPE INCLUDE)
+
 # Add tests, if enabled
 if(BUILD_TESTING)
   add_subdirectory(test)
