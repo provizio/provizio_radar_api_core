@@ -41,6 +41,13 @@ if(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE}")
 endif(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
 
+# Format checking option is enabled by default
+if(NOT ENABLE_CHECK_FORMAT)
+  set(ENABLE_CHECK_FORMAT
+        "ON"
+        CACHE STRING "Enable Format Checking")
+endif(NOT ENABLE_CHECK_FORMAT)
+
 # Static analysis disabled by default
 if(NOT STATIC_ANALYSIS)
   set(STATIC_ANALYSIS
@@ -81,44 +88,46 @@ if(UNIX)
     endif(CLANG_TIDY_PATH)
   endif()
   
-  # Enable Format.cmake (forked from https://github.com/TheLartians/Format.cmake), if supported
-  execute_process(COMMAND clang-format --version OUTPUT_VARIABLE CLANG_FORMAT_VERSION)
-  if(CLANG_FORMAT_VERSION)
-    string(STRIP CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
-    string(REPLACE "\n" "" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
-    string(REPLACE "clang-format version " "" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
-    string(REGEX MATCH "[^\.]*" CLANG_FORMAT_VERSION_MAJOR "${CLANG_FORMAT_VERSION}")
-  endif(CLANG_FORMAT_VERSION)
-  if(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
-    message("Compatible version of clang-format found: ${CLANG_FORMAT_VERSION}")
-    set(FORMAT_CMAKE_VERSION "1.7.3")
-    set(FORMAT_CMAKE_PATH
-        "${CMAKE_BINARY_DIR}/Format.cmake-${FORMAT_CMAKE_VERSION}")
-    if(NOT EXISTS "${FORMAT_CMAKE_PATH}")
-      set(FORMAT_CMAKE_DOWNLOAD_URL
-          "https://github.com/provizio/Format.cmake/archive/refs/tags/v${FORMAT_CMAKE_VERSION}.tar.gz"
-      )
-      file(DOWNLOAD "${FORMAT_CMAKE_DOWNLOAD_URL}" "${FORMAT_CMAKE_PATH}.tar.gz" TLS_VERIFY ${TLS_VERIFY})
-      execute_process(COMMAND tar -xf "${FORMAT_CMAKE_PATH}.tar.gz" -C
-                              "${CMAKE_BINARY_DIR}")
-    endif(NOT EXISTS "${FORMAT_CMAKE_PATH}")
-    set(FORMAT_SKIP_CMAKE YES CACHE BOOL "" FORCE)
-    add_subdirectory("${FORMAT_CMAKE_PATH}" EXCLUDE_FROM_ALL)
-  
-    # Automatically enable clang-format checks if STATIC_ANALYSIS is turned on
-    if(STATIC_ANALYSIS)
-      message(STATUS "STATIC_ANALYSIS is enabled. Adding check-format to ALL.")
-      add_custom_target(check-format-all ALL DEPENDS check-format)
-    endif(STATIC_ANALYSIS)
-  else(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
-    if (CLANG_FORMAT_VERSION)
-      # clang-format is too old
-      message(WARNING "clang-format version ${CLANG_FORMAT_VERSION} is not supported. Format checks won't be done!")
-    else(CLANG_FORMAT_VERSION)
-      # clang-format is missing
-      message(WARNING "clang-format is missing. Format checks won't be done!")
+  # Enable Format.cmake (forked from https://github.com/TheLartians/Format.cmake), if supported and enabled
+  if(ENABLE_CHECK_FORMAT)
+    execute_process(COMMAND clang-format --version OUTPUT_VARIABLE CLANG_FORMAT_VERSION)
+    if(CLANG_FORMAT_VERSION)
+      string(STRIP CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
+      string(REPLACE "\n" "" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
+      string(REPLACE "clang-format version " "" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
+      string(REGEX MATCH "[^\.]*" CLANG_FORMAT_VERSION_MAJOR "${CLANG_FORMAT_VERSION}")
     endif(CLANG_FORMAT_VERSION)
-  endif(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
+    if(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
+      message("Compatible version of clang-format found: ${CLANG_FORMAT_VERSION}")
+      set(FORMAT_CMAKE_VERSION "1.7.3")
+      set(FORMAT_CMAKE_PATH
+          "${CMAKE_BINARY_DIR}/Format.cmake-${FORMAT_CMAKE_VERSION}")
+      if(NOT EXISTS "${FORMAT_CMAKE_PATH}")
+        set(FORMAT_CMAKE_DOWNLOAD_URL
+            "https://github.com/provizio/Format.cmake/archive/refs/tags/v${FORMAT_CMAKE_VERSION}.tar.gz"
+        )
+        file(DOWNLOAD "${FORMAT_CMAKE_DOWNLOAD_URL}" "${FORMAT_CMAKE_PATH}.tar.gz" TLS_VERIFY ${TLS_VERIFY})
+        execute_process(COMMAND tar -xf "${FORMAT_CMAKE_PATH}.tar.gz" -C
+                                "${CMAKE_BINARY_DIR}")
+      endif(NOT EXISTS "${FORMAT_CMAKE_PATH}")
+      set(FORMAT_SKIP_CMAKE YES CACHE BOOL "" FORCE)
+      add_subdirectory("${FORMAT_CMAKE_PATH}" EXCLUDE_FROM_ALL)
+    
+      # Automatically enable clang-format checks if STATIC_ANALYSIS is turned on
+      if(STATIC_ANALYSIS)
+        message(STATUS "STATIC_ANALYSIS is enabled. Adding check-format to ALL.")
+        add_custom_target(check-format-all ALL DEPENDS check-format)
+      endif(STATIC_ANALYSIS)
+    else(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
+      if (CLANG_FORMAT_VERSION)
+        # clang-format is too old
+        message(WARNING "clang-format version ${CLANG_FORMAT_VERSION} is not supported. Format checks won't be done!")
+      else(CLANG_FORMAT_VERSION)
+        # clang-format is missing
+        message(WARNING "clang-format is missing. Format checks won't be done!")
+      endif(CLANG_FORMAT_VERSION)
+    endif(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
+  endif(ENABLE_CHECK_FORMAT)
 
   # cppcheck
   find_program(CPPCHECK_PATH cppcheck)
