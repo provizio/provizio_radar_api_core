@@ -205,6 +205,17 @@ PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_contexts_init(provizio_ra
                                                                      size_t num_contexts);
 
 /**
+ * @brief Makes provizio_radar_point_cloud_api_context object handle a specific radar, which makes it skip packets
+ * intended for other radars
+ *
+ * @param context provizio_radar_point_cloud_api_context to be assigned
+ * @param radar_position_id radar to assign
+ * @return 0 in case it was successfully assigned, an error code otherwise
+ */
+PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_assign(
+    provizio_radar_point_cloud_api_context *context, provizio_radar_position radar_position_id);
+
+/**
  * @brief Handles a single radar point cloud UDP packet from a single radar
  *
  * @param context Previously initialized provizio_radar_point_cloud_api_context

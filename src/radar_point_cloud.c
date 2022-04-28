@@ -61,11 +61,10 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
 
     if (context->radar_position_id == provizio_radar_position_unknown)
     {
-        context->radar_position_id = radar_position_id;
+        provizio_radar_point_cloud_api_context_assign(context, radar_position_id);
     }
     else if (context->radar_position_id != radar_position_id)
     {
-        provizio_warning("provizio_get_point_cloud_being_received: context received a packet from a wrong radar");
         return NULL;
     }
 
@@ -169,6 +168,30 @@ void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_cal
     {
         provizio_radar_point_cloud_api_context_init(callback, user_data, &contexts[i]);
     }
+}
+
+int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud_api_context *context,
+                                                      provizio_radar_position radar_position_id)
+{
+    if (radar_position_id == provizio_radar_position_unknown)
+    {
+        provizio_error("provizio_radar_point_cloud_api_context_assign: can assign to provizio_radar_position_unknown");
+        return EINVAL;
+    }
+
+    if (context->radar_position_id == radar_position_id)
+    {
+        return 0;
+    }
+
+    if (context->radar_position_id == provizio_radar_position_unknown)
+    {
+        context->radar_position_id = radar_position_id;
+        return 0;
+    }
+
+    provizio_error("provizio_radar_point_cloud_api_context_assign: already assigned");
+    return EPERM;
 }
 
 int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)

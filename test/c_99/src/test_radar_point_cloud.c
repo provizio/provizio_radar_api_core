@@ -695,6 +695,59 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     free(callback_data);
 }
 
+static void test_provizio_radar_point_cloud_api_context_assign(void)
+{
+    const uint32_t frame_index = 17;
+    const uint64_t timestamp = 0x0123456789abcdef;
+    const uint16_t radar_position_id = provizio_radar_position_front_left;
+    const uint16_t num_points = 20;
+
+    provizio_radar_point_cloud_api_context api_context;
+    provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
+
+    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_context_assign(&api_context, radar_position_id));
+
+    provizio_radar_point_cloud_packet packet;
+    memset(&packet, 0, sizeof(packet));
+
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.packet_type,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION);
+    provizio_set_protocol_field_uint32_t(&packet.header.frame_index, frame_index);
+    provizio_set_protocol_field_uint64_t(&packet.header.timestamp, timestamp);
+    provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
+    provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, num_points - 1);
+
+    // Expected radar position
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_id);
+    TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
+                                   &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+
+    // Unexpected radar position
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_id + 1);
+    TEST_ASSERT_EQUAL_INT32(EAGAIN, provizio_handle_radar_point_cloud_packet(
+                                        &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+
+    // Reassign to the same position - OK
+    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_context_assign(&api_context, radar_position_id));
+
+    // Reassign to another position once assigned - Fails
+    provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
+    TEST_ASSERT_EQUAL_INT32(EPERM, provizio_radar_point_cloud_api_context_assign(&api_context, radar_position_id + 1));
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_context_assign: already assigned", provizio_test_error);
+    provizio_set_on_error(NULL);
+
+    // Unassign - Fails
+    provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
+    TEST_ASSERT_EQUAL_INT32(
+        EINVAL, provizio_radar_point_cloud_api_context_assign(&api_context, provizio_radar_position_unknown));
+    TEST_ASSERT_EQUAL_STRING(
+        "provizio_radar_point_cloud_api_context_assign: can assign to provizio_radar_position_unknown",
+        provizio_test_error);
+    provizio_set_on_error(NULL);
+}
+
 static void test_receive_radar_point_cloud_timeout_ok(void)
 {
     const uint16_t port_number = 10003 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
@@ -873,13 +926,9 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Send the last missing point of the frame, but make sure it's ingored due to the radar position mismatch
-    provizio_set_on_warning(&test_provizio_radar_point_cloud_on_warning);
     status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[1], 1, 1, 1,
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(EAGAIN, status);
-    TEST_ASSERT_EQUAL_STRING("provizio_get_point_cloud_being_received: context received a packet from a wrong radar",
-                             provizio_test_warning);
-    provizio_set_on_warning(NULL);
 
     // Send and correctly receive a frame now as the radar position is correct
     status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[0], 1, 1, 1,
@@ -1179,6 +1228,7 @@ int32_t provizio_run_test_radar_point_cloud(void)
     RUN_TEST(test_provizio_handle_radars_point_cloud_packet_bad_packet);
     RUN_TEST(test_receives_single_radar_point_cloud_from_single_radar);
     RUN_TEST(test_receives_single_radar_point_cloud_from_2_radars);
+    RUN_TEST(test_provizio_radar_point_cloud_api_context_assign);
     RUN_TEST(test_receive_radar_point_cloud_timeout_ok);
     RUN_TEST(test_receive_radar_point_cloud_timeout_fails);
     RUN_TEST(test_receive_radar_point_cloud_frame_indices_overflow);
