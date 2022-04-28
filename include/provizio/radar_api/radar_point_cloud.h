@@ -51,7 +51,7 @@ typedef enum provizio_radar_position
  * @see provizio_set_protocol_field_float
  * @see provizio_get_protocol_field_float
  */
-typedef struct provizio_radar_point
+typedef struct
 {
     float x_meters;     // Forward, radar relative
     float y_meters;     // Left, radar relative
@@ -101,8 +101,8 @@ typedef struct provizio_radar_point_cloud_packet_header
 
 // Max number of radar points in a single UDP packet
 #define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET                                                                      \
-    ((size_t)((PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES - sizeof(provizio_radar_point_cloud_packet_header)) /        \
-              sizeof(provizio_radar_point)))
+    ((uint16_t)((PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES - sizeof(provizio_radar_point_cloud_packet_header)) /      \
+                sizeof(provizio_radar_point)))
 
 // Max number of radar points in a single point cloud
 #define PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD ((uint16_t)0xffff)
