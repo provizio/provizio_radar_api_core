@@ -290,7 +290,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
  * packet, or 0 to wait as long as required
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
- * @param provizio_radar_point_cloud_api_connection to store the connection handle
+ * @param out_connection A provizio_radar_point_cloud_api_connection to store the connection handle
  * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t
@@ -303,7 +303,7 @@ provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeo
  *
  * @param context provizio_radar_point_cloud_api_context previously initialized with
  * provizio_radar_point_cloud_api_context_init
- * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * @param connection A provizio_radar_point_cloud_api_connection previously connected with
  * provizio_radar_point_cloud_api_connect
  * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  *
@@ -319,7 +319,7 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_receive_packet
  * @param contexts Array of provizio_radar_point_cloud_api_context objects previously initialized with
  * provizio_radar_point_cloud_api_contexts_init
  * @param num_contexts Number of objects in contexts
- * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * @param connection A provizio_radar_point_cloud_api_connection previously connected with
  * provizio_radar_point_cloud_api_connect
  * @return 0 if received successfully, EAGAIN if timed out or the received packet was obsolete, EBUSY in case
  * num_contexts is not enough, other error value if failed for another reason
@@ -331,7 +331,7 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_contexts_receive_packe
 /**
  * @brief Closes a previously connected radar point clouds API
  *
- * @param connection provizio_radar_point_cloud_api_connection previously connected with
+ * @param connection A provizio_radar_point_cloud_api_connection previously connected with
  * provizio_radar_point_cloud_api_connect
  * @return 0 if successfull, error code otherwise
  */
