@@ -18,6 +18,7 @@
 #include "provizio/common.h"
 #include "provizio/radar_api/errno.h"
 #include "provizio/radar_api/radar_point_cloud.h"
+#include "provizio/socket.h"
 #include "provizio/util.h"
 
 #define PROVIZIO__RADAR_API_DEFAULT_PORT ((uint16_t)7769)
@@ -41,7 +42,7 @@ typedef struct provizio_radar_api_connection
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
  * @param radar_point_cloud_api_context Initialized provizio_radar_point_cloud_api_context to handle point cloud packets
- * (may NULL to skip any point cloud packets)
+ * (may be NULL to skip any point cloud packets)
  * @param out_connection A provizio_radar_api_connection to store the connection handle
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
  *
@@ -61,7 +62,7 @@ provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, u
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
  * @param radar_point_cloud_api_contexts Array of initialized provizio_radar_point_cloud_api_context to handle point
- * cloud packets (may NULL to skip any point cloud packets)
+ * cloud packets (may be NULL to skip any point cloud packets)
  * @param num_radar_point_cloud_api_contexts Number of radar_point_cloud_api_contexts, i.e. max numbers of radars to
  * handle (may be 0 to skip any point cloud packets)
  * @param out_connection A provizio_radar_api_connection to store the connection handle
