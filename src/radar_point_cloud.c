@@ -286,7 +286,7 @@ int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_
     return provizio_handle_radar_point_cloud_packet_checked(context, packet);
 }
 
-provizio_radar_point_cloud_api_context *provizio_get_provizio_radar_point_cloud_api_context_by_position_id(
+provizio_radar_point_cloud_api_context *provizio_get_radar_point_cloud_api_context_by_position_id(
     provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, provizio_radar_point_cloud_packet *packet)
 {
     const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id);
@@ -315,7 +315,7 @@ provizio_radar_point_cloud_api_context *provizio_get_provizio_radar_point_cloud_
     }
 
     // Not found
-    provizio_error("provizio_get_provizio_radar_point_cloud_api_context_by_position_id: Out of available contexts");
+    provizio_error("provizio_get_radar_point_cloud_api_context_by_position_id: Out of available contexts");
     return NULL;
 }
 
@@ -329,11 +329,11 @@ int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api
     }
 
     provizio_radar_point_cloud_api_context *context =
-        provizio_get_provizio_radar_point_cloud_api_context_by_position_id(contexts, num_contexts, packet);
+        provizio_get_radar_point_cloud_api_context_by_position_id(contexts, num_contexts, packet);
 
     if (!context)
     {
-        // Error message has been already posted by provizio_get_provizio_radar_point_cloud_api_context_by_position_id
+        // Error message has been already posted by provizio_get_radar_point_cloud_api_context_by_position_id
         return EBUSY;
     }
 

@@ -1064,9 +1064,8 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
     status = send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, num_radars, num_points,
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(EBUSY, status);
-    TEST_ASSERT_EQUAL_STRING(
-        "provizio_get_provizio_radar_point_cloud_api_context_by_position_id: Out of available contexts",
-        provizio_test_error);
+    TEST_ASSERT_EQUAL_STRING("provizio_get_radar_point_cloud_api_context_by_position_id: Out of available contexts",
+                             provizio_test_error);
     provizio_set_on_error(NULL);
 
     status = provizio_radar_point_cloud_api_close(&connection);
