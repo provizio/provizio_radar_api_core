@@ -108,15 +108,15 @@ static void test_provizio_set_protocol_field_float(void)
     provizio_set_protocol_field_float((float *)&test_buffer[0], test_float);
     float to_float = 0.0F;
     memcpy(&to_float, &test_buffer[0], sizeof(float));
-    TEST_ASSERT_EQUAL_FLOAT(test_float, // NOLINT
-                            to_float);
+    TEST_ASSERT_EQUAL(test_float, // NOLINT
+                      to_float);
 
     // Unaligned write
     provizio_set_protocol_field_float((float *)&test_buffer[1], test_float);
     to_float = 0.0F;
     memcpy(&to_float, &test_buffer[1], sizeof(float));
-    TEST_ASSERT_EQUAL_FLOAT(test_float, // NOLINT
-                            to_float);
+    TEST_ASSERT_EQUAL(test_float, // NOLINT
+                      to_float);
 }
 
 static void test_provizio_get_protocol_field_uint8_t(void)
@@ -171,13 +171,13 @@ static void test_provizio_get_protocol_field_float(void)
 
     // Aligned read
     memcpy(&test_buffer[0], &test_float, sizeof(float));
-    TEST_ASSERT_EQUAL_FLOAT(test_float, // NOLINT
-                            provizio_get_protocol_field_float((float *)&test_buffer[0]));
+    TEST_ASSERT_EQUAL(test_float, // NOLINT
+                      provizio_get_protocol_field_float((float *)&test_buffer[0]));
 
     // Unaligned read
     memcpy(&test_buffer[1], &test_float, sizeof(float));
-    TEST_ASSERT_EQUAL_FLOAT(test_float, // NOLINT
-                            provizio_get_protocol_field_float((float *)&test_buffer[1]));
+    TEST_ASSERT_EQUAL(test_float, // NOLINT
+                      provizio_get_protocol_field_float((float *)&test_buffer[1]));
 }
 
 int provizio_run_test_util(void)
