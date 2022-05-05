@@ -16,6 +16,9 @@ cmake_minimum_required(VERSION 3.1.0)
 
 project(provizio_radar_api_core VERSION 0.1.0)
 
+# Dependencies versions
+set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
+
 # Enable CTest
 include(CTest)
 enable_testing()
@@ -99,7 +102,6 @@ if(UNIX)
     endif(CLANG_FORMAT_VERSION)
     if(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
       message("Compatible version of clang-format found: ${CLANG_FORMAT_VERSION}")
-      set(FORMAT_CMAKE_VERSION "1.7.3")
       set(FORMAT_CMAKE_PATH
           "${CMAKE_BINARY_DIR}/Format.cmake-${FORMAT_CMAKE_VERSION}")
       if(NOT EXISTS "${FORMAT_CMAKE_PATH}")
