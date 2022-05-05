@@ -303,10 +303,10 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
                                                     provizio_radar_point_cloud_packet_callback on_packet_sent,
                                                     void *user_data)
 {
-    const uint64_t time_between_frames = 100000000ULL;
+    const uint64_t time_between_frames_ns = 100000000ULL;
     struct timespec time_between_frames_timespec;
     time_between_frames_timespec.tv_sec = 0;
-    time_between_frames_timespec.tv_nsec = (int32_t)time_between_frames;
+    time_between_frames_timespec.tv_nsec = (int32_t)time_between_frames_ns;
 
     uint32_t frame_index = first_frame_index;
     uint64_t timestamp = initial_timestamp;
@@ -316,7 +316,7 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
                                            user_data)) == 0)
     {
         ++frame_index;
-        timestamp += time_between_frames;
+        timestamp += time_between_frames_ns;
         nanosleep(&time_between_frames_timespec, NULL);
     }
 
