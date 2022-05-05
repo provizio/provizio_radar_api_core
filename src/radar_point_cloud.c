@@ -378,8 +378,9 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
                                                           payload_size);
 }
 
-int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-                                               provizio_radar_point_cloud_api_connection *out_connection)
+int32_t provizio_radar_point_cloud_api_open_connection(uint16_t udp_port, uint64_t receive_timeout_ns,
+                                                       uint8_t check_connection,
+                                                       provizio_radar_point_cloud_api_connection *out_connection)
 {
     memset(out_connection, 0, sizeof(provizio_radar_point_cloud_api_connection));
     out_connection->sock = PROVIZIO__INVALID_SOCKET;
@@ -389,7 +390,7 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         const int32_t status = errno;
-        provizio_error("provizio_radar_point_cloud_api_connect: Failed to create a UDP socket!"
+        provizio_error("provizio_radar_point_cloud_api_open_connection: Failed to create a UDP socket!"
 #ifdef _WIN32
                        " Have you called provizio_sockets_initialize or WSAStartup?"
 #endif
@@ -406,7 +407,7 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
         if (status != 0)
         {
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-            provizio_error("provizio_radar_point_cloud_api_connect: Setting timeout failed!");
+            provizio_error("provizio_radar_point_cloud_api_open_connection: Setting timeout failed!");
             provizio_socket_close(sock);
             return status;
             // LCOV_EXCL_STOP
@@ -424,7 +425,7 @@ int32_t provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t recei
     status = (int32_t)bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
     if (status != 0)
     {
-        provizio_error("provizio_radar_point_cloud_api_connect: Failed to bind a UDP socket!");
+        provizio_error("provizio_radar_point_cloud_api_open_connection: Failed to bind a UDP socket!");
         provizio_socket_close(sock);
         return status;
     }
@@ -490,11 +491,11 @@ int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_po
                : provizio_handle_radar_point_cloud_packet(contexts, &packet, (size_t)received);
 }
 
-int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_connection *connection)
+int32_t provizio_radar_point_cloud_api_close_connection(provizio_radar_point_cloud_api_connection *connection)
 {
     if (!provizio_socket_valid(connection->sock))
     {
-        provizio_error("provizio_radar_point_cloud_api_close: Not connected");
+        provizio_error("provizio_radar_point_cloud_api_close_connection: Not connected");
         return EINVAL;
     }
 
@@ -502,7 +503,7 @@ int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_conn
     if (status != 0)
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        provizio_error("provizio_radar_point_cloud_api_close: provizio_socket_close failed!");
+        provizio_error("provizio_radar_point_cloud_api_close_connection: provizio_socket_close failed!");
         return status;
         // LCOV_EXCL_STOP
     }

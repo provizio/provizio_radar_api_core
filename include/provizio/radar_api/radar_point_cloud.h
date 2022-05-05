@@ -294,8 +294,8 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
  * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t
-provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-                                       provizio_radar_point_cloud_api_connection *out_connection);
+provizio_radar_point_cloud_api_open_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
+                                               provizio_radar_point_cloud_api_connection *out_connection);
 
 /**
  * @brief Receive and handle the next UDP packet from a single radar using a previously connected API and a previously
@@ -304,7 +304,7 @@ provizio_radar_point_cloud_api_connect(uint16_t udp_port, uint64_t receive_timeo
  * @param context provizio_radar_point_cloud_api_context previously initialized with
  * provizio_radar_point_cloud_api_context_init
  * @param connection A provizio_radar_point_cloud_api_connection previously connected with
- * provizio_radar_point_cloud_api_connect
+ * provizio_radar_point_cloud_api_open_connection
  * @return 0 if received successfully, EAGAIN if timed out, other error value if failed for another reason
  *
  * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
@@ -320,7 +320,7 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_receive_packet
  * provizio_radar_point_cloud_api_contexts_init
  * @param num_contexts Number of objects in contexts
  * @param connection A provizio_radar_point_cloud_api_connection previously connected with
- * provizio_radar_point_cloud_api_connect
+ * provizio_radar_point_cloud_api_open_connection
  * @return 0 if received successfully, EAGAIN if timed out or the received packet was obsolete, EBUSY in case
  * num_contexts is not enough, other error value if failed for another reason
  */
@@ -332,10 +332,11 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_contexts_receive_packe
  * @brief Closes a previously connected radar point clouds API
  *
  * @param connection A provizio_radar_point_cloud_api_connection previously connected with
- * provizio_radar_point_cloud_api_connect
+ * provizio_radar_point_cloud_api_open_connection
  * @return 0 if successfull, error code otherwise
  */
-PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_close(provizio_radar_point_cloud_api_connection *connection);
+PROVIZIO__EXTERN_C int32_t
+provizio_radar_point_cloud_api_close_connection(provizio_radar_point_cloud_api_connection *connection);
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
 static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_header, packet_type) == 0,

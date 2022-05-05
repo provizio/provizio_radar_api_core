@@ -544,7 +544,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(&test_provizio_radar_point_cloud_callback, callback_data, &api_context);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -556,7 +556,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     TEST_ASSERT_EQUAL_INT32(1, callback_data->called_times);
@@ -626,7 +626,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     provizio_radar_point_cloud_api_contexts_init(&test_provizio_radar_point_cloud_callback, callback_data, api_contexts,
                                                  num_contexts);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -638,7 +638,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // 2 point clouds received - one per radar
@@ -780,14 +780,15 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     provizio_radar_point_cloud_api_context_init(&test_provizio_radar_point_cloud_callback, callback_data, &api_context);
 
     provizio_radar_point_cloud_api_connection connection;
-    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, receive_timeout_ns, 1, &connection));
+    TEST_ASSERT_EQUAL_INT32(
+        0, provizio_radar_point_cloud_api_open_connection(port_number, receive_timeout_ns, 1, &connection));
 
     while (callback_data->called_times == 0) // NOLINT: No need to unroll
     {
         TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_context_receive_packet(&api_context, &connection));
     }
 
-    TEST_ASSERT_EQUAL(0, provizio_radar_point_cloud_api_close(&connection));
+    TEST_ASSERT_EQUAL(0, provizio_radar_point_cloud_api_close_connection(&connection));
 
     TEST_ASSERT_EQUAL(0, pthread_mutex_lock(&mutex));
     stop_flag = ECANCELED;
@@ -818,11 +819,11 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     struct timeval time_was;
     struct timeval time_now;
 
-    // Make sure provizio_radar_point_cloud_api_connect fails due to timeout when checking connection is enabled
+    // Make sure provizio_radar_point_cloud_api_open_connection fails due to timeout when checking connection is enabled
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_was, NULL));
     provizio_radar_point_cloud_api_connection connection;
-    TEST_ASSERT_EQUAL_INT32(EAGAIN,
-                            provizio_radar_point_cloud_api_connect(port_number, receive_timeout_ns, 1, &connection));
+    TEST_ASSERT_EQUAL_INT32(
+        EAGAIN, provizio_radar_point_cloud_api_open_connection(port_number, receive_timeout_ns, 1, &connection));
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
     int32_t took_time_ms =
         (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
@@ -830,7 +831,8 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 
     // It doesn't fail when checking connection is disabled
-    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, receive_timeout_ns, 0, &connection));
+    TEST_ASSERT_EQUAL_INT32(
+        0, provizio_radar_point_cloud_api_open_connection(port_number, receive_timeout_ns, 0, &connection));
 
     // But fails to receive on time, when requested
     TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_was, NULL));
@@ -841,7 +843,7 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms); // Allow missing 10ms due to system timer's inaccuracy
     TEST_ASSERT_LESS_THAN_INT32(200, took_time_ms);
 
-    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_close(&connection));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_close_connection(&connection));
 }
 
 static void test_receive_radar_point_cloud_frame_indices_overflow(void)
@@ -861,7 +863,7 @@ static void test_receive_radar_point_cloud_frame_indices_overflow(void)
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(&test_provizio_radar_point_cloud_callback, callback_data, &api_context);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -884,7 +886,7 @@ static void test_receive_radar_point_cloud_frame_indices_overflow(void)
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // The second frame should be dropped due to the state reset on frame numbers overflow - it's by design
@@ -912,7 +914,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(&test_provizio_radar_point_cloud_callback, callback_data, &api_context);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -935,7 +937,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     TEST_ASSERT_EQUAL_INT32(1, callback_data->called_times);
@@ -961,7 +963,7 @@ static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(&test_provizio_radar_point_cloud_callback, callback_data, &api_context);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -977,7 +979,7 @@ static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
         TEST_ASSERT_EQUAL_INT32(0, status);
     }
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Make sure the very first frame got returned even though it was incomplete
@@ -1002,7 +1004,7 @@ static void test_receive_radar_point_cloud_too_many_points(void)
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -1026,7 +1028,7 @@ static void test_receive_radar_point_cloud_too_many_points(void)
                              provizio_test_error);
     provizio_set_on_error(NULL);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 }
 
@@ -1052,7 +1054,7 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
     provizio_radar_point_cloud_api_contexts_init(&test_provizio_radar_point_cloud_callback, callback_data, api_contexts,
                                                  num_contexts);
     provizio_radar_point_cloud_api_connection connection;
-    int32_t status = provizio_radar_point_cloud_api_connect(port_number, 0, 0, &connection);
+    int32_t status = provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -1068,7 +1070,7 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
                              provizio_test_error);
     provizio_set_on_error(NULL);
 
-    status = provizio_radar_point_cloud_api_close(&connection);
+    status = provizio_radar_point_cloud_api_close_connection(&connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     free(api_contexts);
@@ -1181,11 +1183,12 @@ static void test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken(
     provizio_radar_point_cloud_api_connection ok_connection;
     provizio_radar_point_cloud_api_connection failed_connection;
 
-    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, 0, 0, &ok_connection));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &ok_connection));
 
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
-    TEST_ASSERT_NOT_EQUAL_INT32(0, provizio_radar_point_cloud_api_connect(port_number, 0, 0, &failed_connection));
-    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_connect: Failed to bind a UDP socket!",
+    TEST_ASSERT_NOT_EQUAL_INT32(0,
+                                provizio_radar_point_cloud_api_open_connection(port_number, 0, 0, &failed_connection));
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_open_connection: Failed to bind a UDP socket!",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 }
@@ -1210,8 +1213,8 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
     api_connetion.sock = PROVIZIO__INVALID_SOCKET;
 
     provizio_set_on_error(&test_provizio_radar_point_cloud_on_error);
-    TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_close(&api_connetion));
-    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close: Not connected", provizio_test_error);
+    TEST_ASSERT_EQUAL_INT32(EINVAL, provizio_radar_point_cloud_api_close_connection(&api_connetion));
+    TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_close_connection: Not connected", provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
