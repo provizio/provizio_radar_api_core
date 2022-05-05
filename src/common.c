@@ -38,7 +38,7 @@ void provizio_print_message(FILE *stream, const char *message_type, const char *
     }
     else
     {
-        fprintf(stream, "[provizio_radar_api_core %s] %s\n", message_type, message);
+        (void)fprintf(stream, "[provizio_radar_api_core %s] %s\n", message_type, message);
     }
 }
 

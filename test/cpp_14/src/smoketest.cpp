@@ -47,15 +47,14 @@ namespace
         // LCOV_EXCL_STOP
     }
 
-    std::unique_ptr<void, std::function<void(void *)>> make_guard(provizio_radar_point_cloud_api_connection &connection)
+    std::unique_ptr<void, std::function<void(void *)>> make_guard(provizio_radar_api_connection &connection)
     {
         // LCOV_EXCL_START: lcov isn't great at handling C++ lambdas
         return std::unique_ptr<void, std::function<void(void *)>>{
             nullptr, [&](void *ignored) {
                 (void)ignored;
 
-                if (provizio_socket_valid(connection.sock) != 0 &&
-                    provizio_radar_point_cloud_api_close_connection(&connection) != 0)
+                if (provizio_socket_valid(connection.sock) != 0 && provizio_close_radar_connection(&connection) != 0)
                 {
                     throw std::runtime_error{"Failed to close an API connection"}; // LCOV_EXCL_LINE: Shouldn't happen
                 }
@@ -84,7 +83,7 @@ int main(int argc, char *argv[])
             throw std::runtime_error{"provizio_sockets_initialize failed!"}; // LCOV_EXCL_LINE: Shouldn't happen
         }
 
-        constexpr std::uint16_t port_number = 10200 + PROVIZIO__RADAR_API_POINT_CLOUD_DEFAULT_PORT;
+        constexpr std::uint16_t port_number = 10200 + PROVIZIO__RADAR_API_DEFAULT_PORT;
         constexpr std::uint32_t start_frame_index = 500;
         constexpr std::uint64_t timestamp = 0x0123456701234567ULL;
         constexpr std::uint16_t radar_position_id = provizio_radar_position_front_left;
@@ -189,10 +188,10 @@ int main(int argc, char *argv[])
             provizio_radar_point_cloud_api_context_init(&callback_wrapper<decltype(callback)>, &callback,
                                                         api_context.get());
 
-            provizio_radar_point_cloud_api_connection connection;
+            provizio_radar_api_connection connection;
             const auto connection_guard = make_guard(connection);
             if ((error_code =
-                     provizio_radar_point_cloud_api_open_connection(port_number, timeout_ns, 1, &connection)) != 0)
+                     provizio_open_radar_connection(port_number, timeout_ns, 1, api_context.get(), &connection)) != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen
                 std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
@@ -201,8 +200,7 @@ int main(int argc, char *argv[])
                 // LCOV_EXCL_STOP
             }
 
-            if ((error_code = provizio_radar_point_cloud_api_context_receive_packet(api_context.get(), &connection)) !=
-                0)
+            if ((error_code = provizio_radar_api_receive_packet(&connection)) != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen
                 std::lock_guard<std::mutex> lock{exception_in_thread_mutex};

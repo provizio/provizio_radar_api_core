@@ -56,10 +56,10 @@ int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout
 #else
     const uint64_t seconds_to_nanoseconds = 1000000000ULL;
     const uint64_t microseconds_to_nanoseconds = 1000ULL;
-    struct timeval tv;
-    tv.tv_sec = (time_t)(timeout_ns / seconds_to_nanoseconds);
-    tv.tv_usec = (suseconds_t)((timeout_ns % seconds_to_nanoseconds) / microseconds_to_nanoseconds);
-    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    struct timeval timeval;
+    timeval.tv_sec = (time_t)(timeout_ns / seconds_to_nanoseconds);
+    timeval.tv_usec = (suseconds_t)((timeout_ns % seconds_to_nanoseconds) / microseconds_to_nanoseconds);
+    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeval, sizeof(timeval));
 #endif
 
     return status;

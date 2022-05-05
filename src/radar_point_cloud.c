@@ -15,9 +15,9 @@
 #include "provizio/radar_api/radar_point_cloud.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <string.h>
 
+#include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
 
 void provizio_return_point_cloud(provizio_radar_point_cloud_api_context *context,
@@ -175,8 +175,9 @@ int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud
 {
     if (radar_position_id == provizio_radar_position_unknown)
     {
-        provizio_error("provizio_radar_point_cloud_api_context_assign: can assign to provizio_radar_position_unknown");
-        return EINVAL;
+        provizio_error(
+            "provizio_radar_point_cloud_api_context_assign: can't assign to provizio_radar_position_unknown");
+        return PROVIZIO_E_ARGUMENT;
     }
 
     if (context->radar_position_id == radar_position_id)
@@ -191,7 +192,7 @@ int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud
     }
 
     provizio_error("provizio_radar_point_cloud_api_context_assign: already assigned");
-    return EPERM;
+    return PROVIZIO_E_NOT_PERMITTED;
 }
 
 int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)
@@ -199,40 +200,40 @@ int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packe
     if (packet_size < sizeof(provizio_radar_point_cloud_packet_protocol_header))
     {
         provizio_error("provizio_check_radar_point_cloud_packet: insufficient packet_size");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.packet_type) !=
         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE)
     {
         provizio_error("provizio_check_radar_point_cloud_packet: unexpected packet_type");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version) >
         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION)
     {
         provizio_error("provizio_check_radar_point_cloud_packet: Incompatible protocol version");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     if (packet_size < sizeof(provizio_radar_point_cloud_packet_header))
     {
         provizio_error("provizio_check_radar_point_cloud_packet: insufficient packet_size");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     if (packet_size != provizio_radar_point_cloud_packet_size(&packet->header))
     {
         provizio_error("provizio_check_radar_point_cloud_packet: incorrect packet_size");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id) == provizio_radar_position_unknown)
     {
         provizio_error("provizio_check_radar_point_cloud_packet: the value of radar_position_id can't be "
                        "provizio_radar_position_unknown");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     return 0;
@@ -245,13 +246,13 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     if (!cloud)
     {
         // Skip the packet (warning has already been published in get_point_cloud_being_received)
-        return EAGAIN;
+        return PROVIZIO_E_SKIPPED;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet->header.total_points_in_frame) == 0)
     {
         // No points in the frame - just skip it
-        return EAGAIN;
+        return PROVIZIO_E_SKIPPED;
     }
 
     const uint16_t num_points_in_packet = provizio_get_protocol_field_uint16_t(&packet->header.num_points_in_packet);
@@ -259,7 +260,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     if ((uint32_t)cloud->num_points_received + (uint32_t)num_points_in_packet > (uint32_t)cloud->num_points_expected)
     {
         provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     memcpy(&cloud->radar_points[cloud->num_points_received], &packet->radar_points,
@@ -334,7 +335,7 @@ int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api
     if (!context)
     {
         // Error message has been already posted by provizio_get_radar_point_cloud_api_context_by_position_id
-        return EBUSY;
+        return PROVIZIO_E_OUT_OF_CONTEXTS;
     }
 
     return provizio_handle_radar_point_cloud_packet_checked(context, packet);
@@ -353,7 +354,7 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
     if (payload_size < sizeof(provizio_radar_point_cloud_packet_header))
     {
         // Not enough data
-        return EAGAIN;
+        return PROVIZIO_E_SKIPPED;
     }
 
     provizio_radar_point_cloud_packet_header *packet_header = (provizio_radar_point_cloud_packet_header *)payload;
@@ -361,14 +362,14 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE)
     {
         // Non-point cloud packet
-        return EAGAIN;
+        return PROVIZIO_E_SKIPPED;
     }
 
     if (provizio_get_protocol_field_uint16_t(&packet_header->protocol_header.protocol_version) >
         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION)
     {
         provizio_error("provizio_handle_possible_radar_point_cloud_packet: Incompatible protocol version");
-        return EPROTO;
+        return PROVIZIO_E_PROTOCOL;
     }
 
     return num_contexts != 1
@@ -376,138 +377,4 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
                                                            (provizio_radar_point_cloud_packet *)payload, payload_size)
                : provizio_handle_radar_point_cloud_packet(contexts, (provizio_radar_point_cloud_packet *)payload,
                                                           payload_size);
-}
-
-int32_t provizio_radar_point_cloud_api_open_connection(uint16_t udp_port, uint64_t receive_timeout_ns,
-                                                       uint8_t check_connection,
-                                                       provizio_radar_point_cloud_api_connection *out_connection)
-{
-    memset(out_connection, 0, sizeof(provizio_radar_point_cloud_api_connection));
-    out_connection->sock = PROVIZIO__INVALID_SOCKET;
-
-    PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (!provizio_socket_valid(sock))
-    {
-        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        const int32_t status = errno;
-        provizio_error("provizio_radar_point_cloud_api_open_connection: Failed to create a UDP socket!"
-#ifdef _WIN32
-                       " Have you called provizio_sockets_initialize or WSAStartup?"
-#endif
-        );
-        return status != 0 ? status : -1;
-        // LCOV_EXCL_STOP
-    }
-
-    int32_t status = 0;
-    if (receive_timeout_ns)
-    {
-        // Despite clang-tidy suggestion, (int32_t) may be required as it's platform dependent
-        status = (int32_t)provizio_socket_set_recv_timeout(sock, receive_timeout_ns); // NOLINT
-        if (status != 0)
-        {
-            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-            provizio_error("provizio_radar_point_cloud_api_open_connection: Setting timeout failed!");
-            provizio_socket_close(sock);
-            return status;
-            // LCOV_EXCL_STOP
-        }
-    }
-
-    struct sockaddr_in my_address;
-    memset(&my_address, 0, sizeof(my_address));
-    my_address.sin_family = AF_INET;
-    // linting disabled in next line as htons implementation is up to a platform (it uses asm instructions in some
-    // platforms, which clang-tidy hates)
-    my_address.sin_port = htons(udp_port);   // NOLINT
-    my_address.sin_addr.s_addr = INADDR_ANY; // Any address
-
-    status = (int32_t)bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
-    if (status != 0)
-    {
-        provizio_error("provizio_radar_point_cloud_api_open_connection: Failed to bind a UDP socket!");
-        provizio_socket_close(sock);
-        return status;
-    }
-
-    if (check_connection)
-    {
-        provizio_radar_point_cloud_packet packet;
-        int32_t received = (int32_t)recv(sock, (char *)&packet, sizeof(packet), 0);
-        if (received == (int32_t)-1)
-        {
-            const int32_t error_code = (int32_t)errno;
-
-            provizio_socket_close(sock);
-
-            if (error_code == 0 || error_code == (int32_t)EWOULDBLOCK)
-            {
-                return EAGAIN;
-            }
-
-            return error_code; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
-        }
-    }
-
-    out_connection->sock = sock;
-    return 0;
-}
-
-int32_t provizio_radar_point_cloud_api_context_receive_packet(provizio_radar_point_cloud_api_context *context,
-                                                              provizio_radar_point_cloud_api_connection *connection)
-{
-    return provizio_radar_point_cloud_api_contexts_receive_packet(context, 1, connection);
-}
-
-int32_t provizio_radar_point_cloud_api_contexts_receive_packet(provizio_radar_point_cloud_api_context *contexts,
-                                                               size_t num_contexts,
-                                                               provizio_radar_point_cloud_api_connection *connection)
-{
-    if (!provizio_socket_valid(connection->sock))
-    {
-        provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Not connected");
-        return EINVAL;
-    }
-
-    provizio_radar_point_cloud_packet packet;
-
-    int32_t received = (int32_t)recv(connection->sock, (char *)&packet, sizeof(packet), 0);
-    if (received == (int32_t)-1)
-    {
-        if (errno != 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-        {
-            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-            const int32_t status_code = errno;
-            provizio_error("provizio_radar_point_cloud_api_context_receive_packet: Failed to receive");
-            return (int32_t)status_code; // NOLINT: Type cast is platform specific
-            // LCOV_EXCL_STOP
-        }
-
-        return (int32_t)EAGAIN;
-    }
-
-    return num_contexts != 1
-               ? provizio_handle_radars_point_cloud_packet(contexts, num_contexts, &packet, (size_t)received)
-               : provizio_handle_radar_point_cloud_packet(contexts, &packet, (size_t)received);
-}
-
-int32_t provizio_radar_point_cloud_api_close_connection(provizio_radar_point_cloud_api_connection *connection)
-{
-    if (!provizio_socket_valid(connection->sock))
-    {
-        provizio_error("provizio_radar_point_cloud_api_close_connection: Not connected");
-        return EINVAL;
-    }
-
-    int32_t status = provizio_socket_close(connection->sock);
-    if (status != 0)
-    {
-        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        provizio_error("provizio_radar_point_cloud_api_close_connection: provizio_socket_close failed!");
-        return status;
-        // LCOV_EXCL_STOP
-    }
-
-    connection->sock = PROVIZIO__INVALID_SOCKET;
-    return 0;
 }
