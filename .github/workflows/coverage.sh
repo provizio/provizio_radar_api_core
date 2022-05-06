@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Provizio Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.1.0)
+set -eu
 
-find_package(Threads)
-add_executable(provizio_radar_api_core_test_cpp_14 src/smoketest.cpp)
-target_link_libraries(provizio_radar_api_core_test_cpp_14 provizio_radar_api_core Threads::Threads)
-set_property(TARGET provizio_radar_api_core_test_cpp_14 PROPERTY CXX_STANDARD 14)
-add_dependencies(provizio_radar_api_core_test_cpp_14 unity)
+cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
-add_test(NAME provizio_radar_api_core_test_cpp_14 COMMAND provizio_radar_api_core_test_cpp_14)
+cd ../../build
+cmake --build . --target code_coverage

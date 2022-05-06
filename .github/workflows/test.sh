@@ -19,4 +19,4 @@ set -eu
 cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 cd ../../build
-ctest
+ctest --output-on-failure

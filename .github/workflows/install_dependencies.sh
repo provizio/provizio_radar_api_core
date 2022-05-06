@@ -15,11 +15,12 @@
 # limitations under the License.
 
 # Use as:
-# build.sh [STATIC_ANALYSIS=OFF]
+# build.sh [STATIC_ANALYSIS=OFF] [CODE_COVERAGE=OFF]
 
 set -eu
 
 STATIC_ANALYSIS=${1:-"OFF"}
+CODE_COVERAGE=${2:-"OFF"}
 CC=${CC:-"gcc"}
 
 if [[ "${OSTYPE}" == "darwin"* ]]; then
@@ -72,5 +73,10 @@ else
   if [[ "${STATIC_ANALYSIS}" != "OFF" ]]; then
     # Install cppcheck, clang-format and clang-tidy (and clang for proper clang-tidy checks)
     apt install -y --no-install-recommends clang clang-format clang-tidy cppcheck
+  fi
+
+  if [[ "${CODE_COVERAGE}" != "OFF" ]]; then
+    # Install lcov
+    apt install -y lcov
   fi
 fi

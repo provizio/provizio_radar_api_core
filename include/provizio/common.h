@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PROVIZIO_RADAR_API_COMMON
-#define PROVIZIO_RADAR_API_COMMON
+#ifndef PROVIZIO_COMMON
+#define PROVIZIO_COMMON
 
 #ifdef __cplusplus
 // C++
@@ -47,18 +47,40 @@
 #define PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES (PROVIZIO__MTU - (size_t)28)
 #endif // PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES
 
-enum provizio_radar_position
-{
-    provizio_radar_position_front_center = 0,
-    provizio_radar_position_front_left = 1,
-    provizio_radar_position_front_right = 2,
-    provizio_radar_position_rear_left = 3,
-    provizio_radar_position_rear_right = 4,
+/**
+ * @brief Specifies a custom function to be called on warning
+ *
+ * @param warning_function Function pointer or NULL (resets to default)
+ * @warning Not thread safe, so it's recommended to call prior to starting any threads
+ * @note By default printing to stderr is used on warning.
+ */
+PROVIZIO__EXTERN_C void provizio_set_on_warning(void (*warning_function)(const char *));
 
-    provizio_radar_position_custom = ((uint16_t)0x1000),
+/**
+ * @brief Specifies a custom function to be called on error
+ *
+ * @param warning_function Function pointer or NULL (resets to default)
+ * @warning Not thread safe, so it's recommended to call prior to starting any threads
+ * @note By default printing to stderr is used on error.
+ */
+PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char *));
 
-    provizio_radar_position_unknown = ((uint16_t)0xffff),
-    provizio_radar_position_max = provizio_radar_position_unknown
-};
+/**
+ * @brief Informs about a warning
+ *
+ * @param message Warning message
+ * @see provizio_set_on_warning for more details
+ * @return PROVIZIO__EXTERN_C
+ */
+PROVIZIO__EXTERN_C void provizio_warning(const char *message);
 
-#endif // PROVIZIO_RADAR_API_COMMON
+/**
+ * @brief Informs about an error
+ *
+ * @param message Error message
+ * @see provizio_set_on_error for more details
+ * @return PROVIZIO__EXTERN_C
+ */
+PROVIZIO__EXTERN_C void provizio_error(const char *message);
+
+#endif // PROVIZIO_COMMON
