@@ -437,9 +437,6 @@ There are a few options for this:
     * @return 0 if it's a provizio_radar_point_cloud_packet and it was handled successfully, PROVIZIO_E_SKIPPED if it's not
     * a provizio_radar_point_cloud_packet, PROVIZIO_E_OUT_OF_CONTEXTS in case num_contexts is not enough, other error code
     * if it's a provizio_radar_point_cloud_packet but its handling failed for another reason
-    *
-    * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
-    * be same (returns an error otherwise)
     */
     int32_t status = provizio_handle_possible_radars_point_cloud_packet(contexts, num_contexts, payload, payload_size);
     ```
