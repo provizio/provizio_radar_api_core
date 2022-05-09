@@ -153,7 +153,9 @@ struct provizio_radar_point_cloud_api_context;
 typedef void (*provizio_radar_point_cloud_callback)(const provizio_radar_point_cloud *point_cloud,
                                                     struct provizio_radar_point_cloud_api_context *context);
 
+#ifndef PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
 #define PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT 2
+#endif // PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
 typedef struct provizio_radar_point_cloud_api_context_impl
 {
     uint32_t latest_frame;
