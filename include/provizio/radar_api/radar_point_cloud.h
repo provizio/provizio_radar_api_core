@@ -153,7 +153,9 @@ struct provizio_radar_point_cloud_api_context;
 typedef void (*provizio_radar_point_cloud_callback)(const provizio_radar_point_cloud *point_cloud,
                                                     struct provizio_radar_point_cloud_api_context *context);
 
+#ifndef PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
 #define PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT 2
+#endif // PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
 typedef struct provizio_radar_point_cloud_api_context_impl
 {
     uint32_t latest_frame;
@@ -268,9 +270,6 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_point_cloud_packet(
  * @return 0 if it's a provizio_radar_point_cloud_packet and it was handled successfully, PROVIZIO_E_SKIPPED if it's not
  * a provizio_radar_point_cloud_packet, PROVIZIO_E_OUT_OF_CONTEXTS in case num_contexts is not enough, other error code
  * if it's a provizio_radar_point_cloud_packet but its handling failed for another reason
- *
- * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
- * be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
     provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
