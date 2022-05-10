@@ -5,6 +5,13 @@ on:
   pull_request:
 
 jobs:
+  check-license-headers:
+    name: Check license headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: .github/workflows/check_license_headers.sh
+
   build-nix:
     name: Build provizio_radar_api_core with Static Code Analysis enabled
     runs-on: ${{matrix.runner}}
