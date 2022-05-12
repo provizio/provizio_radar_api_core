@@ -48,7 +48,7 @@ typedef struct provizio_radar_api_connection
  * @param out_connection A provizio_radar_api_connection to store the connection handle
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
  *
- * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+ * @note The connection has to be eventually closed with provizio_close_radar_connection
  */
 PROVIZIO__EXTERN_C int32_t
 provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
@@ -70,7 +70,7 @@ provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, u
  * @param out_connection A provizio_radar_api_connection to store the connection handle
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
  *
- * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+ * @note The connection has to be eventually closed with provizio_close_radars_connection
  */
 PROVIZIO__EXTERN_C int32_t provizio_open_radars_connection(
     uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,

@@ -241,7 +241,7 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
      * @param out_connection A provizio_radar_api_connection to store the connection handle
      * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
      *
-     * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+     * @note The connection has to be eventually closed with provizio_close_radar_connection
      */
     int32_t status = provizio_open_radar_connection(udp_port, receive_timeout_ns, check_connection, &api_context, &connection);
     ```
@@ -273,7 +273,7 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
     * @param out_connection A provizio_radar_api_connection to store the connection handle
     * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
     *
-    * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+    * @note The connection has to be eventually closed with provizio_close_radars_connection
     */
     int32_t status = provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection, api_contexts, num_contexts, &connection);
     ```
