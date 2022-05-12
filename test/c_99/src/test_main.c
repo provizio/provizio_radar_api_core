@@ -28,6 +28,7 @@ int provizio_run_test_common(void);
 int provizio_run_test_util(void);
 int provizio_run_test_radar_point_cloud(void);
 int provizio_run_test_core(void);
+int provizio_run_test_points_accumulation(void);
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     result = result ? result : provizio_run_test_util();
     result = result ? result : provizio_run_test_radar_point_cloud();
     result = result ? result : provizio_run_test_core();
+    result = result ? result : provizio_run_test_points_accumulation();
 
     return result;
 }

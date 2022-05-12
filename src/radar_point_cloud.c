@@ -56,6 +56,8 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     {
         // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
         // state of the API to avoid complicated state-related issues.
+        provizio_warning(
+            "provizio_get_point_cloud_being_received: frame indices overflow detected - resetting API state");
         provizio_radar_point_cloud_api_context_init(context->callback, context->user_data, context);
     }
 
