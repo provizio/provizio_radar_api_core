@@ -15,6 +15,11 @@
 #ifndef PROVIZIO_COMMON
 #define PROVIZIO_COMMON
 
+#ifndef _USE_MATH_DEFINES
+// Required in MSVC for constants like M_PI
+#define _USE_MATH_DEFINES
+#endif // _USE_MATH_DEFINES
+
 #ifdef __cplusplus
 // C++
 

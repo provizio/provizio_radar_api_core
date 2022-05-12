@@ -213,3 +213,14 @@ int64_t provizio_time_interval_ns(struct timeval *time_b, struct timeval *time_a
     return ((int64_t)time_b->tv_sec - (int64_t)time_a->tv_sec) * nanoseconds_in_second +
            ((int64_t)time_b->tv_usec - (int64_t)time_a->tv_usec) * nanoseconds_in_microsecond;
 }
+
+float provizio_nanoseconds_to_seconds(int64_t duration_ns)
+{
+    const int64_t nanoseconds_in_millisecond = 1000000LL; // Required due to limited precision of floats
+    const float milliseconds_in_second = 1000.0F;
+
+    return (float)(duration_ns / nanoseconds_in_millisecond) / // NOLINT: Potential losing of precision is indeed
+                                                               // expected due to limited float
+           milliseconds_in_second;
+    // capacity
+}

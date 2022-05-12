@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
             // LCOV_EXCL_START: Shouldn't happen
             catch (const std::exception &e)
             {
-                std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
+                const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 exception_in_send_thread = e.what();
             }
             // LCOV_EXCL_STOP
@@ -192,20 +192,21 @@ int main(int argc, char *argv[])
 
             provizio_radar_api_connection connection;
             const auto connection_guard = make_guard(connection);
-            if ((error_code =
-                     provizio_open_radar_connection(port_number, timeout_ns, 1, api_context.get(), &connection)) != 0)
+            error_code = provizio_open_radar_connection(port_number, timeout_ns, 1, api_context.get(), &connection);
+            if (error_code != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen
-                std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
+                const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to establish an API connection"};
                 // LCOV_EXCL_STOP
             }
 
-            if ((error_code = provizio_radar_api_receive_packet(&connection)) != 0)
+            error_code = provizio_radar_api_receive_packet(&connection);
+            if (error_code != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen
-                std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
+                const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to receive a packet"};
                 // LCOV_EXCL_STOP

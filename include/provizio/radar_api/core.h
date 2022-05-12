@@ -19,6 +19,7 @@
 #include "provizio/radar_api/errno.h"
 #include "provizio/radar_api/radar_modes.h"
 #include "provizio/radar_api/radar_point_cloud.h"
+#include "provizio/radar_api/radar_points_accumulation.h"
 #include "provizio/socket.h"
 #include "provizio/util.h"
 
