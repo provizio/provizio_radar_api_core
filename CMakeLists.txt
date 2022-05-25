@@ -226,7 +226,7 @@ install(TARGETS provizio_radar_api_core
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
-install(DIRECTORY include/provizio TYPE INCLUDE)
+install(DIRECTORY include/provizio DESTINATION include)
 
 # Add tests, if enabled
 if(BUILD_TESTING)
