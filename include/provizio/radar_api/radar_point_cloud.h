@@ -15,30 +15,15 @@
 #ifndef PROVIZIO_RADAR_API_RADAR_POINT_CLOUD
 #define PROVIZIO_RADAR_API_RADAR_POINT_CLOUD
 
-#include "provizio/common.h"
+#include "provizio/radar_api/common.h"
+#include "provizio/radar_api/radar_modes.h"
+#include "provizio/radar_api/radar_position.h"
 #include "provizio/socket.h"
 
-// Used to identify provizio_radar_point_cloud_packet, can't change even on protocol updates
-#define PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE ((uint16_t)1)
-
-// To be incremented on any protocol changes (used for backward compatibility)
+// To be incremented on any breaking protocol changes (used for backward compatibility)
 #define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)1)
 
 // Radar point cloud structures of the binary UDP protocol are defined here, see README.md for more details
-
-typedef enum provizio_radar_position
-{
-    provizio_radar_position_front_center = 0,
-    provizio_radar_position_front_left = 1,
-    provizio_radar_position_front_right = 2,
-    provizio_radar_position_rear_left = 3,
-    provizio_radar_position_rear_right = 4,
-
-    provizio_radar_position_custom = ((uint16_t)0x1000),
-
-    provizio_radar_position_unknown = ((uint16_t)0xffff),
-    provizio_radar_position_max = provizio_radar_position_unknown
-} provizio_radar_position;
 
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
@@ -61,19 +46,6 @@ typedef struct
 } provizio_radar_point;
 
 /**
- * @brief 4-bytes header prefix used to identify a packet type and the protocol version
- *
- * @note This struct should never change, even on protocol updates
- * @see provizio_set_protocol_field_uint16_t
- * @see provizio_get_protocol_field_uint16_t
- */
-typedef struct provizio_radar_point_cloud_packet_protocol_header
-{
-    uint16_t packet_type;      // = PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE
-    uint16_t protocol_version; // = PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION (in the "current" protocol version)
-} provizio_radar_point_cloud_packet_protocol_header;
-
-/**
  * @brief Header placed in the beginning of each radar point cloud packet.
  *
  * @note All fields are sent using network bytes order.
@@ -88,7 +60,7 @@ typedef struct provizio_radar_point_cloud_packet_protocol_header
  */
 typedef struct provizio_radar_point_cloud_packet_header
 {
-    provizio_radar_point_cloud_packet_protocol_header protocol_header;
+    provizio_radar_api_protocol_header protocol_header;
 
     uint32_t frame_index; // 0-based
     uint64_t timestamp;   // Time of the frame capture measured in absolute number of nanoseconds since the start of the
@@ -96,7 +68,7 @@ typedef struct provizio_radar_point_cloud_packet_header
     uint16_t radar_position_id;     // Either one of provizio_radar_position enum values or a custom position id
     uint16_t total_points_in_frame; // Number of points in the entire frame
     uint16_t num_points_in_packet;  // Number of points in this single packet
-    uint16_t reserved;              // Not used currently, kept for better alignment and potential future use
+    uint16_t radar_mode;            // One of provizio_radar_mode enum values
 } provizio_radar_point_cloud_packet_header;
 
 // Max number of radar points in a single UDP packet
@@ -146,6 +118,7 @@ typedef struct provizio_radar_point_cloud
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
+    uint16_t radar_mode;          // One of provizio_radar_mode enum values
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 
@@ -275,12 +248,6 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
     provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
-static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_header, packet_type) == 0,
-              "Unexpected position of protocol_header in provizio_radar_point_cloud_packet_protocol_header");
-static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_header, protocol_version) == 2,
-              "Unexpected position of frame_index in provizio_radar_point_cloud_packet_protocol_header");
-static_assert(sizeof(provizio_radar_point_cloud_packet_protocol_header) == 4,
-              "Unexpected size of provizio_radar_point_cloud_packet_protocol_header");
 static_assert(offsetof(provizio_radar_point_cloud_packet_header, protocol_header) == 0,
               "Unexpected position of protocol_header in provizio_radar_point_cloud_packet_header");
 static_assert(offsetof(provizio_radar_point_cloud_packet_header, frame_index) == 4,

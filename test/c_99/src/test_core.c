@@ -18,17 +18,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#else
-#include <sys/time.h>
-#endif
 
 #include "provizio/radar_api/core.h"
+#include "provizio/util.h"
 
 #include "test_point_cloud_callbacks.h"
 
@@ -51,6 +43,7 @@ typedef struct test_stop_when_ordered_thread_data // NOLINT: it's aligned exactl
     uint32_t first_frame_index;
     uint64_t initial_timestamp;
     uint16_t *radar_position_ids;
+    uint16_t *radar_modes;
     size_t num_radars;
     uint16_t num_points;
     test_stop_when_ordered_callback_data stop_condition;
@@ -77,32 +70,6 @@ static void test_provizio_on_error(const char *error)
 }
 
 #ifdef WIN32
-/**
- * @brief Tests-purpose implementation of *nix gettimeofday for Windows so we can measure how much time specific calls
- * take
- *
- * @param tv Output timeval (doesn't actually do epochs correction as only used in tests to measure time intervals)
- * @param tz Ignored
- * @return int Always 0 (i.e. never expected to fail)
- */
-static int gettimeofday(struct timeval *tv, void *tz)
-{
-    // We don't specify timezone in these tests anyway
-    (void)tz;
-
-    SYSTEMTIME system_time;
-    GetSystemTime(&system_time);
-
-    FILETIME file_time;
-    SystemTimeToFileTime(&system_time, &file_time);
-
-    const uint64_t time = ((uint64_t)file_time.dwLowDateTime) + (((uint64_t)file_time.dwHighDateTime) << 32);
-    tv->tv_sec = (int32_t)(time / 10000000L);
-    tv->tv_usec = (int32_t)(system_time.wMilliseconds * 1000);
-
-    return 0;
-}
-
 /**
  * @brief Tests-purpose implementation of *nix nanosleep for Windows (though only supports milliseconds precision)
  *
@@ -134,8 +101,9 @@ static int32_t test_stop_when_ordered(const provizio_radar_point_cloud_packet *p
 }
 
 static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t timestamp,
-                                    const uint16_t *radar_position_ids, const size_t num_radars,
-                                    const uint16_t num_points, const uint16_t drop_after_num_points,
+                                    const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                    const size_t num_radars, const uint16_t num_points,
+                                    const uint16_t drop_after_num_points,
                                     provizio_radar_point_cloud_packet_callback callback, void *user_data)
 {
     if (drop_after_num_points > num_points)
@@ -195,6 +163,8 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
             provizio_set_protocol_field_uint32_t(&packet.header.frame_index, frame_index);
             provizio_set_protocol_field_uint64_t(&packet.header.timestamp, timestamp);
             provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_ids[i]);
+            provizio_set_protocol_field_uint16_t(&packet.header.radar_mode,
+                                                 radar_modes != NULL ? radar_modes[i] : provizio_radar_mode_unknown);
             provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
             provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, points_in_packet);
 
@@ -262,8 +232,9 @@ static int32_t send_point_cloud_packet(const provizio_radar_point_cloud_packet *
 }
 
 static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_index, const uint64_t timestamp,
-                                     const uint16_t *radar_position_ids, const size_t num_radars,
-                                     const uint16_t num_points, const uint16_t drop_after_num_points,
+                                     const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                     const size_t num_radars, const uint16_t num_points,
+                                     const uint16_t drop_after_num_points,
                                      provizio_radar_point_cloud_packet_callback on_packet_sent, void *user_data)
 {
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -307,7 +278,7 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     send_data.further_callback = on_packet_sent;
     send_data.user_data = user_data;
 
-    if ((status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, num_radars, num_points,
+    if ((status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, radar_modes, num_radars, num_points,
                                        drop_after_num_points, &send_point_cloud_packet, &send_data)) != 0)
     {
         provizio_socket_close(sock);
@@ -327,8 +298,8 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
 
 static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const uint32_t first_frame_index,
                                                     const uint64_t initial_timestamp,
-                                                    const uint16_t *radar_position_ids, const size_t num_radars,
-                                                    const uint16_t num_points,
+                                                    const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                                    const size_t num_radars, const uint16_t num_points,
                                                     provizio_radar_point_cloud_packet_callback on_packet_sent,
                                                     void *user_data)
 {
@@ -341,8 +312,8 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
     uint64_t timestamp = initial_timestamp;
     int32_t status = 0;
     while ((status = send_test_point_cloud(port, frame_index, timestamp, // NOLINT: don't unroll the loop
-                                           radar_position_ids, num_radars, num_points, num_points, on_packet_sent,
-                                           user_data)) == 0)
+                                           radar_position_ids, radar_modes, num_radars, num_points, num_points,
+                                           on_packet_sent, user_data)) == 0)
     {
         ++frame_index;
         timestamp += time_between_frames_ns;
@@ -356,8 +327,8 @@ static void *test_stop_when_ordered_thread(void *thread_data)
 {
     test_stop_when_ordered_thread_data *data = (test_stop_when_ordered_thread_data *)thread_data;
     send_test_point_clouds_until_stopped(data->port, data->first_frame_index, data->initial_timestamp,
-                                         data->radar_position_ids, data->num_radars, data->num_points,
-                                         &test_stop_when_ordered, &data->stop_condition);
+                                         data->radar_position_ids, data->radar_modes, data->num_radars,
+                                         data->num_points, &test_stop_when_ordered, &data->stop_condition);
     return NULL;
 }
 
@@ -377,6 +348,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
+    const uint16_t radar_mode = provizio_radar_mode_long_range;
     const uint16_t num_points = 32768;
 
     test_provizio_radar_point_cloud_callback_data *callback_data =
@@ -396,8 +368,8 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     send_test_callback_data.num_contexts = 1;
     send_test_callback_data.connection = &connection;
 
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, 1, num_points, num_points,
-                                   &test_receive_packet_on_packet_sent, &send_test_callback_data);
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, &radar_mode, 1, num_points,
+                                   num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     status = provizio_close_radar_connection(&connection);
@@ -407,6 +379,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     TEST_ASSERT_EQUAL_UINT32(frame_index, callback_data->last_point_clouds[0].frame_index);
     TEST_ASSERT_EQUAL_UINT64(timestamp, callback_data->last_point_clouds[0].timestamp);
     TEST_ASSERT_EQUAL_UINT16(radar_position_id, callback_data->last_point_clouds[0].radar_position_id);
+    TEST_ASSERT_EQUAL_UINT16(radar_mode, callback_data->last_point_clouds[0].radar_mode);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[0].num_points_expected);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[0].num_points_received);
 
@@ -455,6 +428,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_front_center};
+    const uint16_t radar_modes[2] = {provizio_radar_mode_short_range, provizio_radar_mode_ultra_long_range};
     const uint16_t num_radars = sizeof(radar_position_ids) / sizeof(radar_position_ids[0]);
     const uint16_t num_contexts = num_radars;
     const uint16_t num_points = 32768;
@@ -478,8 +452,9 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     send_test_callback_data.num_contexts = num_contexts;
     send_test_callback_data.connection = &connection;
 
-    status = send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, num_radars, num_points,
-                                   num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
+    status =
+        send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, radar_modes, num_radars,
+                              num_points, num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     status = provizio_close_radars_connection(&connection);
@@ -495,6 +470,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
         TEST_ASSERT_EQUAL_UINT64(timestamp, callback_data->last_point_clouds[i].timestamp);
         TEST_ASSERT_EQUAL_UINT16(radar_position_ids[radar_index],
                                  callback_data->last_point_clouds[i].radar_position_id);
+        TEST_ASSERT_EQUAL_UINT16(radar_modes[radar_index], callback_data->last_point_clouds[i].radar_mode);
         TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[i].num_points_expected);
         TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[i].num_points_received);
 
@@ -565,17 +541,17 @@ static void test_receive_radar_point_cloud_frame_indices_overflow(void)
     send_test_callback_data.connection = &connection;
 
     // Send and receive a frame
-    status = send_test_point_cloud(port_number, frame_indices[0], timestamp, &radar_position_id, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_indices[0], timestamp, &radar_position_id, NULL, 1, num_points,
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Send and partly receive an incomplete frame
-    status = send_test_point_cloud(port_number, frame_indices[1], timestamp, &radar_position_id, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_indices[1], timestamp, &radar_position_id, NULL, 1, num_points,
                                    num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Send a complete frame, and make sure it got received while the incomplete one got dropped
-    status = send_test_point_cloud(port_number, frame_indices[2], timestamp, &radar_position_id, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_indices[2], timestamp, &radar_position_id, NULL, 1, num_points,
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
@@ -616,17 +592,17 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
     send_test_callback_data.connection = &connection;
 
     // Send and partly receive a frame
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[0], 1, num_points,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[0], NULL, 1, num_points,
                                    num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Send the last missing point of the frame, but make sure it's ingored due to the radar position mismatch
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[1], 1, 1, 1,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[1], NULL, 1, 1, 1,
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_SKIPPED, status);
 
     // Send and correctly receive a frame now as the radar position is correct
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[0], 1, 1, 1,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_ids[0], NULL, 1, 1, 1,
                                    &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
@@ -667,8 +643,9 @@ static void test_receive_radar_point_cloud_drop_obsolete_incomplete_frame(void)
     // Send 3 incomplete frames
     for (size_t i = 0; i < sizeof(frame_indices) / sizeof(frame_indices[0]); ++i) // NOLINT: Don't unroll the loop
     {
-        status = send_test_point_cloud(port_number, frame_indices[i], timestamp, &radar_position_id, 1, num_points,
-                                       num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
+        status =
+            send_test_point_cloud(port_number, frame_indices[i], timestamp, &radar_position_id, NULL, 1, num_points,
+                                  num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
         TEST_ASSERT_EQUAL_INT32(0, status);
     }
 
@@ -708,13 +685,13 @@ static void test_receive_radar_point_cloud_too_many_points(void)
     send_test_callback_data.connection = &connection;
 
     // Send all but 1 last point
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, NULL, 1, num_points,
                                    num_points - 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     // Send 2 more points, i.e. 1 too many
     provizio_set_on_error(&test_provizio_on_error);
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, NULL, 1, num_points,
                                    num_extra_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL, status);
     TEST_ASSERT_EQUAL_STRING("provizio_handle_radar_point_cloud_packet_checked: Too many points received",
@@ -756,8 +733,9 @@ static void test_receive_radar_point_cloud_not_enough_contexts(void)
     send_test_callback_data.connection = &connection;
 
     provizio_set_on_error(&test_provizio_on_error);
-    status = send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, num_radars, num_points,
-                                   num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
+    status =
+        send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, NULL, num_radars, num_points,
+                              num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_OUT_OF_CONTEXTS, status);
     TEST_ASSERT_EQUAL_STRING("provizio_get_radar_point_cloud_api_context_by_position_id: Out of available contexts",
                              provizio_test_error);
@@ -842,11 +820,11 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     struct timeval time_now;
 
     // Make sure provizio_open_radar_connection fails due to timeout when checking connection is enabled
-    TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_was, NULL));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&time_was));
     provizio_radar_api_connection connection;
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_TIMEOUT, provizio_open_radar_connection(port_number, receive_timeout_ns, 1,
                                                                                &api_context, &connection));
-    TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&time_now));
     int32_t took_time_ms =
         (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
     TEST_ASSERT_GREATER_OR_EQUAL_INT32(90, took_time_ms); // Allow missing 10ms due to system timer's inaccuracy
@@ -857,9 +835,9 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
         0, provizio_open_radar_connection(port_number, receive_timeout_ns, 0, &api_context, &connection));
 
     // But fails to receive on time, when requested
-    TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_was, NULL));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&time_was));
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_TIMEOUT, provizio_radar_api_receive_packet(&connection));
-    TEST_ASSERT_EQUAL_INT32(0, (int32_t)gettimeofday(&time_now, NULL));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&time_now));
     took_time_ms =
         (int32_t)((time_now.tv_sec - time_was.tv_sec) * thousand + (time_now.tv_usec - time_was.tv_usec) / thousand);
     TEST_ASSERT_GREATER_OR_EQUAL_INT32(100, took_time_ms); // Allow missing 10ms due to system timer's inaccuracy
@@ -907,6 +885,100 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
     provizio_set_on_error(NULL);
 }
 
+static void test_provizio_set_radar_mode_ok(void)
+{
+    const uint16_t port_number = 10011 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    // radar_position_id, mode
+    const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
+    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+
+    PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    TEST_ASSERT_TRUE(provizio_socket_valid(sock));
+
+    struct sockaddr_in my_address;
+    memset(&my_address, 0, sizeof(my_address));
+    my_address.sin_family = AF_INET;
+    my_address.sin_port = htons(port_number); // NOLINT: clang-tidy doesn't like htons
+    my_address.sin_addr.s_addr = INADDR_ANY;  // Any address
+
+    TEST_ASSERT_EQUAL(0, bind(sock, (struct sockaddr *)&my_address, sizeof(my_address)));
+
+    TEST_ASSERT_EQUAL(0, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
+
+    provizio_set_radar_mode_packet packet;
+    memset(&packet, 0, sizeof(packet));
+    int32_t received = (int32_t)recv(sock, (char *)&packet, sizeof(packet), 0);
+
+    TEST_ASSERT_EQUAL(sizeof(packet), received);
+    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_MODE_PACKET_TYPE,
+                      provizio_get_protocol_field_uint16_t(&packet.protocol_header.packet_type));
+    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION,
+                      provizio_get_protocol_field_uint16_t(&packet.protocol_header.protocol_version));
+    TEST_ASSERT_EQUAL((uint16_t)radar_position_id, provizio_get_protocol_field_uint16_t(&packet.radar_position_id));
+    TEST_ASSERT_EQUAL((uint16_t)mode, provizio_get_protocol_field_uint16_t(&packet.radar_mode));
+
+    TEST_ASSERT_EQUAL(0, provizio_socket_close(sock));
+}
+
+static void test_provizio_wait_for_radar_mode_change_ok(void)
+{
+    const uint16_t port_number = 10012 + PROVIZIO__RADAR_API_DEFAULT_PORT;
+    const uint64_t timeout_ns = 2000000000ULL; // 2s
+    uint16_t radar_position_id = provizio_radar_position_front_right;
+    uint16_t radar_mode = provizio_radar_mode_ultra_long_range;
+    const uint32_t first_frame_index = 1;
+    const uint64_t initial_timestamp = 0;
+
+    int32_t stop_flag = 0;
+    pthread_mutex_t mutex;
+    TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
+
+    test_stop_when_ordered_thread_data thread_data;
+    thread_data.port = port_number;
+    thread_data.first_frame_index = first_frame_index;
+    thread_data.initial_timestamp = initial_timestamp;
+    thread_data.radar_position_ids = &radar_position_id;
+    thread_data.radar_modes = &radar_mode;
+    thread_data.num_radars = 1;
+    thread_data.num_points = 1;
+    thread_data.stop_condition.mutex = &mutex;
+    thread_data.stop_condition.stop_flag = &stop_flag;
+    pthread_t thread; // NOLINT: Its value is set in the very next line
+    TEST_ASSERT_EQUAL(0, pthread_create(&thread, NULL, &test_stop_when_ordered_thread, &thread_data));
+
+    provizio_radar_point_cloud_api_context api_context;
+    TEST_ASSERT_EQUAL_INT32(
+        0, provizio_wait_for_radar_mode_change(port_number, timeout_ns, radar_position_id, radar_mode, &api_context));
+
+    TEST_ASSERT_EQUAL(0, pthread_mutex_lock(&mutex));
+    stop_flag = ECANCELED;
+    TEST_ASSERT_EQUAL(0, pthread_mutex_unlock(&mutex));
+
+    TEST_ASSERT_EQUAL(0, pthread_join(thread, NULL));
+    TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
+}
+
+static void test_provizio_wait_for_radar_mode_change_timeout(void)
+{
+    const uint16_t port_number = 10013 + PROVIZIO__RADAR_API_DEFAULT_PORT;
+    const uint64_t timeout_ns = 200000000ULL; // 0.2s
+    uint16_t radar_position_id = provizio_radar_position_front_center;
+    uint16_t radar_mode = provizio_radar_mode_medium_range;
+
+    struct timeval tv_was;
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&tv_was));
+
+    provizio_radar_point_cloud_api_context api_context;
+    TEST_ASSERT_EQUAL_INT32(
+        PROVIZIO_E_TIMEOUT,
+        provizio_wait_for_radar_mode_change(port_number, timeout_ns, radar_position_id, radar_mode, &api_context));
+
+    struct timeval tv_now;
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&tv_now));
+
+    TEST_ASSERT_GREATER_OR_EQUAL_INT64(timeout_ns, provizio_time_interval_ns(&tv_now, &tv_was));
+}
+
 int provizio_run_test_core(void)
 {
     UNITY_BEGIN();
@@ -923,6 +995,9 @@ int provizio_run_test_core(void)
     RUN_TEST(test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken);
     RUN_TEST(test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as_not_connected);
     RUN_TEST(test_provizio_radar_point_cloud_api_close_fails_as_not_connected);
+    RUN_TEST(test_provizio_set_radar_mode_ok);
+    RUN_TEST(test_provizio_wait_for_radar_mode_change_ok);
+    RUN_TEST(test_provizio_wait_for_radar_mode_change_timeout);
 
     return UNITY_END();
 }

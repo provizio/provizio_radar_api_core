@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "provizio/util.h"
-#include "provizio/socket.h"
 
+#include <errno.h>
 #include <string.h>
+
+#include "provizio/socket.h"
 
 #define PROVIZIO__IS_ALIGNED(P) (((uintptr_t)(const void *)(P)) % sizeof(*(P)) == 0)
 
@@ -141,4 +143,40 @@ float provizio_get_protocol_field_float(const float *field)
     PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
     return value;
+}
+
+#ifdef WIN32
+int32_t provizio_gettimeofday(struct timeval *tv)
+{
+    SYSTEMTIME system_time;
+    GetSystemTime(&system_time);
+
+    FILETIME file_time;
+    SystemTimeToFileTime(&system_time, &file_time);
+
+    const uint64_t time = ((uint64_t)file_time.dwLowDateTime) + (((uint64_t)file_time.dwHighDateTime) << 32);
+    tv->tv_sec = (int32_t)(time / 10000000L);
+    tv->tv_usec = (int32_t)(system_time.wMilliseconds * 1000);
+
+    return 0;
+}
+#else
+int32_t provizio_gettimeofday(struct timeval *tv)
+{
+    if (gettimeofday(tv, NULL) != 0)
+    {
+        return errno != 0 ? errno : -1; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
+    }
+
+    return 0;
+}
+#endif // WIN32
+
+int64_t provizio_time_interval_ns(struct timeval *time_b, struct timeval *time_a)
+{
+    const int64_t nanoseconds_in_second = 1000000000LL;
+    const int64_t nanoseconds_in_microsecond = 1000LL;
+
+    return ((int64_t)time_b->tv_sec - (int64_t)time_a->tv_sec) * nanoseconds_in_second +
+           ((int64_t)time_b->tv_usec - (int64_t)time_a->tv_usec) * nanoseconds_in_microsecond;
 }

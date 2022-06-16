@@ -101,10 +101,10 @@ static void test_provizio_check_radar_point_cloud_packet(void)
     provizio_radar_point_cloud_packet packet;
     memset(&packet, 0, sizeof(packet));
 
-    // Check failure due to size < sizeof(provizio_radar_point_cloud_packet_protocol_header)
+    // Check failure due to size < sizeof(provizio_radar_api_protocol_header)
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL,
-                            provizio_handle_radar_point_cloud_packet(
-                                &api_context, &packet, sizeof(provizio_radar_point_cloud_packet_protocol_header) - 1));
+                            provizio_handle_radar_point_cloud_packet(&api_context, &packet,
+                                                                     sizeof(provizio_radar_api_protocol_header) - 1));
     TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
 
     // Check incorrect packet type

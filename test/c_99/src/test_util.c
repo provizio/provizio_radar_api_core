@@ -180,6 +180,35 @@ static void test_provizio_get_protocol_field_float(void)
                       provizio_get_protocol_field_float((float *)&test_buffer[1]));
 }
 
+static void test_provizio_gettimeofday(void)
+{
+    struct timeval tv, nulltv;
+    memset(&nulltv, 0, sizeof(nulltv));
+    memset(&tv, 0, sizeof(tv));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&tv));
+    TEST_ASSERT_NOT_EQUAL_INT(0, memcmp(&nulltv, &tv, sizeof(struct timeval)));
+}
+
+static void test_provizio_time_interval_ns(void)
+{
+    struct timeval tv_a; // = 100.25s
+    tv_a.tv_sec = 100;
+    tv_a.tv_usec = 250000;
+
+    struct timeval tv_b; // = 110.15s
+    tv_b.tv_sec = 110;
+    tv_b.tv_usec = 150000;
+
+    // tv_b - tv_a = 9.9s = 9900000000ns
+    TEST_ASSERT_EQUAL_INT64(9900000000LL, provizio_time_interval_ns(&tv_b, &tv_a));
+
+    // tv_a - tv_b = -9.9s = -9900000000ns
+    TEST_ASSERT_EQUAL_INT64(-9900000000LL, provizio_time_interval_ns(&tv_a, &tv_b));
+
+    // tv_a - tv_a = 0
+    TEST_ASSERT_EQUAL_INT64(0, provizio_time_interval_ns(&tv_a, &tv_a));
+}
+
 int provizio_run_test_util(void)
 {
     UNITY_BEGIN();
@@ -194,6 +223,8 @@ int provizio_run_test_util(void)
     RUN_TEST(test_provizio_get_protocol_field_uint32_t);
     RUN_TEST(test_provizio_get_protocol_field_uint64_t);
     RUN_TEST(test_provizio_get_protocol_field_float);
+    RUN_TEST(test_provizio_gettimeofday);
+    RUN_TEST(test_provizio_time_interval_ns);
 
     return UNITY_END();
 }
