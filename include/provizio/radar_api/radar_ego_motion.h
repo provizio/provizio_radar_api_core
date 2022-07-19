@@ -45,6 +45,8 @@ typedef struct provizio_radar_ego_motion_packet_protocol_header
  *
  * @note All fields are sent using network bytes order.
  * @warning Given packed structures are used, fields alignment is not guaranteed and caution is needed when accessing accessing fields on non-x86/x64 systems.
+ * @see provizio_set_protocol_field_uint16_t
+ * @see provizio_get_protocol_field_uint16_t
  * @see provizio_set_protocol_field_uint32_t
  * @see provizio_get_protocol_field_uint32_t
  * @see provizio_set_protocol_field_uint64_t
@@ -59,16 +61,10 @@ typedef struct provizio_radar_ego_motion_packet
     uint32_t frame_index;   // 0-based
     uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
                             // GPS Epoch (midnight on Jan 6, 1980)
+    uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     float vs_x;             // sensor ego motion x
     float vs_y;             // sensor ego motion y
-    float vs_xy_mag;        // sensor ego velocity magnitude
-    // need radar direction or radar mount angle to determine vs_alpha
-    float vs_alpha;
-    // need radar mount angle, car axle to sensor x, and car axle to sensor y for these:
-    float car_velocity;
-    float car_yaw_rate;
-    float car_turn_radius;
-    uint32_t reserved;      // Not used currently, kept for better alignment and potential future use
+    uint16_t reserved;      // Not used currently, kept for better alignment and potential future use
 } provizio_radar_ego_motion_packet;
 
 
@@ -86,13 +82,7 @@ typedef struct provizio_radar_ego_motion
                             // GPS Epoch (midnight on Jan 6, 1980)
     float vs_x;             // sensor ego motion x
     float vs_y;             // sensor ego motion y
-    float vs_xy_mag;        // sensor ego velocity magnitude
-    // need radar direction or radar mount angle to determine vs_alpha
-    float vs_alpha;
-    // need radar mount angle, car axle to sensor x, and car axle to sensor y for car motion
-    float car_velocity;
-    float car_yaw_rate;
-    float car_turn_radius;
+    uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
 } provizio_radar_ego_motion;
 
 
