@@ -196,9 +196,11 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
 
     if ((status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address))) != 0)
     {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_set_radar_mode: Failed to bind socket");
         provizio_socket_close(sock);
         return status;
+        // LCOV_EXCL_STOP
     }
 
     struct sockaddr_in target_address;
@@ -287,7 +289,8 @@ int32_t provizio_wait_for_radar_mode_change(uint16_t udp_port, uint64_t timeout_
     status = provizio_open_radar_connection(udp_port, timeout_ns, 0, context, &connection);
     if (status != 0)
     {
-        provizio_error("provizio_wait_for_radar_mode_change: Failed to open an API connection");
+        provizio_error("provizio_wait_for_radar_mode_change: Failed to open an API connection. Maybe there is another "
+                       "connection on the same port.");
         return status;
     }
 
@@ -307,7 +310,8 @@ int32_t provizio_wait_for_radar_mode_change(uint16_t udp_port, uint64_t timeout_
         // Some error during provizio_radar_api_receive_packet, maybe timeout but maybe something else
         if (provizio_close_radar_connection(&connection) != 0)
         {
-            provizio_error(failed_to_close_connection_error);
+            provizio_error(failed_to_close_connection_error); // LCOV_EXCL_LINE: Can't be unit-tested as it depends on
+                                                              // the state of the OS
         }
         return status;
     }
@@ -315,8 +319,10 @@ int32_t provizio_wait_for_radar_mode_change(uint16_t udp_port, uint64_t timeout_
     status = provizio_close_radar_connection(&connection);
     if (status != 0)
     {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error(failed_to_close_connection_error);
         return status;
+        // LCOV_EXCL_STOP
     }
 
     if (data.mode != mode)

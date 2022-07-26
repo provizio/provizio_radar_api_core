@@ -122,6 +122,8 @@ PROVIZIO__EXTERN_C int32_t provizio_set_radar_mode(provizio_radar_position radar
  by the call (its allocation is your choice)
  * @return 0 if the mode is applied successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for
  another reason
+ * @note Only one connection on a port permitted, so having an active connection and also waiting for a radar mode
+ change in the same time is not supported
  */
 PROVIZIO__EXTERN_C int32_t provizio_wait_for_radar_mode_change(
     uint16_t udp_port, uint64_t timeout_ns, provizio_radar_position radar_position_id, provizio_radar_mode mode,
