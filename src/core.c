@@ -298,7 +298,7 @@ int32_t provizio_wait_for_radar_mode_change(uint16_t udp_port, uint64_t timeout_
     status = provizio_gettimeofday(&original_time);
 
     struct timeval current_time;
-    while ((status == 0 || status == PROVIZIO_E_SKIPPED) && data.mode != mode &&
+    while ((status == 0 || status == PROVIZIO_E_SKIPPED) && data.mode != mode && // NOLINT: Don't unroll
            (timeout_ns == 0 || (provizio_gettimeofday(&current_time) == 0 &&
                                 (uint64_t)provizio_time_interval_ns(&current_time, &original_time) < timeout_ns)))
     {

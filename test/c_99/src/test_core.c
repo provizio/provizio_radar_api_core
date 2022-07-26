@@ -766,6 +766,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     thread_data.first_frame_index = first_frame_index;
     thread_data.initial_timestamp = initial_timestamp;
     thread_data.radar_position_ids = &radar_position_id;
+    thread_data.radar_modes = NULL;
     thread_data.num_radars = 1;
     thread_data.num_points = num_points;
     thread_data.stop_condition.mutex = &mutex;
@@ -893,7 +894,7 @@ static void test_provizio_set_radar_mode_ok(void)
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    TEST_ASSERT_TRUE(provizio_socket_valid(sock));
+    TEST_ASSERT_TRUE(provizio_socket_valid(sock)); // NOLINT: library macro
 
     struct sockaddr_in my_address;
     memset(&my_address, 0, sizeof(my_address));

@@ -182,22 +182,22 @@ static void test_provizio_get_protocol_field_float(void)
 
 static void test_provizio_gettimeofday(void)
 {
-    struct timeval tv, nulltv;
-    memset(&nulltv, 0, sizeof(nulltv));
-    memset(&tv, 0, sizeof(tv));
-    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&tv));
-    TEST_ASSERT_NOT_EQUAL_INT(0, memcmp(&nulltv, &tv, sizeof(struct timeval)));
+    struct timeval test_tv;
+    memset(&test_tv, 0, sizeof(test_tv));
+    TEST_ASSERT_EQUAL_INT32(0, provizio_gettimeofday(&test_tv));
+    TEST_ASSERT_NOT_EQUAL(0, test_tv.tv_sec);  // NOLINT: library macro
+    TEST_ASSERT_NOT_EQUAL(0, test_tv.tv_usec); // NOLINT: library macro
 }
 
 static void test_provizio_time_interval_ns(void)
 {
-    struct timeval tv_a; // = 100.25s
-    tv_a.tv_sec = 100;
-    tv_a.tv_usec = 250000;
+    struct timeval tv_a;   // = 100.25s
+    tv_a.tv_sec = 100;     // NOLINT: it's not a magic number, it's a unit test constant
+    tv_a.tv_usec = 250000; // NOLINT: it's not a magic number, it's a unit test constant
 
-    struct timeval tv_b; // = 110.15s
-    tv_b.tv_sec = 110;
-    tv_b.tv_usec = 150000;
+    struct timeval tv_b;   // = 110.15s
+    tv_b.tv_sec = 110;     // NOLINT: it's not a magic number, it's a unit test constant
+    tv_b.tv_usec = 150000; // NOLINT: it's not a magic number, it's a unit test constant
 
     // tv_b - tv_a = 9.9s = 9900000000ns
     TEST_ASSERT_EQUAL_INT64(9900000000LL, provizio_time_interval_ns(&tv_b, &tv_a));

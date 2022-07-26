@@ -146,7 +146,7 @@ float provizio_get_protocol_field_float(const float *field)
 }
 
 #ifdef WIN32
-int32_t provizio_gettimeofday(struct timeval *tv)
+int32_t provizio_gettimeofday(struct timeval *out_timeval)
 {
     SYSTEMTIME system_time;
     GetSystemTime(&system_time);
@@ -155,15 +155,15 @@ int32_t provizio_gettimeofday(struct timeval *tv)
     SystemTimeToFileTime(&system_time, &file_time);
 
     const uint64_t time = ((uint64_t)file_time.dwLowDateTime) + (((uint64_t)file_time.dwHighDateTime) << 32);
-    tv->tv_sec = (int32_t)(time / 10000000L);
-    tv->tv_usec = (int32_t)(system_time.wMilliseconds * 1000);
+    out_timeval->tv_sec = (int32_t)(time / 10000000L);
+    out_timeval->tv_usec = (int32_t)(system_time.wMilliseconds * 1000);
 
     return 0;
 }
 #else
-int32_t provizio_gettimeofday(struct timeval *tv)
+int32_t provizio_gettimeofday(struct timeval *out_timeval)
 {
-    if (gettimeofday(tv, NULL) != 0)
+    if (gettimeofday(out_timeval, NULL) != 0)
     {
         return errno != 0 ? errno : -1; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
     }

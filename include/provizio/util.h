@@ -115,10 +115,10 @@ PROVIZIO__EXTERN_C float provizio_get_protocol_field_float(const float *field);
 /**
  * @brief Like *nix gettimeofday with timezone argument set to NULL, to measure time intervals
  *
- * @param tv Output timeval
+ * @param out_timeval Output timeval
  * @return 0 in case of a success, an error code otherwise
  */
-PROVIZIO__EXTERN_C int32_t provizio_gettimeofday(struct timeval *tv);
+PROVIZIO__EXTERN_C int32_t provizio_gettimeofday(struct timeval *out_timeval);
 
 /**
  * @brief Measures interval of time_b - time_a in nanoseconds
