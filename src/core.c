@@ -168,6 +168,8 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
                                 const char *ipv4_address)
 {
     const char *broadcast_ipv4_address = "255.255.255.255";
+    const uint64_t recv_timeout_ns = 250000000; // 0.25s
+    const int max_recv_tries = 5;
 
     if (mode == provizio_radar_mode_unknown)
     {
@@ -185,6 +187,14 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
         status = (int32_t)errno;
         provizio_error("provizio_set_radar_mode: Failed to create a UDP socket!");
         return status != 0 ? status : (int32_t)-1;
+        // LCOV_EXCL_STOP
+    }
+
+    if ((status = provizio_socket_set_recv_timeout(sock, recv_timeout_ns)) != 0)
+    {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+        provizio_error("provizio_set_radar_mode: Failed to set recv timeout!");
+        return status;
         // LCOV_EXCL_STOP
     }
 
@@ -220,18 +230,80 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
     provizio_set_protocol_field_uint16_t(&set_mode_packet.radar_position_id, radar_position_id);
     provizio_set_protocol_field_uint16_t(&set_mode_packet.radar_mode, mode);
 
-    // Conversion to int32_t may be required as sendto may return different types in different platforms
-    status = (int32_t)sendto(sock, (const char *)&set_mode_packet, // NOLINT
-                             sizeof(set_mode_packet), 0, (const struct sockaddr *)&target_address,
-                             sizeof(struct sockaddr_in));
+    provizio_set_radar_mode_acknowledgement_packet acknowledgement_packet;
+    memset(&acknowledgement_packet, 0, sizeof(acknowledgement_packet));
 
-    if (status < 0)
+    int recv_tries = max_recv_tries + 1;
+    do
     {
-        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        provizio_error("provizio_set_radar_mode: Failed to send provizio_set_radar_mode_packet");
-        provizio_socket_close(sock);
+        status = (int32_t)sendto(sock, (const char *)&set_mode_packet, // NOLINT
+                                 sizeof(set_mode_packet), 0, (const struct sockaddr *)&target_address,
+                                 sizeof(struct sockaddr_in));
+
+        if (status < 0)
+        {
+            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+            provizio_error("provizio_set_radar_mode: Failed to send provizio_set_radar_mode_packet");
+            provizio_socket_close(sock);
+            return status;
+            // LCOV_EXCL_STOP
+        }
+
+        // Receive an acknowledgement
+        status = (int32_t)recv(sock, (char *)&acknowledgement_packet, sizeof(acknowledgement_packet), 0);
+        if (status == sizeof(acknowledgement_packet))
+        {
+            if (provizio_get_protocol_field_uint16_t(&acknowledgement_packet.protocol_header.packet_type) !=
+                PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE)
+            {
+                provizio_error("provizio_set_radar_mode: Invalid acknowledgement packet type received");
+                return PROVIZIO_E_PROTOCOL;
+            }
+
+            if (provizio_get_protocol_field_uint16_t(&acknowledgement_packet.protocol_header.protocol_version) !=
+                PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION)
+            {
+                provizio_error("provizio_set_radar_mode: Incompatible protocol version");
+                return PROVIZIO_E_PROTOCOL;
+            }
+
+            if ((radar_position_id != provizio_radar_position_any &&
+                 provizio_get_protocol_field_uint16_t(&acknowledgement_packet.radar_position_id) !=
+                     radar_position_id) ||
+                provizio_get_protocol_field_uint16_t(&acknowledgement_packet.requested_radar_mode) != mode)
+            {
+                // Correct acknowledgement packet, but from a previous provizio_set_radar_mode request: keep waiting for
+                // the correct one
+                status = PROVIZIO_E_TIMEOUT;
+            }
+            else
+            {
+                // Correct acknowledgement
+                status = (int32_t)provizio_get_protocol_field_uint32_t((uint32_t *)&acknowledgement_packet.error_code);
+            }
+        }
+        else
+        {
+            status = errno;
+            if (status == 0 || status == (int32_t)EWOULDBLOCK)
+            {
+                status = PROVIZIO_E_TIMEOUT;
+            }
+        }
+    } while (status == PROVIZIO_E_TIMEOUT && --recv_tries != 0);
+
+    if (status != 0)
+    {
+        if (status == PROVIZIO_E_TIMEOUT)
+        {
+            provizio_error("provizio_set_radar_mode: No acknowledgement received, likely due to a connection issue");
+        }
+        else
+        {
+            provizio_error("provizio_set_radar_mode: Failed to set the requested mode");
+        }
+
         return status;
-        // LCOV_EXCL_STOP
     }
 
     if ((status = provizio_socket_close(sock)) != 0)
@@ -240,94 +312,6 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
         provizio_error("provizio_set_radar_mode: Failed to close the socket");
         return status;
         // LCOV_EXCL_STOP
-    }
-
-    return 0;
-}
-
-typedef struct provizio_wait_for_radar_mode_change_data
-{
-    provizio_radar_mode mode;
-} provizio_wait_for_radar_mode_change_data;
-
-static void provizio_wait_for_radar_mode_change_callback(const provizio_radar_point_cloud *point_cloud,
-                                                         struct provizio_radar_point_cloud_api_context *context)
-{
-    provizio_wait_for_radar_mode_change_data *data = (provizio_wait_for_radar_mode_change_data *)context->user_data;
-    data->mode = point_cloud->radar_mode;
-}
-
-int32_t provizio_wait_for_radar_mode_change(uint16_t udp_port, uint64_t timeout_ns,
-                                            provizio_radar_position radar_position_id, provizio_radar_mode mode,
-                                            provizio_radar_point_cloud_api_context *uninitialized_context)
-{
-    const char *failed_to_close_connection_error =
-        "provizio_wait_for_radar_mode_change: Failed to close the connection";
-
-    if (mode == provizio_radar_mode_unknown)
-    {
-        provizio_error("provizio_wait_for_radar_mode_change: provizio_radar_mode_unknown is not a valid mode option!");
-        return PROVIZIO_E_ARGUMENT;
-    }
-
-    provizio_wait_for_radar_mode_change_data data;
-    data.mode = provizio_radar_mode_unknown;
-
-    provizio_radar_point_cloud_api_context_init(&provizio_wait_for_radar_mode_change_callback, &data,
-                                                uninitialized_context);
-
-    // It's initialized now, let's not get confused with var names
-    provizio_radar_point_cloud_api_context *context = uninitialized_context;
-    if (radar_position_id != provizio_radar_position_any)
-    {
-        provizio_radar_point_cloud_api_context_assign(context, radar_position_id);
-    }
-
-    int32_t status = -1;
-
-    provizio_radar_api_connection connection;
-    status = provizio_open_radar_connection(udp_port, timeout_ns, 0, context, &connection);
-    if (status != 0)
-    {
-        provizio_error("provizio_wait_for_radar_mode_change: Failed to open an API connection. Maybe there is another "
-                       "connection on the same port.");
-        return status;
-    }
-
-    struct timeval original_time;
-    status = provizio_gettimeofday(&original_time);
-
-    struct timeval current_time;
-    while ((status == 0 || status == PROVIZIO_E_SKIPPED) && data.mode != mode && // NOLINT: Don't unroll
-           (timeout_ns == 0 || (provizio_gettimeofday(&current_time) == 0 &&
-                                (uint64_t)provizio_time_interval_ns(&current_time, &original_time) < timeout_ns)))
-    {
-        status = provizio_radar_api_receive_packet(&connection);
-    }
-
-    if (status != 0 && status != PROVIZIO_E_SKIPPED)
-    {
-        // Some error during provizio_radar_api_receive_packet, maybe timeout but maybe something else
-        if (provizio_close_radar_connection(&connection) != 0)
-        {
-            provizio_error(failed_to_close_connection_error); // LCOV_EXCL_LINE: Can't be unit-tested as it depends on
-                                                              // the state of the OS
-        }
-        return status;
-    }
-
-    status = provizio_close_radar_connection(&connection);
-    if (status != 0)
-    {
-        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-        provizio_error(failed_to_close_connection_error);
-        return status;
-        // LCOV_EXCL_STOP
-    }
-
-    if (data.mode != mode)
-    {
-        return PROVIZIO_E_TIMEOUT;
     }
 
     return 0;

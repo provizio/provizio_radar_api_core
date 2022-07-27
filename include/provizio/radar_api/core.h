@@ -105,28 +105,9 @@ PROVIZIO__EXTERN_C int32_t provizio_close_radars_connection(provizio_radar_api_c
  * (if 0)
  * @param ipv4_address IP address to send change mode message, in the standard IPv4 dotted decimal notation. By default
  * = "255.255.255.255" - broadcast (if NULL)
- * @return 0 if received successfully, or an error value if failed
+ * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provizio_radar_mode mode,
                                                    uint16_t udp_port, const char *ipv4_address);
-
-/**
- * @brief Wait until the first point cloud of the new radar mode is received or timed out
- *
- * @param udp_port UDP port to receive from, by default = PROVIZIO__RADAR_API_DEFAULT_PORT (if 0)
- * @param timeout_ns Max number of nanoseconds to wait for the new radar mode to be applied, or 0 to wait as long as
- required
- * @param radar_position_id A radar to check the mode of
- * @param mode The new mode
- * @param uninitialized_context A temporary provizio_radar_point_cloud_api_context to be initialized and used internally
- by the call (its allocation is your choice)
- * @return 0 if the mode is applied successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for
- another reason
- * @note Only one connection on a port permitted, so having an active connection and also waiting for a radar mode
- change in the same time is not supported
- */
-PROVIZIO__EXTERN_C int32_t provizio_wait_for_radar_mode_change(
-    uint16_t udp_port, uint64_t timeout_ns, provizio_radar_position radar_position_id, provizio_radar_mode mode,
-    provizio_radar_point_cloud_api_context *uninitialized_context);
 
 #endif // PROVIZIO_RADAR_API_CORE
