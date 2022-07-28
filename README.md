@@ -8,9 +8,11 @@
     - [Receiving Point Clouds](#receiving-point-clouds)
       - [Live UDP](#live-udp)
       - [Replay or Custom Transport](#replay-or-custom-transport)
+    - [Changing Radar Modes](#changing-radar-modes)
     - [Shutting Down](#shutting-down)
   - [UDP Protocol](#udp-protocol)
     - [Radar Point Clouds](#radar-point-clouds)
+    - [Radar Modes](#radar-modes)
 
 The official C library providing API for communicating with Provizio radars.
 
@@ -309,6 +311,9 @@ void your_radar_point_cloud_callback(const provizio_radar_point_cloud *point_clo
     // Number of points in the frame received so far
     const uint16_t num_points_received = point_cloud->num_points_received;
 
+    // Radar mode (short range / medium range / long range / ultra-long range) used to capture the point cloud
+    const provizio_radar_mode radar_mode = (provizio_radar_mode)point_cloud->radar_mode;
+
     if (num_points_received < num_points_expected)
     {
         // Received an incomplete point cloud due to some missing packets
@@ -444,6 +449,27 @@ There are a few options for this:
 Either of these calls may invoke `your_radar_point_cloud_callback` up to
 `PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT` times (2 by default) serially.
 
+### Changing Radar Modes
+
+Provizio radars can operate in various modes, such as short range, medium range, long range, and ultra long range.
+Current radar modes are specified in `provizio_radar_point_cloud`, you can change modes using `provizio_set_radar_mode`:
+
+```C
+/**
+ * @brief Makes a radar (or all radars) change a mode
+ *
+ * @param radar_position_id Either one of provizio_radar_position enum values or a custom position id. Can also be
+ * provizio_radar_position_any to set for all radars
+ * @param mode Target mode to set
+ * @param udp_port UDP port to send change mode message, by default = PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT
+ * (if 0)
+ * @param ipv4_address IP address to send change mode message, in the standard IPv4 dotted decimal notation. By default
+ * = "255.255.255.255" - broadcast (if NULL)
+ * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
+ */
+int32_t status = provizio_set_radar_mode(radar_position_id, mode, udp_port, ipv4_address);
+```
+
 ### Shutting Down
 
 When you finished with the API, it has to be properly shut down.
@@ -501,7 +527,7 @@ Each packet has the following structure (all fields use network bytes order when
 | radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
 | total_points_in_frame          | 2                                    | uint16_t  | Total number of points in the frame #frame_index, never exceeds 65535                                                           |
 | num_points_in_packet           | 2                                    | uint16_t  | Number of points in the current packet, never exceeds (1472 - 24) / 20                                                          |
-| (reserved)                     | 2                                    |           | Not used currently, kept for better alignment and potential future use                                                          |
+| radar_mode                     | 2                                    | uint16_t  | Radar mode, one of provizio_radar_mode enum values                                                                              |
 | point_0: x_meters              | 4                                    | float     | Radar-relative X (forward) position of the point in meters                                                                      |
 | point_0: y_meters              | 4                                    | float     | Radar-relative Y (left) position of the point in meters                                                                         |
 | point_0: z_meters              | 4                                    | float     | Radar-relative Z (up) position of the point in meters                                                                           |
@@ -510,3 +536,29 @@ Each packet has the following structure (all fields use network bytes order when
 | point_1: ...                   |                                      |           |                                                                                                                                 |
 | ...                            |                                      |           |                                                                                                                                 |
 | **Total**                      | **24 + (20 * num_points_in_packet)** |           | Never exceeds 1472 bytes                                                                                                        |
+
+### Radar Modes
+
+Setting radar modes is done via sending UDP packets to an appropriate port of a radar (or all radars in the local
+network), default UDP port number: 7770. The radar sends back an acknowledgement packet.
+
+Set mode packet:
+
+| Field                          | Size (bytes)                         | Data Type | Description                                                                                                                     |
+| ------------------------------ | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| packet_type                    | 2                                    | uint16_t  | Always = 2, can't change even on protocol updates                                                                               |
+| protocol_version               | 2                                    | uint16_t  | Currently = 1, to be incremented on any protocol changes (used for backward compatibility)                                      |
+| radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
+| radar_mode                     | 2                                    | uint16_t  | One of provizio_radar_mode enum values                                                                                          |
+| **Total**                      | **8**                                |           |                                                                                                                                 |
+
+Acknowledgement packet:
+
+| Field                          | Size (bytes)                         | Data Type | Description                                                                                                                     |
+| ------------------------------ | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| packet_type                    | 2                                    | uint16_t  | Always = 3, can't change even on protocol updates                                                                               |
+| protocol_version               | 2                                    | uint16_t  | Currently = 1, to be incremented on any protocol changes (used for backward compatibility)                                      |
+| radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
+| requested_radar_mode           | 2                                    | uint16_t  | One of provizio_radar_mode enum values                                                                                          |
+| error_code                     | 4                                    | int32_t   | 0 for success, PROVIZIO_E_NOT_PERMITTED if the mode is not supported                                                            |
+| **Total**                      | **12**                               |           |                                                                                                                                 |

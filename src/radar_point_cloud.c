@@ -51,6 +51,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet_header->radar_position_id);
     const uint32_t frame_index = provizio_get_protocol_field_uint32_t(&packet_header->frame_index);
     const uint16_t total_points_in_frame = provizio_get_protocol_field_uint16_t(&packet_header->total_points_in_frame);
+    const uint16_t radar_mode = provizio_get_protocol_field_uint16_t(&packet_header->radar_mode);
 
     if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threashold)
     {
@@ -84,6 +85,12 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
             {
                 provizio_warning("provizio_get_point_cloud_being_received: num_points_expected mismatch across "
                                  "different packets of the same frame");
+            }
+
+            if (point_cloud->radar_mode != radar_mode)
+            {
+                provizio_warning("provizio_get_point_cloud_being_received: radar_mode mismatch across different "
+                                 "packets of the same frame");
             }
 
             return point_cloud;
@@ -128,8 +135,9 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         // Initialize the point cloud
         result->frame_index = frame_index;
         result->timestamp = provizio_get_protocol_field_uint64_t(&packet_header->timestamp);
-        result->radar_position_id = provizio_get_protocol_field_uint16_t(&packet_header->radar_position_id);
+        result->radar_position_id = radar_position_id;
         result->num_points_expected = total_points_in_frame;
+        result->radar_mode = radar_mode;
         assert(result->num_points_received == 0);
     }
 
@@ -197,7 +205,7 @@ int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud
 
 int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)
 {
-    if (packet_size < sizeof(provizio_radar_point_cloud_packet_protocol_header))
+    if (packet_size < sizeof(provizio_radar_api_protocol_header))
     {
         provizio_error("provizio_check_radar_point_cloud_packet: insufficient packet_size");
         return PROVIZIO_E_PROTOCOL;

@@ -101,10 +101,10 @@ static void test_provizio_check_radar_point_cloud_packet(void)
     provizio_radar_point_cloud_packet packet;
     memset(&packet, 0, sizeof(packet));
 
-    // Check failure due to size < sizeof(provizio_radar_point_cloud_packet_protocol_header)
+    // Check failure due to size < sizeof(provizio_radar_api_protocol_header)
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL,
-                            provizio_handle_radar_point_cloud_packet(
-                                &api_context, &packet, sizeof(provizio_radar_point_cloud_packet_protocol_header) - 1));
+                            provizio_handle_radar_point_cloud_packet(&api_context, &packet,
+                                                                     sizeof(provizio_radar_api_protocol_header) - 1));
     TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
 
     // Check incorrect packet type
@@ -170,6 +170,55 @@ static void test_provizio_check_radar_point_cloud_packet(void)
     free(callback_data);
 
     provizio_set_on_error(NULL);
+}
+
+static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
+{
+    const uint32_t frame_index = 1;
+    const uint64_t timestamp = 2;
+    const uint16_t radar_position_id = provizio_radar_position_front_center;
+    const uint16_t num_points = 4;
+
+    provizio_radar_point_cloud_api_context api_context;
+    provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
+
+    provizio_radar_point_cloud_packet packet;
+    memset(&packet, 0, sizeof(packet));
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.packet_type,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION);
+    provizio_set_protocol_field_uint32_t(&packet.header.frame_index, frame_index);
+    provizio_set_protocol_field_uint64_t(&packet.header.timestamp, timestamp);
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_id);
+    provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
+    provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, 1);
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_mode, provizio_radar_mode_medium_range);
+
+    // Send first point
+    TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
+                                   &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+
+    provizio_set_on_warning(&test_provizio_on_warning);
+
+    // num_points_expected mismatch
+    provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points + 1);
+    TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
+                                   &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+    TEST_ASSERT_EQUAL_STRING("provizio_get_point_cloud_being_received: num_points_expected mismatch across different "
+                             "packets of the same frame",
+                             provizio_test_warning);
+    provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
+
+    // radar_mode mismatch
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_mode, provizio_radar_mode_ultra_long_range);
+    TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
+                                   &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+    TEST_ASSERT_EQUAL_STRING(
+        "provizio_get_point_cloud_being_received: radar_mode mismatch across different packets of the same frame",
+        provizio_test_warning);
+
+    provizio_set_on_warning(NULL);
 }
 
 static void test_provizio_handle_radars_point_cloud_packet_bad_packet(void)
@@ -349,6 +398,7 @@ int provizio_run_test_radar_point_cloud(void)
 
     RUN_TEST(test_provizio_radar_point_cloud_packet_size);
     RUN_TEST(test_provizio_check_radar_point_cloud_packet);
+    RUN_TEST(test_provizio_handle_radar_point_cloud_packet_warnings);
     RUN_TEST(test_provizio_handle_radars_point_cloud_packet_bad_packet);
     RUN_TEST(test_provizio_radar_point_cloud_api_context_assign);
     RUN_TEST(test_provizio_handle_possible_radar_point_cloud_packet_wrong_packet_size);

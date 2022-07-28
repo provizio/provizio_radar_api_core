@@ -17,11 +17,13 @@
 
 #include "provizio/common.h"
 #include "provizio/radar_api/errno.h"
+#include "provizio/radar_api/radar_modes.h"
 #include "provizio/radar_api/radar_point_cloud.h"
 #include "provizio/socket.h"
 #include "provizio/util.h"
 
 #define PROVIZIO__RADAR_API_DEFAULT_PORT ((uint16_t)7769)
+#define PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT ((uint16_t)7770)
 
 /**
  * @brief A single Provizio Radar API connection handle on a single UDP port
@@ -36,7 +38,7 @@ typedef struct provizio_radar_api_connection
 /**
  * @brief Connect to the Provizio radar to start receiving packets by UDP (single radar on a UDP port)
  *
- * @param udp_port UDP port to receive from, by default = PROVIZIO__RADAR_API_DEFAULT_PORT
+ * @param udp_port UDP port to receive from, by default = PROVIZIO__RADAR_API_DEFAULT_PORT (if 0)
  * @param receive_timeout_ns Max number of nanoseconds provizio_radar_api_receive_packet should wait for a
  * packet, or 0 to wait as long as required
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
@@ -92,5 +94,20 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_api_receive_packet(provizio_radar_api_
  */
 PROVIZIO__EXTERN_C int32_t provizio_close_radars_connection(provizio_radar_api_connection *connection);
 #define provizio_close_radar_connection provizio_close_radars_connection
+
+/**
+ * @brief Makes a radar (or all radars) change a mode
+ *
+ * @param radar_position_id Either one of provizio_radar_position enum values or a custom position id. Can also be
+ * provizio_radar_position_any to set for all radars
+ * @param mode Target mode to set
+ * @param udp_port UDP port to send change mode message, by default = PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT
+ * (if 0)
+ * @param ipv4_address IP address to send change mode message, in the standard IPv4 dotted decimal notation. By default
+ * = "255.255.255.255" - broadcast (if NULL)
+ * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
+ */
+PROVIZIO__EXTERN_C int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provizio_radar_mode mode,
+                                                   uint16_t udp_port, const char *ipv4_address);
 
 #endif // PROVIZIO_RADAR_API_CORE
