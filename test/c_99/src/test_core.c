@@ -1010,9 +1010,47 @@ static void test_provizio_set_radar_mode_ok(void)
     TEST_ASSERT_EQUAL((uint16_t)mode, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_mode));
 }
 
-static void test_provizio_set_radar_mode_invalid_mode(void)
+static void test_provizio_set_radar_mode_broadcasting_ok(void)
 {
     const uint16_t port_number = 10012 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
+    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+
+    // Start the test radar thread
+    pthread_mutex_t mutex;
+    TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
+    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    thread_data.mutex = &mutex;
+    thread_data.ready_flag = 0;
+    thread_data.port_number = port_number;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.radar_position_id = radar_position_id;
+    thread_data.requested_radar_mode = mode;
+    thread_data.error_code = 0;
+    pthread_t radar_thread; // NOLINT: Initialized in the next line
+    TEST_ASSERT_EQUAL_INT32(
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+
+    TEST_ASSERT_EQUAL(0, provizio_set_radar_mode(radar_position_id, mode, port_number, "255.255.255.255"));
+
+    TEST_ASSERT_EQUAL(0, pthread_join(radar_thread, NULL));
+    TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
+
+    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_MODE_PACKET_TYPE,
+                      provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.packet_type));
+    TEST_ASSERT_EQUAL(
+        PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION,
+        provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.protocol_version));
+    TEST_ASSERT_EQUAL((uint16_t)radar_position_id,
+                      provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_position_id));
+    TEST_ASSERT_EQUAL((uint16_t)mode, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_mode));
+}
+
+static void test_provizio_set_radar_mode_invalid_mode(void)
+{
+    const uint16_t port_number = 10013 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     // radar_position_id, mode
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_unknown;
@@ -1026,7 +1064,7 @@ static void test_provizio_set_radar_mode_invalid_mode(void)
 
 static void test_provizio_set_radar_mode_timeout(void)
 {
-    const uint16_t port_number = 10013 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10014 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1039,7 +1077,7 @@ static void test_provizio_set_radar_mode_timeout(void)
 
 static void test_provizio_set_radar_mode_invalid_ack_packet_type(void)
 {
-    const uint16_t port_number = 10014 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10015 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1072,7 +1110,7 @@ static void test_provizio_set_radar_mode_invalid_ack_packet_type(void)
 
 static void test_provizio_set_radar_mode_invalid_ack_protocol_version(void)
 {
-    const uint16_t port_number = 10015 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10016 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1104,7 +1142,7 @@ static void test_provizio_set_radar_mode_invalid_ack_protocol_version(void)
 
 static void test_provizio_set_radar_mode_timeout_due_to_incorrect_position(void)
 {
-    const uint16_t port_number = 10016 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10017 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1137,7 +1175,7 @@ static void test_provizio_set_radar_mode_timeout_due_to_incorrect_position(void)
 
 static void test_provizio_set_radar_mode_timeout_due_to_incorrect_mode(void)
 {
-    const uint16_t port_number = 10017 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10018 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1170,7 +1208,7 @@ static void test_provizio_set_radar_mode_timeout_due_to_incorrect_mode(void)
 
 static void test_provizio_set_radar_mode_unsupported_mode(void)
 {
-    const uint16_t port_number = 10018 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10019 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
     const provizio_radar_mode mode = provizio_radar_mode_long_range;
 
@@ -1218,6 +1256,7 @@ int provizio_run_test_core(void)
     RUN_TEST(test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as_not_connected);
     RUN_TEST(test_provizio_radar_point_cloud_api_close_fails_as_not_connected);
     RUN_TEST(test_provizio_set_radar_mode_ok);
+    RUN_TEST(test_provizio_set_radar_mode_broadcasting_ok);
     RUN_TEST(test_provizio_set_radar_mode_invalid_mode);
     RUN_TEST(test_provizio_set_radar_mode_timeout);
     RUN_TEST(test_provizio_set_radar_mode_invalid_ack_packet_type);
