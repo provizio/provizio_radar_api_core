@@ -194,8 +194,24 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_set_radar_mode: Failed to set recv timeout!");
+        provizio_socket_close(sock);
         return status;
         // LCOV_EXCL_STOP
+    }
+
+    // Enable broadcasting if required
+    if (ipv4_address == NULL || strstr(ipv4_address, "255") != NULL)
+    {
+        const int broadcast = 1;
+        if ((status =
+                 (int32_t)setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast))) != 0)
+        {
+            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+            provizio_error("provizio_set_radar_mode: Failed to enable broadcasting!");
+            provizio_socket_close(sock);
+            return status;
+            // LCOV_EXCL_STOP
+        }
     }
 
     struct sockaddr_in my_address;
