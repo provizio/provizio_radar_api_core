@@ -271,8 +271,16 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         return PROVIZIO_E_PROTOCOL;
     }
 
-    memcpy(&cloud->radar_points[cloud->num_points_received], &packet->radar_points,
-           sizeof(provizio_radar_point) * num_points_in_packet);
+    for (uint16_t i = 0; i < num_points_in_packet; ++i)
+    {
+        provizio_radar_point *out_point = &cloud->radar_points[cloud->num_points_received + i];
+        provizio_radar_point *in_point = &packet->radar_points[i];
+        out_point->x_meters = provizio_get_protocol_field_float(&in_point->x_meters);
+        out_point->y_meters = provizio_get_protocol_field_float(&in_point->y_meters);
+        out_point->z_meters = provizio_get_protocol_field_float(&in_point->z_meters);
+        out_point->velocity_m_s = provizio_get_protocol_field_float(&in_point->velocity_m_s);
+        out_point->signal_to_noise_ratio = provizio_get_protocol_field_float(&in_point->signal_to_noise_ratio);
+    }
     cloud->num_points_received += num_points_in_packet;
 
     if (cloud->num_points_received == cloud->num_points_expected)

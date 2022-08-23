@@ -14,6 +14,7 @@
 
 #include "provizio/util.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <string.h>
 
@@ -72,6 +73,37 @@ uint64_t provizio_htonll(uint64_t value)
     return provizio_ntohll(value);
 }
 
+float provizio_ntohf(float value)
+{
+    const float test_value = 1.0F;
+    if (((const char *)(&test_value))[3] != 0)
+    {
+        // LCOV_EXCL_START: host CPU arch dependent
+        // Byte order needs to be reversed
+        uint32_t value_as_uint32_t; // NOLINT: Initialized right below
+        assert(sizeof(value_as_uint32_t) == sizeof(value));
+        memcpy(&value_as_uint32_t, &value, sizeof(value_as_uint32_t));
+
+        // Clang-tidy has a number of complains regarding the expression below, but we really have to do a pretty
+        // non-standard thing here
+        value_as_uint32_t =
+            ((value_as_uint32_t & 0xff000000) >> 24) | ((value_as_uint32_t & 0x00ff0000) >> 8) | // NOLINT
+            ((value_as_uint32_t & 0x0000ff00) << 8) | ((value_as_uint32_t & 0x000000ff) << 24);  // NOLINT
+
+        memcpy(&value, &value_as_uint32_t, sizeof(value_as_uint32_t));
+        return value;
+        // LCOV_EXCL_STOP
+    }
+
+    return value; // LCOV_EXCL_LINE: host CPU arch dependent
+}
+
+float provizio_htonf(float value)
+{
+    // As reversing, when required, is a symmetrical operation
+    return provizio_ntohf(value);
+}
+
 void provizio_set_protocol_field_uint8_t(uint8_t *field, uint8_t value)
 {
     *field = value;
@@ -101,6 +133,7 @@ void provizio_set_protocol_field_uint64_t(uint64_t *field, uint64_t value)
 
 void provizio_set_protocol_field_float(float *field, float value)
 {
+    value = provizio_htonf(value);
     PROVIZIO__SET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 }
 
@@ -142,7 +175,7 @@ float provizio_get_protocol_field_float(const float *field)
     float value = 0;
     PROVIZIO__GET_FIELD(field, value); // NOLINT: no unrolling needed, false positive of clang-tidy
 
-    return value;
+    return provizio_ntohf(value);
 }
 
 #ifdef WIN32
