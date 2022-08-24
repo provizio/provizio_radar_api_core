@@ -64,3 +64,17 @@ int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout
 
     return status;
 }
+
+int32_t provizio_socket_enable_address_and_port_reuse(PROVIZIO__SOCKET sock)
+{
+    const int enable = 1;
+    int32_t status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&enable, sizeof(enable));
+#ifndef _WIN32
+    if (status == 0)
+    {
+        status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, (const char *)&enable, sizeof(enable));
+    }
+#endif
+
+    return status;
+}

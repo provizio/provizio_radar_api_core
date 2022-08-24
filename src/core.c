@@ -63,6 +63,25 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
         }
     }
 
+    // Enable broadcasting support
+    const int broadcast = 1;
+    status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast));
+    if (status != 0)
+    {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+        provizio_warning("provizio_open_radars_connection: Enabling broadcasting failed!");
+        // LCOV_EXCL_STOP
+    }
+
+    // Enable address and port reuse, so multiple processes can receive same packets
+    status = provizio_socket_enable_address_and_port_reuse(sock);
+    if (status != 0)
+    {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+        provizio_warning("provizio_open_radars_connection: Enabling address & port reuse failed!");
+        // LCOV_EXCL_STOP
+    }
+
     struct sockaddr_in my_address;
     memset(&my_address, 0, sizeof(my_address));
     my_address.sin_family = AF_INET;
@@ -74,9 +93,11 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
     status = (int32_t)bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
     if (status != 0)
     {
+        // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_open_radars_connection: Failed to bind a UDP socket!");
         provizio_socket_close(sock);
         return status;
+        // LCOV_EXCL_STOP
     }
 
     if (check_connection)

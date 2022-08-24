@@ -77,9 +77,18 @@ PROVIZIO__EXTERN_C int32_t provizio_socket_close(PROVIZIO__SOCKET sock);
 /**
  * @brief Sets a timeout for recv operations on a previously opened socket
  *
+ * @param sock `socket`-returned socket object
  * @param timeout_ns Timeout in nanoseconds
  * @return 0 if successfull, error code otherwise
  */
 PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout_ns);
+
+/**
+ * @brief Permits for having multiple processes in the system to receive same UDP messages
+ *
+ * @param sock `socket`-returned socket object
+ * @return 0 if successfull, error code otherwise
+ */
+PROVIZIO__EXTERN_C int32_t provizio_socket_enable_address_and_port_reuse(PROVIZIO__SOCKET sock);
 
 #endif // PROVIZIO_SOCKET

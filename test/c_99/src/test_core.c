@@ -847,21 +847,6 @@ static void test_receive_radar_point_cloud_timeout_fails(void)
     TEST_ASSERT_EQUAL_INT32(0, provizio_close_radar_connection(&connection));
 }
 
-static void test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken(void)
-{
-    const uint16_t port_number = 10010 + PROVIZIO__RADAR_API_DEFAULT_PORT;
-
-    provizio_radar_api_connection ok_connection;
-    provizio_radar_api_connection failed_connection;
-
-    TEST_ASSERT_EQUAL_INT32(0, provizio_open_radar_connection(port_number, 0, 0, NULL, &ok_connection));
-
-    provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_NOT_EQUAL_INT32(0, provizio_open_radar_connection(port_number, 0, 0, NULL, &failed_connection));
-    TEST_ASSERT_EQUAL_STRING("provizio_open_radars_connection: Failed to bind a UDP socket!", provizio_test_error);
-    provizio_set_on_error(NULL);
-}
-
 static void test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as_not_connected(void)
 {
     provizio_radar_api_connection api_connetion;
@@ -1252,7 +1237,6 @@ int provizio_run_test_core(void)
     RUN_TEST(test_receive_radar_point_cloud_not_enough_contexts);
     RUN_TEST(test_receive_radar_point_cloud_timeout_ok);
     RUN_TEST(test_receive_radar_point_cloud_timeout_fails);
-    RUN_TEST(test_provizio_radar_point_cloud_api_connect_fails_due_to_port_taken);
     RUN_TEST(test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as_not_connected);
     RUN_TEST(test_provizio_radar_point_cloud_api_close_fails_as_not_connected);
     RUN_TEST(test_provizio_set_radar_mode_ok);
