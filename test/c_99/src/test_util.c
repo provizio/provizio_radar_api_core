@@ -102,21 +102,21 @@ static void test_provizio_set_protocol_field_float(void)
     uint8_t test_buffer[5]; // NOLINT
     memset(test_buffer, 0, sizeof(test_buffer));
 
-    const float test_float = 12.345F;
+    const float test_float = 1.0F;
 
     // Aligned write
     provizio_set_protocol_field_float((float *)&test_buffer[0], test_float);
-    float to_float = 0.0F;
-    memcpy(&to_float, &test_buffer[0], sizeof(float));
-    TEST_ASSERT_EQUAL(test_float, // NOLINT
-                      to_float);
+    TEST_ASSERT_EQUAL(0x3f, test_buffer[0]);
+    TEST_ASSERT_EQUAL(0x80, test_buffer[1]);
+    TEST_ASSERT_EQUAL(0x00, test_buffer[2]);
+    TEST_ASSERT_EQUAL(0x00, test_buffer[3]);
 
     // Unaligned write
     provizio_set_protocol_field_float((float *)&test_buffer[1], test_float);
-    to_float = 0.0F;
-    memcpy(&to_float, &test_buffer[1], sizeof(float));
-    TEST_ASSERT_EQUAL(test_float, // NOLINT
-                      to_float);
+    TEST_ASSERT_EQUAL(0x3f, test_buffer[1]);
+    TEST_ASSERT_EQUAL(0x80, test_buffer[2]);
+    TEST_ASSERT_EQUAL(0x00, test_buffer[3]);
+    TEST_ASSERT_EQUAL(0x00, test_buffer[4]);
 }
 
 static void test_provizio_get_protocol_field_uint8_t(void)
@@ -164,20 +164,18 @@ static void test_provizio_get_protocol_field_uint64_t(void)
 
 static void test_provizio_get_protocol_field_float(void)
 {
-    uint8_t test_buffer[5]; // NOLINT
-    memset(test_buffer, 0, sizeof(test_buffer));
+    uint8_t test_buffer_aligned[4] = {0x3f, 0x80, 0x00, 0x00};         // NOLINT
+    uint8_t test_buffer_unaligned[5] = {0x00, 0x3f, 0x80, 0x00, 0x00}; // NOLINT
 
-    const float test_float = 123.456F;
+    const float test_float = 1.0F;
 
     // Aligned read
-    memcpy(&test_buffer[0], &test_float, sizeof(float));
     TEST_ASSERT_EQUAL(test_float, // NOLINT
-                      provizio_get_protocol_field_float((float *)&test_buffer[0]));
+                      provizio_get_protocol_field_float((float *)&test_buffer_aligned[0]));
 
     // Unaligned read
-    memcpy(&test_buffer[1], &test_float, sizeof(float));
     TEST_ASSERT_EQUAL(test_float, // NOLINT
-                      provizio_get_protocol_field_float((float *)&test_buffer[1]));
+                      provizio_get_protocol_field_float((float *)&test_buffer_unaligned[1]));
 }
 
 static void test_provizio_gettimeofday(void)
