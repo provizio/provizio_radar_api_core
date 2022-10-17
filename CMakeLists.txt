@@ -74,7 +74,7 @@ if(UNIX)
   set(CMAKE_CXX_CLANG_TIDY
     ""
     CACHE STRING "clang-tidy binary and config (C++)")
-  
+
   # Automatically enable clang-tidy if STATIC_ANALYSIS is turned on
   if(NOT CMAKE_C_CLANG_TIDY AND STATIC_ANALYSIS)
     message(STATUS "STATIC_ANALYSIS is enabled. Turning on clang-tidy.")
@@ -90,7 +90,7 @@ if(UNIX)
       message("clang-tidy not found. Appropriate checks won't be done!")
     endif(CLANG_TIDY_PATH)
   endif()
-  
+
   # Enable Format.cmake (forked from https://github.com/TheLartians/Format.cmake), if supported and enabled
   if(ENABLE_CHECK_FORMAT)
     execute_process(COMMAND clang-format --version OUTPUT_VARIABLE CLANG_FORMAT_VERSION)
@@ -114,7 +114,7 @@ if(UNIX)
       endif(NOT EXISTS "${FORMAT_CMAKE_PATH}")
       set(FORMAT_SKIP_CMAKE YES CACHE BOOL "" FORCE)
       add_subdirectory("${FORMAT_CMAKE_PATH}" EXCLUDE_FROM_ALL)
-    
+
       # Automatically enable clang-format checks if STATIC_ANALYSIS is turned on
       if(STATIC_ANALYSIS)
         message(STATUS "STATIC_ANALYSIS is enabled. Adding check-format to ALL.")
@@ -221,7 +221,7 @@ set(LINMATH_DOWNLOAD_URL "https://raw.githubusercontent.com/provizio/linmath.h/$
 file(DOWNLOAD "${LINMATH_DOWNLOAD_URL}" "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY ${TLS_VERIFY})
 
 # Define the core library
-add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_point_cloud.c src/radar_points_accumulation.c src/radar_points_accumulation_filters.c src/radar_points_accumulation_types.c src/util.c src/core.c)
+add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_point_cloud.c src/radar_points_accumulation.c src/radar_points_accumulation_filters.c src/radar_points_accumulation_types.c src/radar_ego_motion.c src/util.c src/core.c)
 target_include_directories(provizio_radar_api_core PUBLIC include)
 target_include_directories(provizio_radar_api_core SYSTEM PRIVATE "${LINMATH_HEADER_DIR}")
 set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA
