@@ -52,20 +52,6 @@
 #define PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES (PROVIZIO__MTU - (size_t)28)
 #endif // PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES
 
-typedef enum provizio_radar_position
-{
-    provizio_radar_position_front_center = 0,
-    provizio_radar_position_front_left = 1,
-    provizio_radar_position_front_right = 2,
-    provizio_radar_position_rear_left = 3,
-    provizio_radar_position_rear_right = 4,
-
-    provizio_radar_position_custom = ((uint16_t)0x1000),
-
-    provizio_radar_position_unknown = ((uint16_t)0xffff),
-    provizio_radar_position_max = provizio_radar_position_unknown
-} provizio_radar_position;
-
 /**
  * @brief Specifies a custom function to be called on warning
  *

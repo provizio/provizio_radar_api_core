@@ -15,7 +15,8 @@
 #ifndef PROVIZIO_RADAR_API_RADAR_EGO_MOTION
 #define PROVIZIO_RADAR_API_RADAR_EGO_MOTION
 
-#include "provizio/common.h"
+#include "provizio/radar_api/common.h"
+#include "provizio/radar_api/radar_position.h"
 #include "provizio/socket.h"
 
 // Used to identify provizio_radar_ego_motion_packet, can't change even on protocol updates
