@@ -15,6 +15,7 @@
 // The purpose of this C++ test is to make sure the API C headers can successfully be included in a C++ code and don't
 // crash when API functions are invoked. The logic is completely tested in the c_99 test.
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -28,6 +29,7 @@
 #include <thread>
 
 #include "provizio/radar_api/core.h"
+#include "provizio/radar_api/radar_points_accumulation.h"
 #include "provizio/socket.h"
 
 namespace
@@ -95,6 +97,12 @@ int main(int argc, char *argv[])
         constexpr float point_z = 3.0F;
         constexpr float point_velocity = 4.0F;
         constexpr float point_signal_to_noise_ratio = 5.0F;
+        constexpr float fix_east = 1.0F;
+        constexpr float fix_north = 2.0F;
+        constexpr float fix_up = 3.0F;
+        constexpr float orientation_x = 1.0F;
+        constexpr float orientation_y = 2.0F;
+        constexpr float orientation_z = 3.0F;
 
         std::atomic<bool> finish{false};
         std::mutex exception_in_thread_mutex;
@@ -176,6 +184,11 @@ int main(int argc, char *argv[])
 
         try
         {
+            constexpr std::size_t num_accumulated_point_clouds = 2;
+            std::array<provizio_accumulated_radar_point_cloud, // NOLINT: False positive: initialized next
+                       num_accumulated_point_clouds>
+                accumulated_point_clouds;
+            provizio_accumulated_radar_point_clouds_init(accumulated_point_clouds.data(), num_accumulated_point_clouds);
 
             auto received_point_cloud = std::make_unique<provizio_radar_point_cloud>();
             auto callback = [&](const provizio_radar_point_cloud *point_cloud,
@@ -183,6 +196,13 @@ int main(int argc, char *argv[])
                 (void)ignored;
 
                 std::memcpy(received_point_cloud.get(), point_cloud, sizeof(provizio_radar_point_cloud));
+
+                provizio_enu_fix fix;
+                fix.position = {fix_east, fix_north, fix_up};
+                provizio_quaternion_set_euler_angles(orientation_x, orientation_y, orientation_z, &fix.orientation);
+                provizio_accumulate_radar_point_cloud_static(point_cloud, &fix, accumulated_point_clouds.data(),
+                                                             num_accumulated_point_clouds);
+
                 finish = true;
             };
 
@@ -223,6 +243,14 @@ int main(int argc, char *argv[])
                 received_point_cloud->radar_points[0].signal_to_noise_ratio != point_signal_to_noise_ratio)
             {
                 throw std::runtime_error{"Incorrect point cloud received"}; // LCOV_EXCL_LINE: Shouldn't happen
+            }
+
+            if (provizio_accumulated_radar_point_clouds_count(accumulated_point_clouds.data(),
+                                                              num_accumulated_point_clouds) != 1 ||
+                provizio_accumulated_radar_points_count(accumulated_point_clouds.data(),
+                                                        num_accumulated_point_clouds) != 1)
+            {
+                throw std::runtime_error{"Failed to accumulate"}; // LCOV_EXCL_LINE: Shouldn't happen
             }
         }
         // LCOV_EXCL_START: Shouldn't happen

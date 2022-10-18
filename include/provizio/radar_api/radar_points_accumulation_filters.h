@@ -19,11 +19,11 @@
 #include "provizio/radar_api/radar_points_accumulation_types.h"
 
 /**
- * @brief Function type to be used as a filter for point clouds, i.e. a function that defines which point clouds are
- * to be accumulated and which to be dropped.
+ * @brief Function type to be used as a filter for point clouds, i.e. a function that defines which points are to be
+ * accumulated and which ones to be dropped.
  *
- * @param in_points - Input (unfiltered) array of points.
- * @param num_in_points - Number of points in in_points.
+ * @param in_points Input (unfiltered) array of points.
+ * @param num_in_points Number of points in in_points.
  * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
  * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
  * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
@@ -45,12 +45,12 @@ typedef void (*provizio_radar_points_accumulation_filter)(
 /**
  * @brief A provizio_radar_points_accumulation_filter that accumulates all points, i.e. no doesn't filter.
  *
- * @param in_points - Input (unfiltered) array of points.
- * @param num_in_points - Number of points in in_points.
- * @param accumulated_point_clouds - Ignored by this filter.
- * @param num_accumulated_point_clouds - Ignored by this filter.
- * @param new_iterator - Ignored by this filter.
- * @param user_data - Ignored by this filter, use NULL.
+ * @param in_points Input (unfiltered) array of points.
+ * @param num_in_points Number of points in in_points.
+ * @param accumulated_point_clouds Ignored by this filter.
+ * @param num_accumulated_point_clouds Ignored by this filter.
+ * @param new_iterator Ignored by this filter.
+ * @param user_data Ignored by this filter, use NULL.
  * @param out_points Output (filtered) array of points, to be assigned by the filter, at least num_in_points large.
  * @param num_out_points Pointer to the output (filtered) number of points, to be set by the filter (can't exceed
  * PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD).
@@ -68,8 +68,8 @@ PROVIZIO__EXTERN_C void provizio_radar_points_accumulation_filter_copy_all(
  * @brief A provizio_radar_points_accumulation_filter that accumulates only static (non-moving) points, as defined from
  * their radial velocities relative to the radar and the radar's own movement as detected by GNSS fixes history.
  *
- * @param in_points - Input (unfiltered) array of points.
- * @param num_in_points - Number of points in in_points.
+ * @param in_points Input (unfiltered) array of points.
+ * @param num_in_points Number of points in in_points.
  * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
  * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
  * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.

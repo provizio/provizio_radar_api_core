@@ -36,15 +36,15 @@ PROVIZIO__EXTERN_C void provizio_accumulated_radar_point_clouds_init(
  * see them. If accumulated_point_clouds buffer is full then the oldest accumulated point cloud gets dropped.
  *
  * @param point_cloud The new radar point cloud to be accumulated.
- * @param fix_when_received provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of the
- * radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
+ * @param fix_when_received A provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of
+ * the radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
  * relative to the reference frame of the localization system (extrinsics). All accumulated point clouds in
  * accumulated_point_clouds buffer must use the same ENU reference point. Accumulation can be reset using
  * provizio_accumulated_radar_point_clouds_init in case a new reference point is required (in long journeys).
  * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
  * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
  * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
- * @param filter Function that defines which point clouds are to be accumulated and which to be dropped. May be NULL to
+ * @param filter Function that defines which points are to be accumulated and which ones to be dropped. May be NULL to
  * accumulate all, &provizio_radar_points_accumulation_filter_static to accumulate static points, or a custom filter.
  * @param filter_user_data Specifies user_data argument value of the filter (may be NULL).
  * @return provizio_accumulated_radar_point_cloud_iterator pointing to the just pushed point cloud. It can be used to
@@ -66,8 +66,8 @@ PROVIZIO__EXTERN_C provizio_accumulated_radar_point_cloud_iterator provizio_accu
 /**
  * @brief A shortcut for provizio_accumulate_radar_point_cloud using provizio_radar_points_accumulation_filter_static.
  * @param point_cloud The new radar point cloud to be accumulated.
- * @param fix_when_received provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of the
- * radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
+ * @param fix_when_received A provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of
+ * the radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
  * relative to the reference frame of the localization system (extrinsics). All accumulated point clouds in
  * accumulated_point_clouds buffer must use the same ENU reference point. Accumulation can be reset using
  * provizio_accumulated_radar_point_clouds_init in case a new reference point is required (in long journeys).

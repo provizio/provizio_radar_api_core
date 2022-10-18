@@ -110,10 +110,11 @@ PROVIZIO__EXTERN_C void provizio_quaternion_set_identity(provizio_quaternion *ou
  *
  * @param x_rad Rotation around the forward (roll) or east axis, depending on the context (radians).
  * @param y_rad Rotation around the left (pitch) or north axis, depending on the context (radians).
- * @param z_rad Rotation around the up (yaw) axis.
+ * @param z_rad Rotation around the up (yaw) axis (radians).
  * @param out_quaternion The rotation/orientation quaternion to be set.
  * @see https://en.wikipedia.org/wiki/Euler_angles
  * @see provizio_quaternion
+ * @see provizio_quaternion_set_identity
  */
 PROVIZIO__EXTERN_C void provizio_quaternion_set_euler_angles(float x_rad, float y_rad, float z_rad,
                                                              provizio_quaternion *out_quaternion);
@@ -121,7 +122,7 @@ PROVIZIO__EXTERN_C void provizio_quaternion_set_euler_angles(float x_rad, float 
 /**
  * @brief Checks if the specified quaternion is a valid rotation/orientation quaternion.
  *
- * @param quaternion the quaternion to be checked.
+ * @param quaternion The quaternion to be checked.
  * @return Non-zero if valid, zero otherwise.
  * @see provizio_quaternion
  */
