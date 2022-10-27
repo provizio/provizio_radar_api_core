@@ -18,18 +18,21 @@
 
 #include "provizio/common.h"
 
-#define PROVIZIO__TEST_MAX_MESSAGE_LENGTH 1024
-char provizio_test_warning[PROVIZIO__TEST_MAX_MESSAGE_LENGTH]; // NOLINT: non-const global by design
-char provizio_test_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH];   // NOLINT: non-const global by design
+enum
+{
+    test_message_length = 1024
+};
+static char provizio_test_warning[test_message_length]; // NOLINT: non-const global by design
+static char provizio_test_error[test_message_length];   // NOLINT: non-const global by design
 
 static void test_provizio_common_on_warning(const char *warning)
 {
-    strncpy(provizio_test_warning, warning, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
+    strncpy(provizio_test_warning, warning, test_message_length - 1);
 }
 
 static void test_provizio_common_on_error(const char *error)
 {
-    strncpy(provizio_test_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
+    strncpy(provizio_test_error, error, test_message_length - 1);
 }
 
 static void test_provizio_warnings(void)

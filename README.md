@@ -1,13 +1,21 @@
 # provizio_radar_api_core
 
 - [provizio_radar_api_core](#provizio_radar_api_core)
-  - [Usage](#usage)
+  - [How-To](#how-to)
     - [Building and Linking](#building-and-linking)
     - [Initialization](#initialization)
     - [Connection](#connection)
     - [Receiving Point Clouds](#receiving-point-clouds)
       - [Live UDP](#live-udp)
       - [Replay or Custom Transport](#replay-or-custom-transport)
+    - [Point Clouds Accumulation](#point-clouds-accumulation)
+      - [Example of Point Clouds Accumulation](#example-of-point-clouds-accumulation)
+      - [Accumulation Initialization](#accumulation-initialization)
+      - [Storing Localization Information in provizio_enu_fix](#storing-localization-information-in-provizio_enu_fix)
+      - [Accumulating Point Clouds](#accumulating-point-clouds)
+      - [Accumulation Filters](#accumulation-filters)
+      - [Retrieving Accumulated Points](#retrieving-accumulated-points)
+      - [Hardware-Accelerated Transformation](#hardware-accelerated-transformation)
     - [Changing Radar Modes](#changing-radar-modes)
     - [Shutting Down](#shutting-down)
   - [UDP Protocol](#udp-protocol)
@@ -27,7 +35,7 @@ The official C library providing API for communicating with Provizio radars.
 - MISRA-compatible​
 - Complete unit-tests coverage (validated in CI)​
 
-## Usage
+## How-To
 
 ### Building and Linking
 
@@ -241,7 +249,7 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
      * @param out_connection A provizio_radar_api_connection to store the connection handle
      * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
      *
-     * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+     * @note The connection has to be eventually closed with provizio_close_radar_connection
      */
     int32_t status = provizio_open_radar_connection(udp_port, receive_timeout_ns, check_connection, &api_context, &connection);
     ```
@@ -273,7 +281,7 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
     * @param out_connection A provizio_radar_api_connection to store the connection handle
     * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
     *
-    * @note The connection has to be eventually closed with provizio_radar_api_close_connection
+    * @note The connection has to be eventually closed with provizio_close_radars_connection
     */
     int32_t status = provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection, api_contexts, num_contexts, &connection);
     ```
@@ -448,6 +456,412 @@ There are a few options for this:
 
 Either of these calls may invoke `your_radar_point_cloud_callback` up to
 `PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT` times (2 by default) serially.
+
+### Point Clouds Accumulation
+
+Point clouds accumulation keeps some of reflected points (normally ones from static objects) "visible" for a number of
+frames after they were originally received. It makes point clouds much denser and features of objects much clearer -
+similar to long exposure of dark scenes in photography.
+Accumulation requires 2 inputs: point clouds and relative localization. When radar-based localization is used, it
+effectively turns into a SLAM (Simultaneous Localization and Mapping) solution.
+With Provizio Radar API you first receive point clouds and then separately accumulate them if needed.
+
+#### Example of Point Clouds Accumulation
+
+![Point Clouds Accumulation](media/point_clouds_accumulation.png)
+
+#### Accumulation Initialization
+
+1. Include the accumulation header
+
+    ```C
+    #include "provizio/radar_api/src/radar_points_accumulation.c"
+    ```
+
+2. Create a buffer of `provizio_accumulated_radar_point_cloud`.
+
+   ```C
+   enum
+   {
+       num_accumulated_point_clouds = 100  // Enables storing up to 100 radar frames
+   };
+
+   // Not recommended to allocate on stack like below unless your app is built with a large stack size as
+   // provizio_accumulated_radar_point_cloud is large
+   provizio_accumulated_radar_point_cloud stack_accumulated_point_clouds[num_accumulated_point_clouds];
+
+   // or
+
+   // Safer to allocate on heap if permitted for your app, but has to be freed when finished
+   provizio_accumulated_radar_point_cloud *heap_accumulated_point_clouds =
+       (provizio_accumulated_radar_point_cloud *)malloc(num_accumulated_point_clouds *
+           sizeof(provizio_accumulated_radar_point_cloud));
+   ```
+
+   The size of the array you choose defines how many point clouds can be accumulated in it. When full, adding a new
+   point cloud drops the oldest accumulated cloud. The more precise your localization is, the more it makes sense to
+   accumulate - starting from about 10-20 point clouds in case of lower precision, to 200 or more in case of high
+   precision localization.
+
+3. Initialize the buffer.
+
+   ```C
+   /**
+    * @brief Initializes an array of provizio_accumulated_radar_point_cloud to be later used for point clouds accumulation
+    * as a circular buffer.
+    *
+    * @param accumulated_point_clouds Pointer to the array of provizio_accumulated_radar_point_cloud to initialize.
+    * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in the array.
+    * @see provizio_accumulate_radar_point_cloud
+    */
+   provizio_accumulated_radar_point_clouds_init(accumulated_point_clouds, (size_t)num_accumulated_point_clouds);
+   ```
+
+#### Storing Localization Information in provizio_enu_fix
+
+`provizio_enu_fix` objects are used to store localization information (i.e. position and orientation) of radars for
+accumulation purposes.
+When localization uses some sort of GNSS, such as GPS or RTK, it needs to be first converted to a [local ENU
+coordinate system](https://en.wikipedia.org/wiki/Local_tangent_plane_coordinates), and then adjusted using the radar's
+extrinsics to get the ENU position and orientation of the radar rather than the ego vehicle.
+
+```C
+/**
+ * @brief Represents an orientation and position.
+ *
+ * @see provizio_quaternion
+ * @see provizio_enu_position
+ */
+provizio_enu_fix radar_fix;
+
+// 1. Set radar_fix.orientation, i.e. a provizio_quaternion which is a unit quaternion storing a spatial orientation of
+//    the radar. Identity quaternion stands for east-looking orientation.
+/**
+ * @brief Sets the specified quaternion from the specified Euler angles, as applied in this order: z, y, x (yaw, pitch,
+ * roll).
+ *
+ * @param x_rad Rotation around the forward (roll) or east axis, depending on the context (radians).
+ * @param y_rad Rotation around the left (pitch) or north axis, depending on the context (radians).
+ * @param z_rad Rotation around the up (yaw) axis (radians).
+ * @param out_quaternion The rotation/orientation quaternion to be set.
+ * @see https://en.wikipedia.org/wiki/Euler_angles
+ * @see provizio_quaternion
+ * @see provizio_quaternion_set_identity
+ */
+provizio_quaternion_set_euler_angles(float_x_rad, float_y_rad, float_z_rad, &radar_fix.orientation);
+
+
+// 2. Set radar_fix.position, i.e. a provizio_enu_position which is a position of the radar as right-handed cartesian
+//    coordinates (East, North, Up) in meters, relative to whatever reference point - normally on Earth's surface.
+//    See https://en.wikipedia.org/wiki/Local_tangent_plane_coordinates.
+radar_fix.position.east_meters = float_east_meters;
+radar_fix.position.north_meters = float_north_meters;
+radar_fix.position.up_meters = float_up_meters;
+```
+
+#### Accumulating Point Clouds
+
+On receiving every `provizio_radar_point_cloud` accumulate it in your `provizio_accumulated_radar_point_cloud`s buffer.
+
+```C
+provizio_radar_point_cloud *point_cloud = received_point_cloud; // F.e. in your provizio_radar_point_cloud_callback
+
+provizio_accumulated_radar_point_cloud_iterator iterator; // More details below
+
+/**
+ * @brief Pushes a new radar point cloud to the array of provizio_accumulated_radar_point_cloud (used as a circular
+ * buffer). It enables tracking historical radar points as they would be seen later by the same radar if it could still
+ * see them. If accumulated_point_clouds buffer is full then the oldest accumulated point cloud gets dropped.
+ *
+ * @param point_cloud The new radar point cloud to be accumulated.
+ * @param fix_when_received A provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of
+ * the radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
+ * relative to the reference frame of the localization system (extrinsics). All accumulated point clouds in
+ * accumulated_point_clouds buffer must use the same ENU reference point. Accumulation can be reset using
+ * provizio_accumulated_radar_point_clouds_init in case a new reference point is required (in long journeys).
+ * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+ * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+ * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+ * @param filter Function that defines which points are to be accumulated and which ones to be dropped. May be NULL to
+ * accumulate all, &provizio_radar_points_accumulation_filter_static to accumulate static points, or a custom filter.
+ * @param filter_user_data Specifies user_data argument value of the filter (may be NULL).
+ * @return provizio_accumulated_radar_point_cloud_iterator pointing to the just pushed point cloud. It can be used to
+ * iterate over point clouds accumulated so far - from newest to oldest.
+ * @see provizio_accumulate_radar_point_cloud_static
+ * @see provizio_radar_point_cloud
+ * @see provizio_enu_fix
+ * @see provizio_accumulated_radar_point_cloud
+ * @see provizio_accumulated_radar_point_cloud_iterator
+ * @see provizio_accumulated_radar_point_clouds_init
+ * @see provizio_radar_points_accumulation_filter
+ * @see provizio_radar_points_accumulation_filter_static
+ */
+iterator = provizio_accumulate_radar_point_cloud(point_cloud, &radar_fix, accumulated_point_clouds,
+    num_accumulated_point_clouds, filter, filter_user_data);
+
+// or
+
+/**
+ * @brief A shortcut for provizio_accumulate_radar_point_cloud using provizio_radar_points_accumulation_filter_static.
+ * @param point_cloud The new radar point cloud to be accumulated.
+ * @param fix_when_received provizio_enu_fix of the radar at the moment of the point cloud capture. Being the fix of the
+ * radar, not the ego vehicle, it has to be pre-transformed to respect the position and orientation of the radar
+ * relative to the reference frame of the localization system (extrinsics). All accumulated point clouds in
+ * accumulated_point_clouds buffer must use the same ENU reference point. Accumulation can be reset using
+ * provizio_accumulated_radar_point_clouds_init in case a new reference point is required (in long journeys).
+ * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+ * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+ * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+ * @return provizio_accumulated_radar_point_cloud_iterator pointing to the just pushed point cloud. It can be used to
+ * iterate over point clouds accumulated so far - from newest to oldest.
+ *
+ * @see provizio_accumulate_radar_point_cloud
+ * @see provizio_radar_points_accumulation_filter_static
+ */
+iterator = provizio_accumulate_radar_point_cloud_static(point_cloud, &radar_fix, accumulated_point_clouds,
+    num_accumulated_point_clouds);
+```
+
+#### Accumulation Filters
+
+Optional accumulation filter can be used when calling `provizio_accumulate_radar_point_cloud`. It makes it accumulate
+only some of the points (most often, static points as with `provizio_radar_points_accumulation_filter_static` and
+`provizio_accumulate_radar_point_cloud_static`).
+
+There are predefined filters:
+
+```C
+/**
+ * @brief A provizio_radar_points_accumulation_filter that accumulates all points, i.e. no doesn't filter.
+ *
+ * @param in_points - Input (unfiltered) array of points.
+ * @param num_in_points - Number of points in in_points.
+ * @param accumulated_point_clouds - Ignored by this filter.
+ * @param num_accumulated_point_clouds - Ignored by this filter.
+ * @param new_iterator - Ignored by this filter.
+ * @param user_data - Ignored by this filter, use NULL.
+ * @param out_points Output (filtered) array of points, to be assigned by the filter, at least num_in_points large.
+ * @param num_out_points Pointer to the output (filtered) number of points, to be set by the filter (can't exceed
+ * PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD).
+ * @see provizio_enu_fix
+ * @see provizio_accumulate_radar_point_cloud
+ * @see provizio_radar_points_accumulation_filter
+ */
+void provizio_radar_points_accumulation_filter_copy_all(
+    const provizio_radar_point *in_points, uint16_t num_in_points,
+    provizio_accumulated_radar_point_cloud *accumulated_point_clouds, size_t num_accumulated_point_clouds,
+    const provizio_accumulated_radar_point_cloud_iterator *new_iterator, void *user_data,
+    provizio_radar_point *out_points, uint16_t *num_out_points);
+
+/**
+ * @brief A provizio_radar_points_accumulation_filter that accumulates only static (non-moving) points, as defined from
+ * their radial velocities relative to the radar and the radar's own movement as detected by GNSS fixes history.
+ *
+ * @param in_points - Input (unfiltered) array of points.
+ * @param num_in_points - Number of points in in_points.
+ * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+ * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+ * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+ * @param new_iterator Iterator to the point cloud being accumulated.
+ * @param user_data Ignored by this filter, use NULL.
+ * @param out_points Output (filtered) array of points, to be assigned by the filter, at least num_in_points large.
+ * @param num_out_points Pointer to the output (filtered) number of points, to be set by the filter (can't exceed
+ * PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD).
+ * @see provizio_enu_fix
+ * @see provizio_accumulate_radar_point_cloud
+ * @see provizio_radar_points_accumulation_filter
+ */
+void provizio_radar_points_accumulation_filter_static(
+    const provizio_radar_point *in_points, uint16_t num_in_points,
+    provizio_accumulated_radar_point_cloud *accumulated_point_clouds, size_t num_accumulated_point_clouds,
+    const provizio_accumulated_radar_point_cloud_iterator *new_iterator, void *user_data,
+    provizio_radar_point *out_points, uint16_t *num_out_points);
+```
+
+When `NULL` is used as a value for `filter`, then `provizio_radar_points_accumulation_filter_copy_all` is used by
+default.
+
+You can define your own custom filters if required. All filters should match the appropriate function prototype:
+
+```C
+/**
+ * @brief Function type to be used as a filter for point clouds, i.e. a function that defines which points are to be
+ * accumulated and which ones to be dropped.
+ *
+ * @param in_points - Input (unfiltered) array of points.
+ * @param num_in_points - Number of points in in_points.
+ * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+ * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+ * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+ * @param new_iterator Iterator to the point cloud being accumulated.
+ * @param user_data Custom argument to be passed to the filter (specified when accumulating), may be NULL.
+ * @param out_points Output (filtered) array of points, to be assigned by the filter, at least num_in_points large.
+ * @param num_out_points Pointer to the output (filtered) number of points, to be set by the filter (can't exceed
+ * PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD).
+ * @see provizio_enu_fix
+ * @see provizio_accumulate_radar_point_cloud
+ * @see provizio_accumulated_radar_point_cloud_iterator
+ */
+typedef void (*provizio_radar_points_accumulation_filter)(
+    const provizio_radar_point *in_points, uint16_t num_in_points,
+    provizio_accumulated_radar_point_cloud *accumulated_point_clouds, size_t num_accumulated_point_clouds,
+    const provizio_accumulated_radar_point_cloud_iterator *new_iterator, void *user_data,
+    provizio_radar_point *out_points, uint16_t *num_out_points);
+```
+
+#### Retrieving Accumulated Points
+
+Now you can retrive the point clouds (and their appropriate points) accumulated in your
+`provizio_accumulated_radar_point_cloud`s buffer.
+
+1. Iterate over accumulated point clouds and points using the `iterator` returned from
+   `provizio_accumulate_radar_point_cloud`/`provizio_accumulate_radar_point_cloud_static`.
+
+   ```C
+   // Iterate over all accumulated point clouds, newest to oldest
+   for (; !provizio_accumulated_radar_point_cloud_iterator_is_end(&iterator, accumulated_point_clouds,
+                                                                  num_accumulated_point_clouds);
+        provizio_accumulated_radar_point_cloud_iterator_next_point_cloud(&iterator, accumulated_point_clouds,
+                                                                         num_accumulated_point_clouds))
+   {
+       // Get and use the accumulated point cloud
+   }
+   ```
+
+    ```C
+   // Iterate over all accumulated points, newest to oldest
+   for (; !provizio_accumulated_radar_point_cloud_iterator_is_end(&iterator, accumulated_point_clouds,
+                                                                  num_accumulated_point_clouds);
+        provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
+                                                                   num_accumulated_point_clouds))
+   {
+       // Get and use the accumulated point
+   }
+   ```
+
+   You can also find out how many point clouds and points are accumulated in the buffer:
+
+   ```C
+       /**
+       * @brief Returns a total number of points accumulated so far in all point clouds in accumulated_point_clouds buffer.
+       *
+       * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+       * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+       * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+       * @return Total number of points accumulated so far in all point clouds in accumulated_point_clouds buffer.
+       */
+       size_t points_count = provizio_accumulated_radar_points_count(accumulated_point_clouds,
+           num_accumulated_point_clouds);
+   ```
+
+   ```C
+       /**
+       * @brief Returns a number of point clouds accumulated so far in accumulated_point_clouds buffer.
+       *
+       * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+       * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+       * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+       * @return Number of point clouds accumulated so far in accumulated_point_clouds buffer.
+       */
+       size_t point_clouds_count = provizio_accumulated_radar_point_clouds_count(accumulated_point_clouds,
+           num_accumulated_point_clouds);
+   ```
+
+2. Get the accumulated points and their positions relative to the current position and orientation of the radar or
+   another reference frame.
+
+   Either get a point cloud and its transformation (it's more efficient than getting point-by-point as transformation
+   being built is the same for the entire point cloud):
+
+   ```C
+   provizio_radar_point_cloud transformed_point_cloud; // You may prefer to allocate it on heap as it's a large object
+   float transformation_matrix[16]; // More details below
+
+   /**
+   * @brief Returns an accumulated point cloud that the specified non-end iterator points to; with an option to either
+   * transform its points so their positions are returned relative to the specified provizio_enu_fix of the radar, or
+   * generate a 4x4 matrix that can perform such a transformation by multiplying to positions of the accumulated points.
+   *
+   * @param iterator A provizio_accumulated_radar_point_cloud_iterator.
+   * @param current_fix A provizio_enu_fix of the radar to transform relative to, i.e. where the same radar is at now. May
+   * be NULL in case both optional_out_transformed_point_cloud and optional_out_transformation_matrix are also NULL.
+   * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+   * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+   * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+   * @param optional_out_transformed_point_cloud When non-NULL, stores transformed radar points; i.e. the points as they
+   * would be "seen" by the same radar in its current position, if it could still "see" them.
+   * @param optional_out_transformation_matrix When non-NULL, must point to a float array 16 floats (64 bytes) long to
+   * store a 4x4 transformation matrix in column major order. Multiplying this matrix to points positions (as (x, y, z, 1)
+   * 4d-vectors) transforms points from where they were relative to the radar at the moment of their capture to where they
+   * would be "seen" by the same radar in its current position, if it could still "see" them.
+   * @return Untransformed accumulated radar point cloud, or NULL if iterator is an end iterator.
+   * @see provizio_accumulated_radar_point_cloud_iterator
+   * @see provizio_enu_fix
+   *
+   * @note When non-NULL optional_out_transformed_point_cloud is specified, the transformation is done without any use of
+   * hardware acceleration, so it can be slow. When runtime performance is important and appropriate hw capabilities are
+   * present, it's recommended to use optional_out_transformation_matrix and then hw-accelerated transformation instead.
+   */
+   const provizio_accumulated_radar_point_cloud *untransformed_accumulated_point_cloud =
+       provizio_accumulated_radar_point_cloud_iterator_get_point_cloud(
+           &iterator, &current_fix, accumulated_point_clouds, num_accumulated_point_clouds, &transformed_point_cloud,
+           (float *)transformation_matrix);
+   ```
+
+   ... or get a point and its transformation (for iterating point-by-point, convenient but not as efficient):
+
+   ```C
+   provizio_radar_point transformed_point;
+   float transformation_matrix[16]; // More details below
+
+   /**
+    * @brief Returns an accumulated point that the specified non-end iterator points to; with an option to either transform
+   * it so its position is returned relative to the specified provizio_enu_fix of the radar, or generate a 4x4 matrix that
+   * can perform such a transformation by multiplying to its position.
+   *
+   * @param iterator A provizio_accumulated_radar_point_cloud_iterator.
+   * @param current_fix A provizio_enu_fix of the radar to transform relative to, i.e. where the same radar is at now. May
+   * be NULL in case both optional_out_transformed_point and optional_out_transformation_matrix are also NULL.
+   * @param accumulated_point_clouds An array of provizio_accumulated_radar_point_cloud previously initialized with
+   * provizio_accumulated_radar_point_clouds_init to store accumulated points clouds as a circular buffer.
+   * @param num_accumulated_point_clouds Number of provizio_accumulated_radar_point_cloud in accumulated_point_clouds.
+   * @param optional_out_transformed_point When non-NULL, stores a transformed radar point; i.e. the point as it would be
+   * "seen" by the same radar in its current position, if it could still "see" this point.
+   * @param optional_out_transformation_matrix When non-NULL, must point to a float array 16 floats (64 bytes) long to
+   * store a 4x4 transformation matrix in column major order. Multiplying this matrix to a point position (as (x, y, z, 1)
+   * 4d-vector) transforms the point from where it was relative to the radar at the moment of its capture to where it
+   * would be "seen" by the same radar in its current position, if it could still "see" this point.
+   * @return Untransformed accumulated radar point, or NULL if iterator is an end iterator.
+   * @see provizio_accumulated_radar_point_cloud_iterator_get_point_cloud
+   * @see provizio_accumulated_radar_point_cloud_iterator
+   * @see provizio_enu_fix
+   *
+   * @note When non-NULL optional_out_transformed_point is specified, the transformation is done without any use of
+   * hardware acceleration, so it can be slow. When runtime performance is important and appropriate hw capabilities are
+   * present, it's recommended to use optional_out_transformation_matrix and then hw-accelerated transformation instead.
+   * Also, provizio_accumulated_radar_point_cloud_iterator_get_point_cloud is recommended instead, so
+   * optional_out_transformation_matrix doesn't have to be generated separately for every point as it's same for the
+   * entire accumulated point cloud.
+   */
+   const provizio_radar_point *untransformed_point =
+       provizio_accumulated_radar_point_cloud_iterator_get_point(
+           &iterator, &current_fix, accumulated_point_clouds, num_accumulated_point_clouds, &transformed_point,
+           (float *)transformation_matrix);
+   ```
+
+#### Hardware-Accelerated Transformation
+
+   Both `provizio_accumulated_radar_point_cloud_iterator_get_point_cloud` and
+   `provizio_accumulated_radar_point_cloud_iterator_get_point` provide 2 options for transforming positions of
+   accumulated points relative to the current position and orientation of the radar or another reference frame.
+
+   1. Specifying non-`NULL` value for `optional_out_transformed_point_cloud` / `optional_out_transformed_point` argument
+      performes unaccelerated transformation on CPU. It can be a slow operation in case of accumulating a lot of large
+      point clouds. In the same time it's the simplest option and it doesn't require any special H/W capabilities.
+   2. Specifying non-`NULL` value for `optional_out_transformation_matrix` argument doesn't perform any transformation,
+      but instead generates a 4x4 matrix that performs such a transformation when multiplied to point positions in the
+      form of `(x, y, z, 1)` 4d-vectors. When GPU or other h/w acceleration of vector-to-matrix multiplication is
+      present, it's significantly more efficient to transform lots of large accumulated point clouds.
 
 ### Changing Radar Modes
 

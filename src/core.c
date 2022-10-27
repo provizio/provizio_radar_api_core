@@ -211,7 +211,8 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
         // LCOV_EXCL_STOP
     }
 
-    if ((status = provizio_socket_set_recv_timeout(sock, recv_timeout_ns)) != 0)
+    status = provizio_socket_set_recv_timeout(sock, recv_timeout_ns);
+    if (status != 0)
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_set_radar_mode: Failed to set recv timeout!");
@@ -224,8 +225,8 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
     if (ipv4_address == NULL || strstr(ipv4_address, "255") != NULL)
     {
         const int broadcast = 1;
-        if ((status =
-                 (int32_t)setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast))) != 0)
+        status = (int32_t)setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast));
+        if (status != 0)
         {
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
             provizio_error("provizio_set_radar_mode: Failed to enable broadcasting!");
@@ -241,7 +242,8 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
     my_address.sin_port = 0;                 // Any port
     my_address.sin_addr.s_addr = INADDR_ANY; // Any address
 
-    if ((status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address))) != 0)
+    status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
+    if (status != 0)
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_set_radar_mode: Failed to bind socket");
@@ -343,7 +345,8 @@ int32_t provizio_set_radar_mode(provizio_radar_position radar_position_id, provi
         return status;
     }
 
-    if ((status = provizio_socket_close(sock)) != 0)
+    status = provizio_socket_close(sock);
+    if (status != 0)
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("provizio_set_radar_mode: Failed to close the socket");

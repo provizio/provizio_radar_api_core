@@ -213,9 +213,17 @@ else()
   add_compile_options(/W4 /WX /wd4068 /wd4996)
 endif()
 
+# linmath.h (https://github.com/provizio/linmath.h)
+set(LINMATH_BRANCH "provizio")
+set(LINMATH_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/linmath")
+set(LINMATH_HEADER_NAME "linmath.h")
+set(LINMATH_DOWNLOAD_URL "https://raw.githubusercontent.com/provizio/linmath.h/${LINMATH_BRANCH}/${LINMATH_HEADER_NAME}")
+file(DOWNLOAD "${LINMATH_DOWNLOAD_URL}" "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY ${TLS_VERIFY})
+
 # Define the core library
-add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_point_cloud.c src/util.c src/core.c)
+add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_point_cloud.c src/radar_points_accumulation.c src/radar_points_accumulation_filters.c src/radar_points_accumulation_types.c src/util.c src/core.c)
 target_include_directories(provizio_radar_api_core PUBLIC include)
+target_include_directories(provizio_radar_api_core SYSTEM PRIVATE "${LINMATH_HEADER_DIR}")
 set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA
 if(WIN32)
   target_link_libraries(provizio_radar_api_core ws2_32)

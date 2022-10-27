@@ -20,7 +20,7 @@
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
 
-int provizio_network_floats_reversed()
+static int provizio_network_floats_reversed(void)
 {
     const float test_value = 1.0F;
     return ((const char *)(&test_value))[3] != 0;
@@ -63,6 +63,8 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     {
         // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
         // state of the API to avoid complicated state-related issues.
+        provizio_warning(
+            "provizio_get_point_cloud_being_received: frame indices overflow detected - resetting API state");
         provizio_radar_point_cloud_api_context_init(context->callback, context->user_data, context);
     }
 

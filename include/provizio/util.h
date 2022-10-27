@@ -129,4 +129,12 @@ PROVIZIO__EXTERN_C int32_t provizio_gettimeofday(struct timeval *out_timeval);
  */
 PROVIZIO__EXTERN_C int64_t provizio_time_interval_ns(struct timeval *time_b, struct timeval *time_a);
 
+/**
+ * @brief Converts a duration measured in nanoseconds to a float value measured in seconds
+ *
+ * @param duration_ns Duration in nanoseconds
+ * @return The float value measured in seconds
+ */
+PROVIZIO__EXTERN_C float provizio_nanoseconds_to_seconds(int64_t duration_ns);
+
 #endif // PROVIZIO_UTIL

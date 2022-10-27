@@ -61,12 +61,15 @@ typedef struct send_point_cloud_packet_data // NOLINT: it's aligned exactly as i
     void *user_data;
 } send_point_cloud_packet_data;
 
-#define PROVIZIO__TEST_MAX_MESSAGE_LENGTH 1024
-static char provizio_test_error[PROVIZIO__TEST_MAX_MESSAGE_LENGTH]; // NOLINT: non-const global by design
+enum
+{
+    test_message_length = 1024
+};
+static char provizio_test_error[test_message_length]; // NOLINT: non-const global by design
 
 static void test_provizio_on_error(const char *error)
 {
-    strncpy(provizio_test_error, error, PROVIZIO__TEST_MAX_MESSAGE_LENGTH - 1);
+    strncpy(provizio_test_error, error, test_message_length - 1);
 }
 
 #ifdef WIN32
@@ -253,8 +256,8 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     my_address.sin_port = 0;                 // Any port
     my_address.sin_addr.s_addr = INADDR_ANY; // Any address
 
-    int32_t status = -1;
-    if ((status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address))) != 0)
+    int32_t status = bind(sock, (struct sockaddr *)&my_address, sizeof(my_address));
+    if (status != 0)
     {
         // LCOV_EXCL_START: No need to achieve 100% coverage in test code
         provizio_error("send_test_pointcloud: Failed to bind socket");
@@ -278,14 +281,16 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     send_data.further_callback = on_packet_sent;
     send_data.user_data = user_data;
 
-    if ((status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, radar_modes, num_radars, num_points,
-                                       drop_after_num_points, &send_point_cloud_packet, &send_data)) != 0)
+    status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, radar_modes, num_radars, num_points,
+                                  drop_after_num_points, &send_point_cloud_packet, &send_data);
+    if (status != 0)
     {
         provizio_socket_close(sock);
         return status;
     }
 
-    if ((status = provizio_socket_close(sock)) != 0)
+    status = provizio_socket_close(sock);
+    if (status != 0)
     {
         // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
         provizio_error("send_test_pointcloud: Failed to close the socket");
