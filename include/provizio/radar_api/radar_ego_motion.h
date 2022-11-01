@@ -19,9 +19,6 @@
 #include "provizio/radar_api/radar_position.h"
 #include "provizio/socket.h"
 
-// Used to identify provizio_radar_ego_motion_packet, can't change even on protocol updates
-#define PROVIZIO__RADAR_API_EGO_MOTION_PACKET_TYPE ((uint16_t)2)
-
 // To be incremented on any protocol changes (used for backward compatibility)
 #define PROVIZIO__RADAR_API_EGO_MOTION_PROTOCOL_VERSION ((uint16_t)1)
 
