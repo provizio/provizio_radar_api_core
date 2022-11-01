@@ -28,6 +28,9 @@
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
 
+// declared in a radar_api_context.h which is not included to avoid circular dependencies
+struct provizio_radar_api_context;
+
 /**
  * @brief Represents a single radar point.
  *
@@ -41,7 +44,8 @@ typedef struct
     float x_meters;     // Forward, radar relative
     float y_meters;     // Left, radar relative
     float z_meters;     // Up, radar relative
-    float velocity_m_s; // Forward, radar relative
+    float radar_relative_radial_velocity_m_s;   // Forward, radar relative
+    float ground_relative_radial_velocity_m_s;  // Forward, ground relative
     float signal_to_noise_ratio;
 } provizio_radar_point;
 
@@ -119,76 +123,28 @@ typedef struct provizio_radar_point_cloud
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
     uint16_t radar_mode;          // One of provizio_radar_mode enum values
+    float vs_x;                   // EGO velocity X for this frame (can be NaN)
+    float vs_y;                   // EGO velocity Y for this frame (can be NaN)
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 
-struct provizio_radar_point_cloud_api_context;
 typedef void (*provizio_radar_point_cloud_callback)(const provizio_radar_point_cloud *point_cloud,
-                                                    struct provizio_radar_point_cloud_api_context *context);
+                                                    struct provizio_radar_api_context *context);
 
-#ifndef PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
-#define PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT 2
-#endif // PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
-typedef struct provizio_radar_point_cloud_api_context_impl
+#ifndef PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
+#define PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT 2
+#endif // PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT
+typedef struct provizio_radar_point_cloud_impl
 {
     uint32_t latest_frame;
     provizio_radar_point_cloud
-        point_clouds_being_received[PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT];
-} provizio_radar_point_cloud_api_context_impl;
-
-/**
- * @brief Keeps all data required for functioning of radar point clouds API
- */
-typedef struct provizio_radar_point_cloud_api_context
-{
-    provizio_radar_point_cloud_callback callback;
-    void *user_data;
-    uint16_t radar_position_id;
-
-    provizio_radar_point_cloud_api_context_impl impl;
-} provizio_radar_point_cloud_api_context;
-
-/**
- * @brief Initializes a provizio_radar_point_cloud_api_context object to handle a single radar
- *
- * @param callback Function to be called on receiving a complete or partial radar point cloud
- * @param user_data Custom argument to be passed to the callback, may be NULL
- * @param context The provizio_radar_point_cloud_api_context object to initialize
- *
- * @warning radar_position_id of all packets handled by this context must be same
- */
-PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback,
-                                                                    void *user_data,
-                                                                    provizio_radar_point_cloud_api_context *context);
-
-/**
- * @brief Initializes multiple provizio_radar_point_cloud_api_context objects to handle packets from multiple radars
- *
- * @param callback Function to be called on receiving a complete or partial radar point cloud
- * @param user_data Custom argument to be passed to the callback, may be NULL
- * @param contexts Array of num_contexts of provizio_radar_point_cloud_api_context objects to initialize
- * @param num_contexts Number of contexts (i.e. max numbers of radars to handle) to initialize
- */
-PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_callback callback,
-                                                                     void *user_data,
-                                                                     provizio_radar_point_cloud_api_context *contexts,
-                                                                     size_t num_contexts);
-
-/**
- * @brief Makes provizio_radar_point_cloud_api_context object handle a specific radar, which makes it skip packets
- * intended for other radars
- *
- * @param context provizio_radar_point_cloud_api_context to be assigned
- * @param radar_position_id radar to assign
- * @return 0 in case it was successfully assigned, an error code otherwise
- */
-PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_assign(
-    provizio_radar_point_cloud_api_context *context, provizio_radar_position radar_position_id);
+        point_clouds_being_received[PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT];
+} provizio_radar_point_cloud_impl;
 
 /**
  * @brief Handles a single radar point cloud UDP packet from a single radar
  *
- * @param context Previously initialized provizio_radar_point_cloud_api_context
+ * @param context Previously initialized provizio_radar_api_context
  * @param packet Valid provizio_radar_point_cloud_packet
  * @param packet_size The size of the packet, to check data is valid and avoid out-of-bounds access
  * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
@@ -196,21 +152,21 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_assign(
  *
  * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
  */
-PROVIZIO__EXTERN_C int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
+PROVIZIO__EXTERN_C int32_t provizio_handle_radar_point_cloud_packet(struct provizio_radar_api_context *context,
                                                                     provizio_radar_point_cloud_packet *packet,
                                                                     size_t packet_size);
 
 /**
  * @brief Handles a single radar point cloud UDP packet from one of multiple radars
  *
- * @param contexts Previously initialized array of num_contexts of provizio_radar_point_cloud_api_context objects
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_api_context objects
  * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
  * @param packet Valid provizio_radar_point_cloud_packet
  * @param packet_size The size of the packet, to check data is valid and avoid out-of-bounds access
  * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
  * PROVIZIO_E_OUT_OF_CONTEXTS in case num_contexts is not enough, other error code in case of another error
  */
-PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts,
+PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(struct provizio_radar_api_context *contexts,
                                                                      size_t num_contexts,
                                                                      provizio_radar_point_cloud_packet *packet,
                                                                      size_t packet_size);
@@ -219,7 +175,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(provizio_ra
  * @brief Handles a single Provizio Radar API UDP packet from a single radar, that can be a correct
  * provizio_radar_point_cloud_packet or something else
  *
- * @param context Previously initialized provizio_radar_point_cloud_api_context
+ * @param context Previously initialized provizio_radar_api_context
  * @param payload The payload of the UDP packet
  * @param payload_size The size of the payload in bytes
  * @return 0 if it's a provizio_radar_point_cloud_packet and it was handled successfully, PROVIZIO_E_SKIPPED if it's not
@@ -230,13 +186,13 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(provizio_ra
  * be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_point_cloud_packet(
-    provizio_radar_point_cloud_api_context *context, const void *payload, size_t payload_size);
+    struct provizio_radar_api_context *context, const void *payload, size_t payload_size);
 
 /**
  * @brief Handles a single Provizio Radar API UDP packet from one of multiple radars, that can be a correct
  * provizio_radar_point_cloud_packet or something else
  *
- * @param contexts Previously initialized array of num_contexts of provizio_radar_point_cloud_api_context objects
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_api_context objects
  * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
  * @param payload The payload of the UDP packet
  * @param payload_size The size of the payload in bytes
@@ -245,7 +201,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_point_cloud_packet(
  * if it's a provizio_radar_point_cloud_packet but its handling failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_point_cloud_packet(
-    provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
+    struct provizio_radar_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
 static_assert(offsetof(provizio_radar_point_cloud_packet_header, protocol_header) == 0,

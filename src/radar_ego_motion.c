@@ -12,17 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "provizio/radar_api/radar_api_context.h"
 #include "provizio/radar_api/radar_ego_motion.h"
+#include "provizio/radar_api/radar_point_cloud.h"
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
 
 
+void provizio_radar_ego_motion_basic_callback(const provizio_radar_ego_motion *ego_motion,
+                                              struct provizio_radar_api_context *context)
+{
+#pragma unroll
+    for(size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; i++) {
+        if(ego_motion->frame_index == context->impl.point_clouds_being_received[i].frame_index) {
+            context->impl.point_clouds_being_received[i].vs_x = ego_motion->vs_x;
+            context->impl.point_clouds_being_received[i].vs_y = ego_motion->vs_y;
+            break;
+        }
+    }
+}
+
+int provizio_radar_ego_motion_calculate_ground_relative_radial_velocity(const provizio_radar_ego_motion *ego_motion,
+                                                                        provizio_radar_point_cloud *point_cloud)
+{
+    float vs_x = ego_motion->vs_x;
+    float vs_y = ego_motion->vs_y;
+
+    if((vs_x == NAN) || (vs_y == NAN)) {
+        return PROVIZIO_E_ARGUMENT;
+    }
+
+    for(size_t i = 0; i < point_cloud->num_points_received; i++) {
+        provizio_radar_point *point = &point_cloud->radar_points[i];
+        point->ground_relative_radial_velocity_m_s =
+            cos(atan2(point->y_meters, point->x_meters) * -1) * vs_x - sin(atan2(point->y_meters, point->x_meters) * -1) * vs_y;
+    }
+
+    return 0;
+}
+
 provizio_radar_ego_motion *provizio_get_ego_motion(
-    provizio_radar_ego_motion_api_context *context, provizio_radar_ego_motion_packet *packet)
+    provizio_radar_api_context *context, provizio_radar_ego_motion_packet *packet)
 {
     provizio_radar_ego_motion *result = NULL;
     const uint32_t small_frame_index_cap = 0x0000ffff;
@@ -34,18 +69,19 @@ provizio_radar_ego_motion *provizio_get_ego_motion(
     {
         // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
         // state of the API to avoid complicated state-related issues.
-        provizio_radar_ego_motion_api_context_init(context->callback, context->user_data, context);
+        provizio_radar_api_context_init(context->point_cloud_callback, context->point_cloud_user_data, context->ego_motion_callback, context->ego_motion_user_data, context);
     }
 
     if (context->radar_position_id == provizio_radar_position_unknown)
     {
-        provizio_radar_ego_motion_api_context_assign(context, radar_position_id);
+        provizio_radar_api_context_assign(context, radar_position_id);
     }
     else if (context->radar_position_id != radar_position_id)
     {
         return NULL;
     }
 
+    // only update index if newer frame received
     if (context->motion.frame_index < frame_index)
     {
         context->motion.frame_index = frame_index;
@@ -53,7 +89,7 @@ provizio_radar_ego_motion *provizio_get_ego_motion(
 
     result = &context->motion;
 
-    // Initialize the point cloud
+    // save motion data
     result->frame_index = frame_index;
     result->timestamp = provizio_get_protocol_field_uint64_t(&packet->timestamp);
     result->radar_position_id = provizio_get_protocol_field_uint16_t(&packet->radar_position_id);
@@ -63,50 +99,6 @@ provizio_radar_ego_motion *provizio_get_ego_motion(
     return result;
 }
 
-void provizio_radar_ego_motion_api_context_init(provizio_radar_ego_motion_callback callback, void *user_data,
-                                                provizio_radar_ego_motion_api_context *context)
-{
-    memset(context, 0, sizeof(provizio_radar_ego_motion_api_context));
-
-    context->callback = callback;
-    context->user_data = user_data;
-    context->radar_position_id = provizio_radar_position_unknown;
-}
-
-void provizio_radar_ego_motion_api_contexts_init(provizio_radar_ego_motion_callback callback, void *user_data,
-                                                 provizio_radar_ego_motion_api_context *contexts, size_t num_contexts)
-{
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        provizio_radar_ego_motion_api_context_init(callback, user_data, &contexts[i]);
-    }
-}
-
-int32_t provizio_radar_ego_motion_api_context_assign(provizio_radar_ego_motion_api_context *context,
-                                                     provizio_radar_position radar_position_id)
-{
-    if (radar_position_id == provizio_radar_position_unknown)
-    {
-        provizio_error(
-            "provizio_radar_ego_motion_api_context_assign: can't assign to provizio_radar_position_unknown");
-        return PROVIZIO_E_ARGUMENT;
-    }
-
-    if (context->radar_position_id == radar_position_id)
-    {
-        return 0;
-    }
-
-    if (context->radar_position_id == provizio_radar_position_unknown)
-    {
-        context->radar_position_id = radar_position_id;
-        return 0;
-    }
-
-    provizio_error("provizio_radar_ego_motion_api_context_assign: already assigned");
-    return PROVIZIO_E_NOT_PERMITTED;
-}
 
 int32_t provizio_check_radar_ego_motion_packet(provizio_radar_ego_motion_packet *packet, size_t packet_size)
 {
@@ -146,7 +138,7 @@ int32_t provizio_check_radar_ego_motion_packet(provizio_radar_ego_motion_packet 
     return 0;
 }
 
-int32_t provizio_handle_radar_ego_motion_packet_checked(provizio_radar_ego_motion_api_context *context,
+int32_t provizio_handle_radar_ego_motion_packet_checked(provizio_radar_api_context *context,
                                                         provizio_radar_ego_motion_packet *packet)
 {
     provizio_radar_ego_motion *motion = provizio_get_ego_motion(context, packet);
@@ -156,13 +148,12 @@ int32_t provizio_handle_radar_ego_motion_packet_checked(provizio_radar_ego_motio
         return PROVIZIO_E_SKIPPED;
     }
 
-    context->callback(motion, context);
-    memset(motion, 0, sizeof(provizio_radar_ego_motion));
+    context->ego_motion_callback(motion, context);
 
     return 0;
 }
 
-int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_ego_motion_api_context *context,
+int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_api_context *context,
                                                 provizio_radar_ego_motion_packet *packet, size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_ego_motion_packet(packet, packet_size);
@@ -174,40 +165,8 @@ int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_ego_motion_api_co
     return provizio_handle_radar_ego_motion_packet_checked(context, packet);
 }
 
-provizio_radar_ego_motion_api_context *provizio_get_radar_ego_motion_api_context_by_position_id(
-    provizio_radar_ego_motion_api_context *contexts, size_t num_contexts, provizio_radar_ego_motion_packet *packet)
-{
-    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->radar_position_id);
-    assert(radar_position_id != provizio_radar_position_unknown);
 
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        if (contexts[i].radar_position_id == radar_position_id)
-        {
-            // Found the correct context
-            return &contexts[i];
-        }
-    }
-
-    // There is no context for this radar_position_id yet, let's look for a yet unused context
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        provizio_radar_ego_motion_api_context *context = &contexts[i];
-        if (context->radar_position_id == provizio_radar_position_unknown)
-        {
-            // Found!
-            return context;
-        }
-    }
-
-    // Not found
-    provizio_error("provizio_get_radar_ego_motion_api_context_by_position_id: Out of available contexts");
-    return NULL;
-}
-
-int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_ego_motion_api_context *contexts, size_t num_contexts,
+int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_api_context *contexts, size_t num_contexts,
                                                  provizio_radar_ego_motion_packet *packet, size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_ego_motion_packet(packet, packet_size);
@@ -216,25 +175,27 @@ int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_ego_motion_api_c
         return check_status;
     }
 
-    provizio_radar_ego_motion_api_context *context =
-        provizio_get_radar_ego_motion_api_context_by_position_id(contexts, num_contexts, packet);
+    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->radar_position_id);
+
+    provizio_radar_api_context *context =
+        provizio_get_radar_api_context_by_position_id(contexts, num_contexts, radar_position_id);
 
     if (!context)
     {
-        // Error message has been already posted by provizio_get_radar_ego_motion_api_context_by_position_id
+        // Error message has been already posted by provizio_get_radar_api_context_by_position_id
         return PROVIZIO_E_OUT_OF_CONTEXTS;
     }
 
     return provizio_handle_radar_ego_motion_packet_checked(context, packet);
 }
 
-int32_t provizio_handle_possible_radar_ego_motion_packet(provizio_radar_ego_motion_api_context *context,
+int32_t provizio_handle_possible_radar_ego_motion_packet(provizio_radar_api_context *context,
                                                          const void *payload, size_t payload_size)
 {
     return provizio_handle_possible_radars_ego_motion_packet(context, 1, payload, payload_size);
 }
 
-int32_t provizio_handle_possible_radars_ego_motion_packet(provizio_radar_ego_motion_api_context *contexts,
+int32_t provizio_handle_possible_radars_ego_motion_packet(provizio_radar_api_context *contexts,
                                                           size_t num_contexts, const void *payload,
                                                           size_t payload_size)
 {

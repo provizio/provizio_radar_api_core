@@ -28,6 +28,9 @@
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
 
+// declared in a radar_api_context.h which is not included to avoid circular dependencies
+struct provizio_radar_api_context;
+
 /**
  * @brief 4-bytes header prefix used to identify a packet type and the protocol version
  *
@@ -87,10 +90,10 @@ typedef struct provizio_radar_ego_motion
 } provizio_radar_ego_motion;
 
 
-struct provizio_radar_ego_motion_api_context;
 typedef void (*provizio_radar_ego_motion_callback)(const provizio_radar_ego_motion *ego_motion,
-                                                   struct provizio_radar_ego_motion_api_context *context);
+                                                   struct provizio_radar_api_context *context);
 
+#if 0
 /**
  * @brief Keeps all data required for functioning of radar ego motion API
  */
@@ -138,11 +141,12 @@ PROVIZIO__EXTERN_C void provizio_radar_ego_motion_api_contexts_init(provizio_rad
  */
 PROVIZIO__EXTERN_C int32_t provizio_radar_ego_motion_api_context_assign(
     provizio_radar_ego_motion_api_context *context, provizio_radar_position radar_position_id);
+#endif
 
 /**
  * @brief Handles a single radar ego motion UDP packet from a single radar
  *
- * @param context Previously initialized provizio_radar_ego_motion_api_context
+ * @param context Previously initialized provizio_radar_api_context
  * @param packet Valid provizio_radar_ego_motion_packet
  * @param packet_size The size of the packet, to check data is valid and avoid out-of-bounds access
  * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
@@ -150,20 +154,20 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_ego_motion_api_context_assign(
  *
  * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
  */
-PROVIZIO__EXTERN_C int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_ego_motion_api_context *context,
+PROVIZIO__EXTERN_C int32_t provizio_handle_radar_ego_motion_packet(struct provizio_radar_api_context *context,
                                                                    provizio_radar_ego_motion_packet *packet,
                                                                    size_t packet_size);
 
 /**
  * @brief Handles a single radar ego motion UDP packet from one of multiple radars
  *
- * @param contexts Previously initialized array of num_contexts of provizio_radar_ego_motion_api_context objects
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_api_context objects
  * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
  * @param packet Valid provizio_radar_ego_motion_packet
  * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
  * PROVIZIO_E_OUT_OF_CONTEXTS in case num_contexts is not enough, other error code in case of another error
  */
-PROVIZIO__EXTERN_C int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_ego_motion_api_context *contexts,
+PROVIZIO__EXTERN_C int32_t provizio_handle_radars_ego_motion_packet(struct provizio_radar_api_context *contexts,
                                                                     size_t num_contexts,
                                                                     provizio_radar_ego_motion_packet *packet,
                                                                     size_t packet_size);
@@ -172,7 +176,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_radars_ego_motion_packet(provizio_rad
  * @brief Handles a single Provizio Radar API UDP packet from a single radar, that can be a correct
  * provizio_radar_ego_motion_packet or something else
  *
- * @param context Previously initialized provizio_radar_ego_motion_api_context
+ * @param context Previously initialized provizio_radar_api_context
  * @param payload The payload of the UDP packet
  * @param payload_size The size of the payload in bytes
  * @return 0 if it's a provizio_radar_ego_motion_packet and it was handled successfully, PROVIZIO_E_SKIPPED if it's not
@@ -183,13 +187,13 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_radars_ego_motion_packet(provizio_rad
  * be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_ego_motion_packet(
-    provizio_radar_ego_motion_api_context *context, const void *payload, size_t payload_size);
+    struct provizio_radar_api_context *context, const void *payload, size_t payload_size);
 
 /**
  * @brief Handles a single Provizio Radar API UDP packet from one of multiple radars, that can be a correct
  * provizio_radar_ego_motion_packet or something else
  *
- * @param contexts Previously initialized array of num_contexts of provizio_radar_ego_motion_api_context objects
+ * @param contexts Previously initialized array of num_contexts of provizio_radar_api_context objects
  * @param num_contexts Number of contexts (i.e. max numbers of radars to handle)
  * @param payload The payload of the UDP packet
  * @param payload_size The size of the payload in bytes
@@ -198,7 +202,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_ego_motion_packet(
  * if it's a provizio_radar_ego_motion_packet but its handling failed for another reason
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radars_ego_motion_packet(
-    provizio_radar_ego_motion_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
+    struct provizio_radar_api_context *contexts, size_t num_contexts, const void *payload, size_t payload_size);
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
 static_assert(offsetof(provizio_radar_ego_motion_packet, protocol_header) == 0,

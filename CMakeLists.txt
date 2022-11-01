@@ -221,7 +221,7 @@ set(LINMATH_DOWNLOAD_URL "https://raw.githubusercontent.com/provizio/linmath.h/$
 file(DOWNLOAD "${LINMATH_DOWNLOAD_URL}" "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY ${TLS_VERIFY})
 
 # Define the core library
-add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_point_cloud.c src/radar_points_accumulation.c src/radar_points_accumulation_filters.c src/radar_points_accumulation_types.c src/radar_ego_motion.c src/util.c src/core.c)
+add_library(provizio_radar_api_core STATIC src/common.c src/socket.c src/radar_api_context.c src/radar_point_cloud.c src/radar_points_accumulation.c src/radar_points_accumulation_filters.c src/radar_points_accumulation_types.c src/radar_ego_motion.c src/util.c src/core.c)
 target_include_directories(provizio_radar_api_core PUBLIC include)
 target_include_directories(provizio_radar_api_core SYSTEM PRIVATE "${LINMATH_HEADER_DIR}")
 set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA

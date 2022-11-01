@@ -18,17 +18,17 @@
 #include <string.h>
 
 int32_t provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-                                       provizio_radar_point_cloud_api_context *radar_point_cloud_api_context,
+                                       provizio_radar_api_context *radar_api_context,
                                        provizio_radar_api_connection *out_connection)
 {
     return provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection,
-                                           radar_point_cloud_api_context, radar_point_cloud_api_context != NULL ? 1 : 0,
+                                           radar_api_context, radar_api_context != NULL ? 1 : 0,
                                            out_connection);
 }
 
 int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-                                        provizio_radar_point_cloud_api_context *radar_point_cloud_api_contexts,
-                                        size_t num_radar_point_cloud_api_contexts,
+                                        provizio_radar_api_context *radar_api_contexts,
+                                        size_t num_radar_api_contexts,
                                         provizio_radar_api_connection *out_connection)
 {
     memset(out_connection, 0, sizeof(provizio_radar_api_connection));
@@ -120,8 +120,8 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
     }
 
     out_connection->sock = sock;
-    out_connection->radar_point_cloud_api_contexts = radar_point_cloud_api_contexts;
-    out_connection->num_radar_point_cloud_api_contexts = num_radar_point_cloud_api_contexts;
+    out_connection->radar_api_contexts = radar_api_contexts;
+    out_connection->num_radar_api_contexts = num_radar_api_contexts;
 
     return 0;
 }
@@ -152,14 +152,26 @@ int32_t provizio_radar_api_receive_packet(provizio_radar_api_connection *connect
 
     int32_t status_code = PROVIZIO_E_SKIPPED;
 
-    // Let's try to handle it as a point cloud packet
-    if (status_code == PROVIZIO_E_SKIPPED && connection->num_radar_point_cloud_api_contexts > 0 &&
-        connection->radar_point_cloud_api_contexts != NULL)
+    // Let's try to handle it...
+
+    // ...as a point cloud packet
+    if (status_code == PROVIZIO_E_SKIPPED && connection->num_radar_api_contexts > 0 &&
+        connection->radar_api_contexts != NULL)
     {
-        status_code = provizio_handle_possible_radars_point_cloud_packet(connection->radar_point_cloud_api_contexts,
-                                                                         connection->num_radar_point_cloud_api_contexts,
+        status_code = provizio_handle_possible_radars_point_cloud_packet(connection->radar_api_contexts,
+                                                                         connection->num_radar_api_contexts,
                                                                          packet, received);
     }
+
+    // ...as an ego motion packet
+    if (status_code == PROVIZIO_E_SKIPPED && connection->num_radar_api_contexts > 0 &&
+        connection->radar_api_contexts != NULL)
+    {
+        status_code = provizio_handle_possible_radars_ego_motion_packet(connection->radar_api_contexts,
+                                                                        connection->num_radar_api_contexts,
+                                                                        packet, received);
+    }
+
 
     return status_code;
 }

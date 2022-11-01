@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "provizio/radar_api/radar_api_context.h"
 #include "provizio/radar_api/radar_point_cloud.h"
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
@@ -26,12 +28,12 @@ static int provizio_network_floats_reversed(void)
     return ((const char *)(&test_value))[3] != 0;
 }
 
-void provizio_return_point_cloud(provizio_radar_point_cloud_api_context *context,
+void provizio_return_point_cloud(provizio_radar_api_context *context,
                                  provizio_radar_point_cloud *point_cloud)
 {
     // First of all, make sure all older but incomplete point clouds have been already returned
 #pragma unroll
-    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
+    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         provizio_radar_point_cloud *other_point_cloud = &context->impl.point_clouds_being_received[i];
         if (other_point_cloud != point_cloud && other_point_cloud->num_points_expected > 0 &&
@@ -42,12 +44,12 @@ void provizio_return_point_cloud(provizio_radar_point_cloud_api_context *context
         }
     }
 
-    context->callback(point_cloud, context);
+    context->point_cloud_callback(point_cloud, context);
     memset(point_cloud, 0, sizeof(provizio_radar_point_cloud));
 }
 
 provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
-    provizio_radar_point_cloud_api_context *context, provizio_radar_point_cloud_packet_header *packet_header)
+    provizio_radar_api_context *context, provizio_radar_point_cloud_packet_header *packet_header)
 {
     const uint32_t small_frame_index_cap = 0x0000ffff;
     const uint32_t large_frame_index_threashold = 0xffff0000;
@@ -65,12 +67,12 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         // state of the API to avoid complicated state-related issues.
         provizio_warning(
             "provizio_get_point_cloud_being_received: frame indices overflow detected - resetting API state");
-        provizio_radar_point_cloud_api_context_init(context->callback, context->user_data, context);
+        provizio_radar_api_context_init(context->point_cloud_callback, context->point_cloud_user_data, context->ego_motion_callback, context->ego_motion_user_data, context);
     }
 
     if (context->radar_position_id == provizio_radar_position_unknown)
     {
-        provizio_radar_point_cloud_api_context_assign(context, radar_position_id);
+        provizio_radar_api_context_assign(context, radar_position_id);
     }
     else if (context->radar_position_id != radar_position_id)
     {
@@ -84,7 +86,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
 
     // Look for a point cloud already being received
 #pragma unroll
-    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
+    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         point_cloud = &context->impl.point_clouds_being_received[i];
         if (point_cloud->frame_index == frame_index && point_cloud->num_points_expected > 0)
@@ -109,7 +111,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
 
     // Look for an empty point cloud to be used
 #pragma unroll
-    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
+    for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
         point_cloud = &context->impl.point_clouds_being_received[i];
         if (point_cloud->num_points_expected == 0)
@@ -122,7 +124,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     if (!result)
     {
 #pragma unroll
-        for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_API_CONTEXT_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
+        for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
         {
             point_cloud = &context->impl.point_clouds_being_received[i];
             if (point_cloud->frame_index < frame_index && (!result || point_cloud->frame_index < result->frame_index))
@@ -146,6 +148,8 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         result->radar_position_id = radar_position_id;
         result->num_points_expected = total_points_in_frame;
         result->radar_mode = radar_mode;
+        result->vs_x = NAN;
+        result->vs_y = NAN;
         assert(result->num_points_received == 0);
     }
 
@@ -164,51 +168,6 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
     }
 
     return sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
-}
-
-void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback, void *user_data,
-                                                 provizio_radar_point_cloud_api_context *context)
-{
-    memset(context, 0, sizeof(provizio_radar_point_cloud_api_context));
-
-    context->callback = callback;
-    context->user_data = user_data;
-    context->radar_position_id = provizio_radar_position_unknown;
-}
-
-void provizio_radar_point_cloud_api_contexts_init(provizio_radar_point_cloud_callback callback, void *user_data,
-                                                  provizio_radar_point_cloud_api_context *contexts, size_t num_contexts)
-{
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        provizio_radar_point_cloud_api_context_init(callback, user_data, &contexts[i]);
-    }
-}
-
-int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud_api_context *context,
-                                                      provizio_radar_position radar_position_id)
-{
-    if (radar_position_id == provizio_radar_position_unknown)
-    {
-        provizio_error(
-            "provizio_radar_point_cloud_api_context_assign: can't assign to provizio_radar_position_unknown");
-        return PROVIZIO_E_ARGUMENT;
-    }
-
-    if (context->radar_position_id == radar_position_id)
-    {
-        return 0;
-    }
-
-    if (context->radar_position_id == provizio_radar_position_unknown)
-    {
-        context->radar_position_id = radar_position_id;
-        return 0;
-    }
-
-    provizio_error("provizio_radar_point_cloud_api_context_assign: already assigned");
-    return PROVIZIO_E_NOT_PERMITTED;
 }
 
 int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)
@@ -255,7 +214,7 @@ int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packe
     return 0;
 }
 
-int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cloud_api_context *context,
+int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_api_context *context,
                                                          provizio_radar_point_cloud_packet *packet)
 {
     provizio_radar_point_cloud *cloud = provizio_get_point_cloud_being_received(context, &packet->header);
@@ -299,8 +258,9 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             out_point->x_meters = provizio_get_protocol_field_float(&in_point->x_meters);
             out_point->y_meters = provizio_get_protocol_field_float(&in_point->y_meters);
             out_point->z_meters = provizio_get_protocol_field_float(&in_point->z_meters);
-            out_point->velocity_m_s = provizio_get_protocol_field_float(&in_point->velocity_m_s);
+            out_point->radar_relative_radial_velocity_m_s = provizio_get_protocol_field_float(&in_point->radar_relative_radial_velocity_m_s);
             out_point->signal_to_noise_ratio = provizio_get_protocol_field_float(&in_point->signal_to_noise_ratio);
+            out_point->ground_relative_radial_velocity_m_s = NAN;
         }
         // LCOV_EXCL_STOP
     }
@@ -315,7 +275,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     return 0;
 }
 
-int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
+int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_api_context *context,
                                                  provizio_radar_point_cloud_packet *packet, size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
@@ -327,40 +287,7 @@ int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_
     return provizio_handle_radar_point_cloud_packet_checked(context, packet);
 }
 
-provizio_radar_point_cloud_api_context *provizio_get_radar_point_cloud_api_context_by_position_id(
-    provizio_radar_point_cloud_api_context *contexts, size_t num_contexts, provizio_radar_point_cloud_packet *packet)
-{
-    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id);
-    assert(radar_position_id != provizio_radar_position_unknown);
-
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        if (contexts[i].radar_position_id == radar_position_id)
-        {
-            // Found the correct context
-            return &contexts[i];
-        }
-    }
-
-    // There is no context for this radar_position_id yet, let's look for a yet unused context
-#pragma unroll(5)
-    for (size_t i = 0; i < num_contexts; ++i)
-    {
-        provizio_radar_point_cloud_api_context *context = &contexts[i];
-        if (context->radar_position_id == provizio_radar_position_unknown)
-        {
-            // Found!
-            return context;
-        }
-    }
-
-    // Not found
-    provizio_error("provizio_get_radar_point_cloud_api_context_by_position_id: Out of available contexts");
-    return NULL;
-}
-
-int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts, size_t num_contexts,
+int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_api_context *contexts, size_t num_contexts,
                                                   provizio_radar_point_cloud_packet *packet, size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
@@ -369,25 +296,27 @@ int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api
         return check_status;
     }
 
-    provizio_radar_point_cloud_api_context *context =
-        provizio_get_radar_point_cloud_api_context_by_position_id(contexts, num_contexts, packet);
+    const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet->header.radar_position_id);
+
+    provizio_radar_api_context *context =
+        provizio_get_radar_api_context_by_position_id(contexts, num_contexts, radar_position_id);
 
     if (!context)
     {
-        // Error message has been already posted by provizio_get_radar_point_cloud_api_context_by_position_id
+        // Error message has been already posted by provizio_get_radar_api_context_by_position_id
         return PROVIZIO_E_OUT_OF_CONTEXTS;
     }
 
     return provizio_handle_radar_point_cloud_packet_checked(context, packet);
 }
 
-int32_t provizio_handle_possible_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
+int32_t provizio_handle_possible_radar_point_cloud_packet(provizio_radar_api_context *context,
                                                           const void *payload, size_t payload_size)
 {
     return provizio_handle_possible_radars_point_cloud_packet(context, 1, payload, payload_size);
 }
 
-int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_cloud_api_context *contexts,
+int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_api_context *contexts,
                                                            size_t num_contexts, const void *payload,
                                                            size_t payload_size)
 {

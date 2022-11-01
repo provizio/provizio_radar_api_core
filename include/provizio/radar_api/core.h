@@ -18,6 +18,7 @@
 #include "provizio/common.h"
 #include "provizio/radar_api/errno.h"
 #include "provizio/radar_api/radar_modes.h"
+#include "provizio/radar_api/radar_api_context.h"
 #include "provizio/radar_api/radar_point_cloud.h"
 #include "provizio/radar_api/radar_points_accumulation.h"
 #include "provizio/socket.h"
@@ -32,8 +33,8 @@
 typedef struct provizio_radar_api_connection
 {
     PROVIZIO__SOCKET sock;
-    provizio_radar_point_cloud_api_context *radar_point_cloud_api_contexts;
-    size_t num_radar_point_cloud_api_contexts;
+    provizio_radar_api_context *radar_api_contexts;
+    size_t num_radar_api_contexts;
 } provizio_radar_api_connection;
 
 /**
@@ -44,7 +45,7 @@ typedef struct provizio_radar_api_connection
  * packet, or 0 to wait as long as required
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
- * @param radar_point_cloud_api_context Initialized provizio_radar_point_cloud_api_context to handle point cloud packets
+ * @param radar_api_context Initialized provizio_radar_api_context to handle point cloud packets
  * (may be NULL to skip any point cloud packets)
  * @param out_connection A provizio_radar_api_connection to store the connection handle
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
@@ -53,7 +54,7 @@ typedef struct provizio_radar_api_connection
  */
 PROVIZIO__EXTERN_C int32_t
 provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-                               provizio_radar_point_cloud_api_context *radar_point_cloud_api_context,
+                               provizio_radar_api_context *radar_api_context,
                                provizio_radar_api_connection *out_connection);
 
 /**
@@ -64,9 +65,9 @@ provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, u
  * packet, or 0 to wait as long as required
  * @param check_connection Use any non-zero value if the connection is to be checked to be receiving anything prior to
  * returning a successful result
- * @param radar_point_cloud_api_contexts Array of initialized provizio_radar_point_cloud_api_context to handle point
+ * @param radar_api_contexts Array of initialized provizio_radar_api_context to handle point
  * cloud packets (may be NULL to skip any point cloud packets)
- * @param num_radar_point_cloud_api_contexts Number of radar_point_cloud_api_contexts, i.e. max numbers of radars to
+ * @param num_radar_api_contexts Number of radar_api_contexts, i.e. max numbers of radars to
  * handle (may be 0 to skip any point cloud packets)
  * @param out_connection A provizio_radar_api_connection to store the connection handle
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
@@ -75,7 +76,7 @@ provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, u
  */
 PROVIZIO__EXTERN_C int32_t provizio_open_radars_connection(
     uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
-    provizio_radar_point_cloud_api_context *radar_point_cloud_api_contexts, size_t num_radar_point_cloud_api_contexts,
+    provizio_radar_api_context *radar_api_contexts, size_t num_radar_api_contexts,
     provizio_radar_api_connection *out_connection);
 
 /**
