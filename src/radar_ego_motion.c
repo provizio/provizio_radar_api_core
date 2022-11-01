@@ -154,7 +154,8 @@ int32_t provizio_handle_radar_ego_motion_packet_checked(provizio_radar_api_conte
 }
 
 int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_api_context *context,
-                                                provizio_radar_ego_motion_packet *packet, size_t packet_size)
+                                                provizio_radar_ego_motion_packet *packet,
+                                                size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_ego_motion_packet(packet, packet_size);
     if (check_status != 0)
@@ -166,8 +167,10 @@ int32_t provizio_handle_radar_ego_motion_packet(provizio_radar_api_context *cont
 }
 
 
-int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_api_context *contexts, size_t num_contexts,
-                                                 provizio_radar_ego_motion_packet *packet, size_t packet_size)
+int32_t provizio_handle_radars_ego_motion_packet(provizio_radar_api_context *contexts,
+                                                 size_t num_contexts,
+                                                 provizio_radar_ego_motion_packet *packet,
+                                                 size_t packet_size)
 {
     const int32_t check_status = provizio_check_radar_ego_motion_packet(packet, packet_size);
     if (check_status != 0)
