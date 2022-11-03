@@ -35,12 +35,12 @@ void provizio_radar_api_context_init(provizio_radar_point_cloud_callback point_c
     context->ego_motion_callback = ego_motion_callback;
     context->ego_motion_user_data = ego_motion_user_data;
     context->radar_position_id = provizio_radar_position_unknown;
-    context->motion.vs_x = NAN;
-    context->motion.vs_y = NAN;
+    context->motion.vs_x = nanf("");
+    context->motion.vs_y = nanf("");
     for (size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; ++i)
     {
-        context->impl.point_clouds_being_received[i].vs_x = NAN;
-        context->impl.point_clouds_being_received[i].vs_y = NAN;
+        context->impl.point_clouds_being_received[i].vs_x = nanf("");
+        context->impl.point_clouds_being_received[i].vs_y = nanf("");
     }
 }
 

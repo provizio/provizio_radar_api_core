@@ -23,13 +23,13 @@
 // To be incremented on any breaking protocol changes (used for backward compatibility)
 #define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)1)
 
+// declared in a radar_api_context.h which is not included to avoid circular dependencies
+struct provizio_radar_api_context;
+
 // Radar point cloud structures of the binary UDP protocol are defined here, see README.md for more details
 
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
-
-// declared in a radar_api_context.h which is not included to avoid circular dependencies
-struct provizio_radar_api_context;
 
 /**
  * @brief Represents a single radar point.
@@ -45,7 +45,7 @@ typedef struct
     float y_meters;     // Left, radar relative
     float z_meters;     // Up, radar relative
     float radar_relative_radial_velocity_m_s;   // Forward, radar relative
-    float ground_relative_radial_velocity_m_s;  // Forward, ground relative
+    float ground_relative_radial_velocity_m_s;  // Ground relative
     float signal_to_noise_ratio;
 } provizio_radar_point;
 
@@ -123,8 +123,8 @@ typedef struct provizio_radar_point_cloud
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
     uint16_t radar_mode;          // One of provizio_radar_mode enum values
-    float vs_x;                   // EGO velocity X for this frame (can be NaN)
-    float vs_y;                   // EGO velocity Y for this frame (can be NaN)
+    float vs_x;                   // EGO velocity X for this frame (can be NaN when unknown)
+    float vs_y;                   // EGO velocity Y for this frame (can be NaN when unknown)
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 

@@ -22,24 +22,11 @@
 // To be incremented on any protocol changes (used for backward compatibility)
 #define PROVIZIO__RADAR_API_EGO_MOTION_PROTOCOL_VERSION ((uint16_t)1)
 
-// Use packed structs intended to be sent for binary compatibility across all CPUs
-#pragma pack(push, 1)
-
-// declared in a radar_api_context.h which is not included to avoid circular dependencies
+// declared in a radar_api_context.h which is not included here to avoid circular dependencies
 struct provizio_radar_api_context;
 
-/**
- * @brief 4-bytes header prefix used to identify a packet type and the protocol version
- *
- * @note This struct should never change, even on protocol updates
- * @see provizio_set_protocol_field_uint16_t
- * @see provizio_get_protocol_field_uint16_t
- */
-typedef struct provizio_radar_ego_motion_packet_protocol_header
-{
-    uint16_t packet_type;      // = PROVIZIO__RADAR_API_EGO_MOTION_PACKET_TYPE
-    uint16_t protocol_version; // = PROVIZIO__RADAR_API_EGO_MOTION_PROTOCOL_VERSION (in the "current" protocol version)
-} provizio_radar_ego_motion_packet_protocol_header;
+// Use packed structs intended to be sent for binary compatibility across all CPUs
+#pragma pack(push, 1)
 
 /**
  * @brief Structure to hold EGO motion calculations (up to one per each radar frame).
@@ -57,10 +44,10 @@ typedef struct provizio_radar_ego_motion_packet_protocol_header
  */
 typedef struct provizio_radar_ego_motion_packet
 {
-    provizio_radar_ego_motion_packet_protocol_header protocol_header;
+    provizio_radar_api_protocol_header protocol_header;
 
-    uint32_t frame_index;   // 0-based
     uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
+    uint32_t frame_index;   // 0-based
                             // GPS Epoch (midnight on Jan 6, 1980)
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     uint16_t reserved;      // Not used currently, kept for better alignment and potential future use
@@ -78,8 +65,8 @@ typedef struct provizio_radar_ego_motion_packet
  */
 typedef struct provizio_radar_ego_motion
 {
-    uint32_t frame_index;   // 0-based
     uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
+    uint32_t frame_index;   // 0-based
                             // GPS Epoch (midnight on Jan 6, 1980)
     float vs_x;             // sensor ego motion x
     float vs_y;             // sensor ego motion y

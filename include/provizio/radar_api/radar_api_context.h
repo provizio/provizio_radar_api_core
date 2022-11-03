@@ -20,12 +20,8 @@
 #include "provizio/radar_api/radar_ego_motion.h"
 #include "provizio/radar_api/radar_point_cloud.h"
 
-// To be incremented on any breaking protocol changes (used for backward compatibility)
-#define PROVIZIO__RADAR_API_CONTEXT_PROTOCOL_VERSION ((uint16_t)1)
-
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
-
 
 /**
  * @brief Keeps all data required for functioning of radar point clouds API

@@ -102,7 +102,7 @@ provizio_radar_ego_motion *provizio_get_ego_motion(
 
 int32_t provizio_check_radar_ego_motion_packet(provizio_radar_ego_motion_packet *packet, size_t packet_size)
 {
-    if (packet_size < sizeof(provizio_radar_ego_motion_packet_protocol_header))
+    if (packet_size < sizeof(provizio_radar_api_protocol_header))
     {
         provizio_error("provizio_check_radar_ego_motion_packet: insufficient packet_size");
         return PROVIZIO_E_PROTOCOL;
