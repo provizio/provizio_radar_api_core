@@ -123,8 +123,8 @@ typedef struct provizio_radar_point_cloud
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
     uint16_t radar_mode;          // One of provizio_radar_mode enum values
-    float vs_x;                   // EGO velocity X for this frame (can be NaN when unknown)
-    float vs_y;                   // EGO velocity Y for this frame (can be NaN when unknown)
+    float sensor_velocity_x;      // EGO velocity X component (can be NaN when unknown)
+    float sensor_velocity_y;      // EGO velocity Y component (can be NaN when unknown)
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 

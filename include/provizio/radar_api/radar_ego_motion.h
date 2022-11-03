@@ -51,8 +51,8 @@ typedef struct provizio_radar_ego_motion_packet
                             // GPS Epoch (midnight on Jan 6, 1980)
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     uint16_t reserved;      // Not used currently, kept for better alignment and potential future use
-    float vs_x;             // sensor ego motion x
-    float vs_y;             // sensor ego motion y
+    float sensor_velocity_x;    // sensor velocity x component (m/s)
+    float sensor_velocity_y;    // sensor velocity y component (m/s)
 } provizio_radar_ego_motion_packet;
 
 
@@ -68,8 +68,8 @@ typedef struct provizio_radar_ego_motion
     uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
     uint32_t frame_index;   // 0-based
                             // GPS Epoch (midnight on Jan 6, 1980)
-    float vs_x;             // sensor ego motion x
-    float vs_y;             // sensor ego motion y
+    float sensor_velocity_x;    // sensor velocity x component (m/s)
+    float sensor_velocity_y;    // sensor velocity y component (m/s)
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
 } provizio_radar_ego_motion;
 
@@ -154,10 +154,10 @@ static_assert(offsetof(provizio_radar_ego_motion_packet, timestamp) == 8,
               "Unexpected position of timestamp in provizio_radar_ego_motion_packet");
 static_assert(offsetof(provizio_radar_ego_motion_packet, radar_position_id) == 16,
               "Unexpected position of radar_position_id in provizio_radar_ego_motion_packet");
-static_assert(offsetof(provizio_radar_ego_motion_packet, vs_x) == 20,
-              "Unexpected position of vs_x in provizio_radar_ego_motion_packet");
-static_assert(offsetof(provizio_radar_ego_motion_packet, vs_y) == 24,
-              "Unexpected position of vs_y in provizio_radar_ego_motion_packet");
+static_assert(offsetof(provizio_radar_ego_motion_packet, sensor_velocity_x) == 20,
+              "Unexpected position of sensor_velocity_x in provizio_radar_ego_motion_packet");
+static_assert(offsetof(provizio_radar_ego_motion_packet, sensor_velocity_y) == 24,
+              "Unexpected position of sensor_velocity_y in provizio_radar_ego_motion_packet");
 static_assert(sizeof(provizio_radar_ego_motion_packet) == 28,
               "Unexpected size of provizio_radar_ego_motion_packet");
 #endif // defined(__cplusplus) && __cplusplus >= 201103L

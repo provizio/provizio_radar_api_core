@@ -148,8 +148,8 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         result->radar_position_id = radar_position_id;
         result->num_points_expected = total_points_in_frame;
         result->radar_mode = radar_mode;
-        result->vs_x = NAN;
-        result->vs_y = NAN;
+        result->sensor_velocity_x = nanf("");
+        result->sensor_velocity_y = nanf("");
         assert(result->num_points_received == 0);
     }
 
@@ -260,7 +260,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_api_cont
             out_point->z_meters = provizio_get_protocol_field_float(&in_point->z_meters);
             out_point->radar_relative_radial_velocity_m_s = provizio_get_protocol_field_float(&in_point->radar_relative_radial_velocity_m_s);
             out_point->signal_to_noise_ratio = provizio_get_protocol_field_float(&in_point->signal_to_noise_ratio);
-            out_point->ground_relative_radial_velocity_m_s = NAN;
+            out_point->ground_relative_radial_velocity_m_s = nanf("");
         }
         // LCOV_EXCL_STOP
     }
