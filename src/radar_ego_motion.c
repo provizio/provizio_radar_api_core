@@ -30,8 +30,8 @@ void provizio_radar_ego_motion_basic_callback(const provizio_radar_ego_motion *e
 #pragma unroll
     for(size_t i = 0; i < PROVIZIO__RADAR_POINT_CLOUD_IMPL_POINT_CLOUDS_BEING_RECEIVED_COUNT; i++) {
         if(ego_motion->frame_index == context->impl.point_clouds_being_received[i].frame_index) {
-            context->impl.point_clouds_being_received[i].sensor_velocity_x = ego_motion->sensor_velocity_x;
-            context->impl.point_clouds_being_received[i].sensor_velocity_y = ego_motion->sensor_velocity_y;
+            context->impl.point_clouds_being_received[i].radar_velocity_x_m_s = ego_motion->radar_velocity_x_m_s;
+            context->impl.point_clouds_being_received[i].radar_velocity_y_m_s = ego_motion->radar_velocity_y_m_s;
             break;
         }
     }
@@ -40,17 +40,17 @@ void provizio_radar_ego_motion_basic_callback(const provizio_radar_ego_motion *e
 int provizio_radar_ego_motion_calculate_ground_relative_radial_velocity(const provizio_radar_ego_motion *ego_motion,
                                                                         provizio_radar_point_cloud *point_cloud)
 {
-    float sensor_velocity_x = ego_motion->sensor_velocity_x;
-    float sensor_velocity_y = ego_motion->sensor_velocity_y;
+    float radar_velocity_x_m_s = ego_motion->radar_velocity_x_m_s;
+    float radar_velocity_y_m_s = ego_motion->radar_velocity_y_m_s;
 
-    if(isnan(sensor_velocity_x) || isnan(sensor_velocity_y)) {
+    if(isnan(radar_velocity_x_m_s) || isnan(radar_velocity_y_m_s)) {
         return PROVIZIO_E_ARGUMENT;
     }
 
     for(size_t i = 0; i < point_cloud->num_points_received; i++) {
         provizio_radar_point *point = &point_cloud->radar_points[i];
         point->ground_relative_radial_velocity_m_s =
-            cos(atan2(point->y_meters, point->x_meters) * -1) * sensor_velocity_x - sin(atan2(point->y_meters, point->x_meters) * -1) * sensor_velocity_y;
+            cos(atan2(point->y_meters, point->x_meters) * -1) * radar_velocity_x_m_s - sin(atan2(point->y_meters, point->x_meters) * -1) * radar_velocity_y_m_s;
     }
 
     return 0;
@@ -93,8 +93,8 @@ provizio_radar_ego_motion *provizio_get_ego_motion(
     result->frame_index = frame_index;
     result->timestamp = provizio_get_protocol_field_uint64_t(&packet->timestamp);
     result->radar_position_id = provizio_get_protocol_field_uint16_t(&packet->radar_position_id);
-    result->sensor_velocity_x = provizio_get_protocol_field_float(&packet->sensor_velocity_x);
-    result->sensor_velocity_y = provizio_get_protocol_field_float(&packet->sensor_velocity_y);
+    result->radar_velocity_x_m_s = provizio_get_protocol_field_float(&packet->radar_velocity_x_m_s);
+    result->radar_velocity_y_m_s = provizio_get_protocol_field_float(&packet->radar_velocity_y_m_s);
 
     return result;
 }

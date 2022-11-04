@@ -45,7 +45,7 @@ typedef struct
     float y_meters;     // Left, radar relative
     float z_meters;     // Up, radar relative
     float radar_relative_radial_velocity_m_s;   // Forward, radar relative
-    float ground_relative_radial_velocity_m_s;  // Ground relative
+    float ground_relative_radial_velocity_m_s;  // Ground relative projection to the radar forward axis
     float signal_to_noise_ratio;
 } provizio_radar_point;
 
@@ -120,11 +120,11 @@ typedef struct provizio_radar_point_cloud
     uint64_t timestamp;   // Time of the frame capture measured in absolute number of nanoseconds since the start of the
                           // GPS Epoch (midnight on Jan 6, 1980)
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
-    uint16_t num_points_expected; // Number of points in the entire frame
-    uint16_t num_points_received; // Number of points in the frame received so far
-    uint16_t radar_mode;          // One of provizio_radar_mode enum values
-    float sensor_velocity_x;      // EGO velocity X component (can be NaN when unknown)
-    float sensor_velocity_y;      // EGO velocity Y component (can be NaN when unknown)
+    uint16_t num_points_expected;   // Number of points in the entire frame
+    uint16_t num_points_received;   // Number of points in the frame received so far
+    uint16_t radar_mode;            // One of provizio_radar_mode enum values
+    float radar_velocity_x_m_s;     // Radar velocity X component in meters per second (can be NaN when unknown)
+    float radar_velocity_y_m_s;     // Radar velocity Y component in meters per second (can be NaN when unknown)
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 

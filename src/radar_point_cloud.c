@@ -148,8 +148,8 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         result->radar_position_id = radar_position_id;
         result->num_points_expected = total_points_in_frame;
         result->radar_mode = radar_mode;
-        result->sensor_velocity_x = nanf("");
-        result->sensor_velocity_y = nanf("");
+        result->radar_velocity_x_m_s = nanf("");
+        result->radar_velocity_y_m_s = nanf("");
         assert(result->num_points_received == 0);
     }
 

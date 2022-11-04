@@ -49,9 +49,9 @@ typedef struct provizio_radar_ego_motion_packet
     uint32_t frame_index;   // 0-based
     uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
                             // GPS Epoch (midnight on Jan 6, 1980)
-    float sensor_velocity_x;    // sensor velocity x component (m/s)
-    float sensor_velocity_y;    // sensor velocity y component (m/s)
-    uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
+    float radar_velocity_x_m_s; // sensor velocity x component (m/s)
+    float radar_velocity_y_m_s; // sensor velocity y component (m/s)
+    uint16_t radar_position_id; // Either one of provizio_radar_position enum values or a custom position id
     uint16_t reserved;      // Not used currently, kept for better alignment and potential future use
 } provizio_radar_ego_motion_packet;
 
@@ -59,18 +59,18 @@ typedef struct provizio_radar_ego_motion_packet
 // Reset alignment settings
 #pragma pack(pop)
 
-
 /**
  * @brief EGO motion information for a particular radar frame
  */
 typedef struct provizio_radar_ego_motion
 {
-    uint64_t timestamp;     // Time of the frame capture measured in absolute number of nanoseconds since the start of the
+    uint64_t timestamp;     // Time of the frame capture measured in absolute
+                            // number of nanoseconds since the start of the GPS
+                            // Epoch (midnight on Jan 6, 1980)
     uint32_t frame_index;   // 0-based
-                            // GPS Epoch (midnight on Jan 6, 1980)
-    float sensor_velocity_x;    // sensor velocity x component (m/s)
-    float sensor_velocity_y;    // sensor velocity y component (m/s)
-    uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
+    float radar_velocity_x_m_s; // sensor velocity x component (m/s)
+    float radar_velocity_y_m_s; // sensor velocity y component (m/s)
+    uint16_t radar_position_id; // Either one of provizio_radar_position enum values or a custom position id
 } provizio_radar_ego_motion;
 
 
@@ -152,10 +152,10 @@ static_assert(offsetof(provizio_radar_ego_motion_packet, frame_index) == 4,
               "Unexpected position of frame_index in provizio_radar_ego_motion_packet");
 static_assert(offsetof(provizio_radar_ego_motion_packet, timestamp) == 8,
               "Unexpected position of timestamp in provizio_radar_ego_motion_packet");
-static_assert(offsetof(provizio_radar_ego_motion_packet, sensor_velocity_x) == 16,
-              "Unexpected position of sensor_velocity_x in provizio_radar_ego_motion_packet");
-static_assert(offsetof(provizio_radar_ego_motion_packet, sensor_velocity_y) == 20,
-              "Unexpected position of sensor_velocity_y in provizio_radar_ego_motion_packet");
+static_assert(offsetof(provizio_radar_ego_motion_packet, radar_velocity_x_m_s) == 16,
+              "Unexpected position of radar_velocity_x_m_s in provizio_radar_ego_motion_packet");
+static_assert(offsetof(provizio_radar_ego_motion_packet, radar_velocity_y_m_s) == 20,
+              "Unexpected position of radar_velocity_y_m_s in provizio_radar_ego_motion_packet");
 static_assert(offsetof(provizio_radar_ego_motion_packet, radar_position_id) == 24,
               "Unexpected position of radar_position_id in provizio_radar_ego_motion_packet");
 static_assert(sizeof(provizio_radar_ego_motion_packet) == 28,
