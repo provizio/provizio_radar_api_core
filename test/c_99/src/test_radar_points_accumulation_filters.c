@@ -39,7 +39,7 @@ void test_provizio_radar_points_accumulation_filter_copy_all(void)
         in_points[i].x_meters = 1.0F * i;              // NOLINT
         in_points[i].y_meters = 2.0F * i;              // NOLINT
         in_points[i].z_meters = 3.0F * i;              // NOLINT
-        in_points[i].velocity_m_s = 4.0F * i;          // NOLINT
+        in_points[i].radar_relative_radial_velocity_m_s = 4.0F * i;          // NOLINT
         in_points[i].signal_to_noise_ratio = 5.0F * i; // NOLINT
     }
 
@@ -94,17 +94,17 @@ void test_provizio_radar_points_accumulation_filter_static_stationary_ego(void)
         // A static point at EgoRelative(0, 1, 0)
         point_cloud->radar_points[0].x_meters = 0.0F;
         point_cloud->radar_points[0].y_meters = 1.0F;
-        point_cloud->radar_points[0].velocity_m_s = 0.1F; // NOLINT
+        point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = 0.1F; // NOLINT
         point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A static point at EgoRelative(0, -1, 0)
         point_cloud->radar_points[1].x_meters = 0.0F;
         point_cloud->radar_points[1].y_meters = -1.0F;
-        point_cloud->radar_points[1].velocity_m_s = -0.1F; // NOLINT
+        point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -0.1F; // NOLINT
         point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A moving point at EgoRelative(1, 0, 0)
         point_cloud->radar_points[2].x_meters = 1.0F;
         point_cloud->radar_points[2].y_meters = 0.0F;
-        point_cloud->radar_points[2].velocity_m_s = 10.0F; // NOLINT
+        point_cloud->radar_points[2].radar_relative_radial_velocity_m_s = 10.0F; // NOLINT
         point_cloud->radar_points[2].signal_to_noise_ratio = default_signal_to_noise_ratio;
 
         iterator = provizio_accumulate_radar_point_cloud(point_cloud, &the_fix, accumulated_point_clouds,
@@ -116,12 +116,12 @@ void test_provizio_radar_points_accumulation_filter_static_stationary_ego(void)
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(0.1F, out_points[0].velocity_m_s);                                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.1F, out_points[0].radar_relative_radial_velocity_m_s);                                   // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-0.1F, out_points[1].velocity_m_s);                                  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-0.1F, out_points[1].radar_relative_radial_velocity_m_s);                                  // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         ++point_cloud->frame_index;
@@ -176,17 +176,17 @@ void test_provizio_radar_points_accumulation_filter_static_forward_radar(void)
         // A static point at EgoRelative(0, 1, 0)
         point_cloud->radar_points[0].x_meters = 0.0F;
         point_cloud->radar_points[0].y_meters = 1.0F;
-        point_cloud->radar_points[0].velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
+        point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
         point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A static point at EgoRelative(0, -1, 0)
         point_cloud->radar_points[1].x_meters = 0.0F;
         point_cloud->radar_points[1].y_meters = -1.0F;
-        point_cloud->radar_points[1].velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
+        point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
         point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A moving point at EgoRelative(1, 0, 0)
         point_cloud->radar_points[2].x_meters = 1.0F;
         point_cloud->radar_points[2].y_meters = 0.0F;
-        point_cloud->radar_points[2].velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
+        point_cloud->radar_points[2].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
         point_cloud->radar_points[2].signal_to_noise_ratio = default_signal_to_noise_ratio;
 
         iterator = provizio_accumulate_radar_point_cloud(point_cloud, &fix_when_received, accumulated_point_clouds,
@@ -198,12 +198,12 @@ void test_provizio_radar_points_accumulation_filter_static_forward_radar(void)
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.east_meters += ego_velocity_m_s * time_between_frames_s;
@@ -267,17 +267,17 @@ void test_provizio_radar_points_accumulation_filter_static_rear_corner_radar(voi
         // A static point at EgoRelative(0, 1, 0) -> RadarRelative(-sqrt(2)/2, -sqrt(2)/2, 0)
         point_cloud->radar_points[0].x_meters = -(float)M_SQRT2 / 2.0F;                              // NOLINT
         point_cloud->radar_points[0].y_meters = -(float)M_SQRT2 / 2.0F;                              // NOLINT
-        point_cloud->radar_points[0].velocity_m_s = -estimated_ego_velocity_radar_projection + 0.1F; // NOLINT
+        point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = -estimated_ego_velocity_radar_projection + 0.1F; // NOLINT
         point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A static point at EgoRelative(0, -1, 0) -> RadarRelative(-sqrt(2)*3/2, sqrt(2)/2, 0)
         point_cloud->radar_points[1].x_meters = -(float)M_SQRT2 * 3.0F / 2.0F;                       // NOLINT
         point_cloud->radar_points[1].y_meters = (float)M_SQRT2 / 2.0F;                               // NOLINT
-        point_cloud->radar_points[1].velocity_m_s = -estimated_ego_velocity_radar_projection - 0.1F; // NOLINT
+        point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -estimated_ego_velocity_radar_projection - 0.1F; // NOLINT
         point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A moving point at EgoRelative(1, 0, 0) -> RadarRelative(-sqrt(2)*3/2, -sqrt(2)/2, 0)
         point_cloud->radar_points[2].x_meters = -(float)M_SQRT2 * 3.0F / 2.0F;                        // NOLINT
         point_cloud->radar_points[2].y_meters = -(float)M_SQRT2 / 2.0F;                               // NOLINT
-        point_cloud->radar_points[2].velocity_m_s = -estimated_ego_velocity_radar_projection + 10.0F; // NOLINT
+        point_cloud->radar_points[2].radar_relative_radial_velocity_m_s = -estimated_ego_velocity_radar_projection + 10.0F; // NOLINT
         point_cloud->radar_points[2].signal_to_noise_ratio = default_signal_to_noise_ratio;
 
         iterator = provizio_accumulate_radar_point_cloud(point_cloud, &radar_fix, accumulated_point_clouds,
@@ -289,12 +289,12 @@ void test_provizio_radar_points_accumulation_filter_static_rear_corner_radar(voi
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 / 2.0F, out_points[0].x_meters);                              // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 / 2.0F, out_points[0].y_meters);                              // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                                                // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection + 0.1F, out_points[0].velocity_m_s); // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection + 0.1F, out_points[0].radar_relative_radial_velocity_m_s); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio);          // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 * 3.0F / 2.0F, out_points[1].x_meters);                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT((float)M_SQRT2 / 2.0F, out_points[1].y_meters);                               // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                                // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection - 0.1F, out_points[1].velocity_m_s); // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection - 0.1F, out_points[1].radar_relative_radial_velocity_m_s); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio);          // NOLINT
 
         ego_fix.position.east_meters += ego_velocity_m_s * time_between_frames_s;
@@ -352,17 +352,17 @@ void test_provizio_radar_points_accumulation_filter_static_move_up(void)
         // A static point at EgoRelative(0, 1, 0)
         point_cloud->radar_points[0].x_meters = 0.0F;
         point_cloud->radar_points[0].y_meters = 1.0F;
-        point_cloud->radar_points[0].velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
+        point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
         point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A static point at EgoRelative(0, -1, 0)
         point_cloud->radar_points[1].x_meters = 0.0F;
         point_cloud->radar_points[1].y_meters = -1.0F;
-        point_cloud->radar_points[1].velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
+        point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
         point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A moving point at EgoRelative(1, 0, 0)
         point_cloud->radar_points[2].x_meters = 1.0F;
         point_cloud->radar_points[2].y_meters = 0.0F;
-        point_cloud->radar_points[2].velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
+        point_cloud->radar_points[2].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
         point_cloud->radar_points[2].signal_to_noise_ratio = default_signal_to_noise_ratio;
 
         iterator = provizio_accumulate_radar_point_cloud(point_cloud, &fix_when_received, accumulated_point_clouds,
@@ -374,12 +374,12 @@ void test_provizio_radar_points_accumulation_filter_static_move_up(void)
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.up_meters += ego_velocity_m_s * time_between_frames_s;
@@ -436,17 +436,17 @@ void test_provizio_radar_points_accumulation_filter_static_move_down(void)
         // A static point at EgoRelative(0, 1, 0)
         point_cloud->radar_points[0].x_meters = 0.0F;
         point_cloud->radar_points[0].y_meters = 1.0F;
-        point_cloud->radar_points[0].velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
+        point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 0.1F; // NOLINT
         point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A static point at EgoRelative(0, -1, 0)
         point_cloud->radar_points[1].x_meters = 0.0F;
         point_cloud->radar_points[1].y_meters = -1.0F;
-        point_cloud->radar_points[1].velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
+        point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -estimated_ego_velocity - 0.1F; // NOLINT
         point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
         // A moving point at EgoRelative(1, 0, 0)
         point_cloud->radar_points[2].x_meters = 1.0F;
         point_cloud->radar_points[2].y_meters = 0.0F;
-        point_cloud->radar_points[2].velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
+        point_cloud->radar_points[2].radar_relative_radial_velocity_m_s = -estimated_ego_velocity + 10.0F; // NOLINT
         point_cloud->radar_points[2].signal_to_noise_ratio = default_signal_to_noise_ratio;
 
         iterator = provizio_accumulate_radar_point_cloud(point_cloud, &fix_when_received, accumulated_point_clouds,
@@ -458,12 +458,12 @@ void test_provizio_radar_points_accumulation_filter_static_move_down(void)
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, out_points[0].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].velocity_m_s);         // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F, out_points[1].radar_relative_radial_velocity_m_s);         // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.up_meters -= ego_velocity_m_s * time_between_frames_s;

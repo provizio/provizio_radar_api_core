@@ -21,7 +21,7 @@
 #include "provizio/socket.h"
 
 // To be incremented on any breaking protocol changes (used for backward compatibility)
-#define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)1)
+#define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)2)
 
 // Radar point cloud structures of the binary UDP protocol are defined here, see README.md for more details
 
@@ -41,9 +41,21 @@ typedef struct
     float x_meters;     // Forward, radar relative
     float y_meters;     // Left, radar relative
     float z_meters;     // Up, radar relative
-    float velocity_m_s; // Forward, radar relative
+    float radar_relative_radial_velocity_m_s;   // Forward, radar relative
     float signal_to_noise_ratio;
+    float ground_relative_radial_velocity_m_s;  // Ground relative projection to the radar forward axis (NaN if unavailable)
 } provizio_radar_point;
+
+// Backwards-compatibility (deprecated)
+typedef struct
+{
+    float x_meters;     // Forward, radar relative
+    float y_meters;     // Left, radar relative
+    float z_meters;     // Up, radar relative
+    float radar_relative_radial_velocity_m_s;   // Forward, radar relative
+    float signal_to_noise_ratio;
+} provizio_radar_point_v1_protocol;
+
 
 /**
  * @brief Header placed in the beginning of each radar point cloud packet.

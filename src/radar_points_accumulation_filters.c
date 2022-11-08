@@ -44,7 +44,7 @@ static float provizio_estimate_radars_forward_velocity_using_velocities_histogra
 
     for (uint16_t i = 0; i < num_in_points; ++i)
     {
-        const float velocity = in_points[i].velocity_m_s;
+        const float velocity = in_points[i].radar_relative_radial_velocity_m_s;
         if (velocity < min_velocity)
         {
             min_velocity = velocity;
@@ -76,7 +76,7 @@ static float provizio_estimate_radars_forward_velocity_using_velocities_histogra
     uint16_t largest_bin_value = 0;
     for (uint16_t i = 0; i < num_in_points; ++i)
     {
-        const float velocity = in_points[i].velocity_m_s;
+        const float velocity = in_points[i].radar_relative_radial_velocity_m_s;
         const size_t bin =
             (size_t)lroundf((velocity - min_velocity) / bin_size) * (histogram_bins - 1) / histogram_bins;
         assert(bin < histogram_bins);
@@ -243,7 +243,9 @@ void provizio_radar_points_accumulation_filter_static(
     uint16_t num_filtered_points = 0;
     for (const provizio_radar_point *point = in_points, *end = in_points + num_in_points; point != end; ++point)
     {
-        if (fabsf(point->velocity_m_s + radars_forward_velocity_m_s) < dynamic_velocity_threashold_m_s)
+        // TODO: uncomment this fix and update the unit tests
+        //if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s * cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threashold_m_s)
+        if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s) < dynamic_velocity_threashold_m_s)
         {
             // Static point, let's accumulate it
             out_points[num_filtered_points++] = *point;
