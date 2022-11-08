@@ -45,8 +45,8 @@ typedef struct
     float y_meters;     // Left, radar relative
     float z_meters;     // Up, radar relative
     float radar_relative_radial_velocity_m_s;   // Forward, radar relative
-    float ground_relative_radial_velocity_m_s;  // Ground relative projection to the radar forward axis
     float signal_to_noise_ratio;
+    float ground_relative_radial_velocity_m_s;  // Ground relative projection to the radar forward axis
 } provizio_radar_point;
 
 /**
