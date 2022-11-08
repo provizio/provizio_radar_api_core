@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -511,7 +510,6 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
         for (uint16_t j = 0; j < points_in_packet; ++j)
         {
             TEST_ASSERT_EQUAL_FLOAT(callback_data->last_point_clouds[0].radar_points[j].radar_relative_radial_velocity_m_s, callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
-            //printf("%f :: %f\n", callback_data->last_point_clouds[0].radar_points[j].radar_relative_radial_velocity_m_s, callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
         }
 
         // Test Point Cloud Packet UDP Protocol Version 1
@@ -526,7 +524,6 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
         for (uint16_t j = 0; j < points_in_packet; ++j)
         {
             TEST_ASSERT_EQUAL_FLOAT(nanf(""), callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
-            //printf("%f :: %f\n", callback_data->last_point_clouds[0].radar_points[j].radar_relative_radial_velocity_m_s, callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
         }
 
     }
