@@ -297,7 +297,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         for (uint16_t i = 0; i < num_points_in_packet; ++i)
         {
             provizio_radar_point *out_point = &cloud->radar_points[cloud->num_points_received + i];
-            provizio_radar_point *in_point;
+            provizio_radar_point *in_point = NULL;
 
             if(protocol_version >= 2)
             {
@@ -306,6 +306,11 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             else if(protocol_version == 1)
             {
                 in_point = (provizio_radar_point *) &(((provizio_radar_point_v1_protocol *) packet->radar_points)[i]);
+            }
+            else
+            {
+                provizio_error("provizio_handle_radar_point_cloud_packet_checked: invalid protocol version");
+                return PROVIZIO_E_PROTOCOL;
             }
 
             out_point->x_meters = provizio_get_protocol_field_float(&in_point->x_meters);
