@@ -118,7 +118,7 @@ static int32_t create_test_pointcloud_packet(provizio_radar_point_cloud_packet *
             provizio_set_protocol_field_float(&packet->radar_points[j].z_meters, z_meters);
             provizio_set_protocol_field_float(&packet->radar_points[j].radar_relative_radial_velocity_m_s, velocity);
             provizio_set_protocol_field_float(&packet->radar_points[j].signal_to_noise_ratio, signal_to_noise_ratio);
-            provizio_set_protocol_field_float(&packet->radar_points[j].ground_relative_radial_velocity_m_s, velocity);
+            provizio_set_protocol_field_float(&packet->radar_points[j].ground_relative_radial_velocity_m_s, -velocity);
         }
         else
         {
@@ -508,7 +508,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
         {
             TEST_ASSERT_EQUAL_FLOAT( // NOLINT
                 callback_data->last_point_clouds[0].radar_points[j].radar_relative_radial_velocity_m_s,
-                callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
+                callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s * -1);
         }
 
         // Test Point Cloud Packet UDP Protocol Version 1

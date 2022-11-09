@@ -65,7 +65,8 @@ static void provizio_transform_radar_point(const provizio_radar_point *point, co
     out_transformed_point->x_meters = out_point[0];
     out_transformed_point->y_meters = out_point[1];
     out_transformed_point->z_meters = out_point[2];
-    out_transformed_point->radar_relative_radial_velocity_m_s = point->radar_relative_radial_velocity_m_s;
+    out_transformed_point->radar_relative_radial_velocity_m_s =
+        point->radar_relative_radial_velocity_m_s; // TODO(APT-746): Consider updating velocity
     out_transformed_point->ground_relative_radial_velocity_m_s = point->ground_relative_radial_velocity_m_s;
     out_transformed_point->signal_to_noise_ratio = point->signal_to_noise_ratio;
 }
