@@ -195,17 +195,17 @@ void test_provizio_radar_points_accumulation_filter_static_forward_radar(void)
                                                          accumulated_point_clouds, num_accumulated_clouds, &iterator,
                                                          NULL, out_points, &num_out_points);
         TEST_ASSERT_EQUAL_UINT16(2, num_out_points);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F,
-                                out_points[0].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, // NOLINT
+                                out_points[0].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,
-                                out_points[1].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,                                      // NOLINT
+                                out_points[1].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.east_meters += ego_velocity_m_s * time_between_frames_s;
@@ -294,14 +294,14 @@ void test_provizio_radar_points_accumulation_filter_static_rear_corner_radar(voi
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 / 2.0F, out_points[0].x_meters); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 / 2.0F, out_points[0].y_meters); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);                   // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection + 0.1F,
-                                out_points[0].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection + 0.1F, // NOLINT
+                                out_points[0].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-(float)M_SQRT2 * 3.0F / 2.0F, out_points[1].x_meters);              // NOLINT
         TEST_ASSERT_EQUAL_FLOAT((float)M_SQRT2 / 2.0F, out_points[1].y_meters);                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection - 0.1F,
-                                out_points[1].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity_radar_projection - 0.1F,                     // NOLINT
+                                out_points[1].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         ego_fix.position.east_meters += ego_velocity_m_s * time_between_frames_s;
@@ -378,17 +378,17 @@ void test_provizio_radar_points_accumulation_filter_static_move_up(void)
                                                          accumulated_point_clouds, num_accumulated_clouds, &iterator,
                                                          NULL, out_points, &num_out_points);
         TEST_ASSERT_EQUAL_UINT16(2, num_out_points);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F,
-                                out_points[0].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, // NOLINT
+                                out_points[0].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,
-                                out_points[1].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,                                      // NOLINT
+                                out_points[1].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.up_meters += ego_velocity_m_s * time_between_frames_s;
@@ -464,17 +464,17 @@ void test_provizio_radar_points_accumulation_filter_static_move_down(void)
                                                          accumulated_point_clouds, num_accumulated_clouds, &iterator,
                                                          NULL, out_points, &num_out_points);
         TEST_ASSERT_EQUAL_UINT16(2, num_out_points);
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F,
-                                out_points[0].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].x_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(1.0F, out_points[0].y_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[0].z_meters);  // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity + 0.1F, // NOLINT
+                                out_points[0].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[0].signal_to_noise_ratio); // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].x_meters);                                       // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(-1.0F, out_points[1].y_meters);                                      // NOLINT
         TEST_ASSERT_EQUAL_FLOAT(0.0F, out_points[1].z_meters);                                       // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,
-                                out_points[1].radar_relative_radial_velocity_m_s);                   // NOLINT
+        TEST_ASSERT_EQUAL_FLOAT(-estimated_ego_velocity - 0.1F,                                      // NOLINT
+                                out_points[1].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(default_signal_to_noise_ratio, out_points[1].signal_to_noise_ratio); // NOLINT
 
         fix_when_received.position.up_meters -= ego_velocity_m_s * time_between_frames_s;

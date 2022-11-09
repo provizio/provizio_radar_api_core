@@ -506,7 +506,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
 
         for (uint16_t j = 0; j < points_in_packet; ++j)
         {
-            TEST_ASSERT_EQUAL_FLOAT(
+            TEST_ASSERT_EQUAL_FLOAT( // NOLINT
                 callback_data->last_point_clouds[0].radar_points[j].radar_relative_radial_velocity_m_s,
                 callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
         }
@@ -525,7 +525,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
 
         for (uint16_t j = 0; j < points_in_packet; ++j)
         {
-            TEST_ASSERT_EQUAL_FLOAT(
+            TEST_ASSERT_EQUAL_FLOAT( // NOLINT
                 nanf(""), callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
         }
     }
