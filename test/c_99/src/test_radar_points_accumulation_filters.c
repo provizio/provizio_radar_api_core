@@ -36,11 +36,12 @@ void test_provizio_radar_points_accumulation_filter_copy_all(void)
     const uint16_t num_in_points = (uint16_t)(sizeof(in_points) / sizeof(in_points[0]));
     for (uint16_t i = 0; i < num_in_points; ++i)
     {
-        in_points[i].x_meters = 1.0F * i;                           // NOLINT
-        in_points[i].y_meters = 2.0F * i;                           // NOLINT
-        in_points[i].z_meters = 3.0F * i;                           // NOLINT
-        in_points[i].radar_relative_radial_velocity_m_s = 4.0F * i; // NOLINT
-        in_points[i].signal_to_noise_ratio = 5.0F * i;              // NOLINT
+        in_points[i].x_meters = 1.0F * i;                            // NOLINT
+        in_points[i].y_meters = 2.0F * i;                            // NOLINT
+        in_points[i].z_meters = 3.0F * i;                            // NOLINT
+        in_points[i].radar_relative_radial_velocity_m_s = 4.0F * i;  // NOLINT
+        in_points[i].signal_to_noise_ratio = 5.0F * i;               // NOLINT
+        in_points[i].ground_relative_radial_velocity_m_s = 4.0F * i; // NOLINT
     }
 
     provizio_radar_point out_points[sizeof(in_points) / sizeof(in_points[0])];
