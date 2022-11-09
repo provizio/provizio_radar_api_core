@@ -43,7 +43,7 @@ void test_provizio_radar_points_accumulation_filter_copy_all(void)
         in_points[i].signal_to_noise_ratio = 5.0F * i;              // NOLINT
     }
 
-    provizio_radar_point out_points[sizeof(in_points) / sizeof(in_points[0])] = {0};
+    provizio_radar_point out_points[sizeof(in_points) / sizeof(in_points[0])];
     memset(&out_points, 0, sizeof(out_points));
     uint16_t num_out_points = 0;
 
