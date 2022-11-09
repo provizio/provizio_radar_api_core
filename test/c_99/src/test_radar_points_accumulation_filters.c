@@ -32,7 +32,7 @@ void test_provizio_radar_points_accumulation_filter_copy_all_empty(void)
 
 void test_provizio_radar_points_accumulation_filter_copy_all(void)
 {
-    provizio_radar_point in_points[5] = {0}; // NOLINT
+    provizio_radar_point in_points[5]; // NOLINT
     const uint16_t num_in_points = (uint16_t)(sizeof(in_points) / sizeof(in_points[0]));
     for (uint16_t i = 0; i < num_in_points; ++i)
     {
