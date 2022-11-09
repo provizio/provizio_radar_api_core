@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
                 provizio_set_protocol_field_float(&packet.radar_points[0].x_meters, point_x);
                 provizio_set_protocol_field_float(&packet.radar_points[0].y_meters, point_y);
                 provizio_set_protocol_field_float(&packet.radar_points[0].z_meters, point_z);
-                provizio_set_protocol_field_float(&packet.radar_points[0].radar_relative_radial_velocity_m_s, point_velocity);
+                provizio_set_protocol_field_float(&packet.radar_points[0].radar_relative_radial_velocity_m_s,
+                                                  point_velocity);
                 provizio_set_protocol_field_float(&packet.radar_points[0].signal_to_noise_ratio,
                                                   point_signal_to_noise_ratio);
 

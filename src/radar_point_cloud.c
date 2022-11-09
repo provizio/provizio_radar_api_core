@@ -15,8 +15,8 @@
 #include "provizio/radar_api/radar_point_cloud.h"
 
 #include <assert.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
@@ -280,7 +280,8 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         return PROVIZIO_E_PROTOCOL;
     }
 
-    const uint16_t protocol_version = provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version);
+    const uint16_t protocol_version =
+        provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version);
 
     // Append new points to the point cloud being received
     if (!provizio_network_floats_reversed() && (protocol_version >= 2))
@@ -288,7 +289,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         // Optimized version: host machine uses network byte order for floats, no need to convert them
         // LCOV_EXCL_START: host CPU arch dependent
         memcpy(&cloud->radar_points[cloud->num_points_received], &packet->radar_points,
-            sizeof(provizio_radar_point) * num_points_in_packet);
+               sizeof(provizio_radar_point) * num_points_in_packet);
         // LCOV_EXCL_STOP
     }
     else
@@ -299,13 +300,13 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             provizio_radar_point *out_point = &cloud->radar_points[cloud->num_points_received + i];
             provizio_radar_point *in_point = NULL;
 
-            if(protocol_version >= 2)
+            if (protocol_version >= 2)
             {
                 in_point = &packet->radar_points[i];
             }
-            else if(protocol_version == 1)
+            else if (protocol_version == 1)
             {
-                in_point = (provizio_radar_point *) &(((provizio_radar_point_v1_protocol *) packet->radar_points)[i]);
+                in_point = (provizio_radar_point *)&(((provizio_radar_point_v1_protocol *)packet->radar_points)[i]);
             }
             else
             {
@@ -316,12 +317,14 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             out_point->x_meters = provizio_get_protocol_field_float(&in_point->x_meters);
             out_point->y_meters = provizio_get_protocol_field_float(&in_point->y_meters);
             out_point->z_meters = provizio_get_protocol_field_float(&in_point->z_meters);
-            out_point->radar_relative_radial_velocity_m_s = provizio_get_protocol_field_float(&in_point->radar_relative_radial_velocity_m_s);
+            out_point->radar_relative_radial_velocity_m_s =
+                provizio_get_protocol_field_float(&in_point->radar_relative_radial_velocity_m_s);
             out_point->signal_to_noise_ratio = provizio_get_protocol_field_float(&in_point->signal_to_noise_ratio);
 
-            if(protocol_version >= 2)
+            if (protocol_version >= 2)
             {
-                out_point->ground_relative_radial_velocity_m_s = provizio_get_protocol_field_float(&in_point->ground_relative_radial_velocity_m_s);
+                out_point->ground_relative_radial_velocity_m_s =
+                    provizio_get_protocol_field_float(&in_point->ground_relative_radial_velocity_m_s);
             }
             else
             {

@@ -244,8 +244,10 @@ void provizio_radar_points_accumulation_filter_static(
     for (const provizio_radar_point *point = in_points, *end = in_points + num_in_points; point != end; ++point)
     {
         // TODO: uncomment this fix and update the unit tests
-        //if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s * cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threashold_m_s)
-        if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s) < dynamic_velocity_threashold_m_s)
+        // if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s *
+        // cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threashold_m_s)
+        if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s) <
+            dynamic_velocity_threashold_m_s)
         {
             // Static point, let's accumulate it
             out_points[num_filtered_points++] = *point;

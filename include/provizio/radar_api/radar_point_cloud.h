@@ -38,24 +38,24 @@
  */
 typedef struct
 {
-    float x_meters;     // Forward, radar relative
-    float y_meters;     // Left, radar relative
-    float z_meters;     // Up, radar relative
-    float radar_relative_radial_velocity_m_s;   // Forward, radar relative
+    float x_meters;                           // Forward, radar relative
+    float y_meters;                           // Left, radar relative
+    float z_meters;                           // Up, radar relative
+    float radar_relative_radial_velocity_m_s; // Forward, radar relative
     float signal_to_noise_ratio;
-    float ground_relative_radial_velocity_m_s;  // Ground relative projection to the radar forward axis (NaN if unavailable)
+    float ground_relative_radial_velocity_m_s; // Ground relative projection to the radar forward axis (NaN if
+                                               // unavailable)
 } provizio_radar_point;
 
 // Backwards-compatibility (deprecated)
 typedef struct
 {
-    float x_meters;     // Forward, radar relative
-    float y_meters;     // Left, radar relative
-    float z_meters;     // Up, radar relative
-    float radar_relative_radial_velocity_m_s;   // Forward, radar relative
+    float x_meters;                           // Forward, radar relative
+    float y_meters;                           // Left, radar relative
+    float z_meters;                           // Up, radar relative
+    float radar_relative_radial_velocity_m_s; // Forward, radar relative
     float signal_to_noise_ratio;
 } provizio_radar_point_v1_protocol;
-
 
 /**
  * @brief Header placed in the beginning of each radar point cloud packet.
