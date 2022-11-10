@@ -630,8 +630,9 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
         packet.header.num_points_in_packet = 73;
 
         TEST_ASSERT_EQUAL_INT32( // NOLINT
-            PROVIZIO_E_SKIPPED, provizio_handle_possible_radars_point_cloud_packet(
-                   api_contexts, num_contexts, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+            PROVIZIO_E_SKIPPED,
+            provizio_handle_possible_radars_point_cloud_packet(api_contexts, num_contexts, &packet,
+                                                               provizio_radar_point_cloud_packet_size(&packet.header)));
     }
 
     free(api_contexts);
