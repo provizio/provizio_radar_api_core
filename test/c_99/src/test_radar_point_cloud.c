@@ -627,7 +627,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
 
         // test greater than max allowed radar points in udp packet for protocol version 1 (code coverage)
         packet.header.frame_index += 1;
-        packet.header.num_points_in_packet = 73;
+        packet.header.num_points_in_packet += 1;
 
         TEST_ASSERT_EQUAL_INT32( // NOLINT
             PROVIZIO_E_SKIPPED,
