@@ -611,8 +611,6 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
         struct provizio_radar_point_cloud_packet_v1 packet;
         memset(&packet, 0, sizeof(packet));
 
-        // Test Point Cloud Packet UDP Protocol Version 1
-
         TEST_ASSERT_EQUAL_INT32(0, // NOLINT
                                 create_test_pointcloud_packet_v1(&packet, frame_index, timestamp, radar_position_ids[i],
                                                                  radar_modes[i], num_points, points_in_packet));
@@ -626,6 +624,14 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
             TEST_ASSERT_EQUAL_FLOAT( // NOLINT
                 nanf(""), callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
         }
+
+        // test greater than max allowed radar points in udp packet for protocol version 1 (code coverage)
+        packet.header.frame_index += 1;
+        packet.header.num_points_in_packet = 73;
+
+        TEST_ASSERT_EQUAL_INT32( // NOLINT
+            PROVIZIO_E_SKIPPED, provizio_handle_possible_radars_point_cloud_packet(
+                   api_contexts, num_contexts, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     }
 
     free(api_contexts);
