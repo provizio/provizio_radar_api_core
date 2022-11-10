@@ -21,6 +21,16 @@
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
 
+// deprecated structure used for backwards compatibility
+struct provizio_radar_point_protocol_v1
+{
+    float x_meters;
+    float y_meters;
+    float z_meters;
+    float radar_relative_radial_velocity_m_s;
+    float signal_to_noise_ratio;
+};
+
 static int provizio_network_floats_reversed(void)
 {
     const float test_value = 1.0F;
@@ -155,16 +165,27 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
 
 size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_packet_header *header)
 {
+    size_t result = 0;
     const uint16_t num_points = provizio_get_protocol_field_uint16_t(&header->num_points_in_packet);
+    const uint16_t protocol_version = provizio_get_protocol_field_uint16_t(&header->protocol_header.protocol_version);
 
-    if (num_points > PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET)
+    if ((protocol_version == 1) && num_points > (PROVIZIO__MTU - sizeof(provizio_radar_point_cloud_packet_header)) /
+                                                    sizeof(struct provizio_radar_point_protocol_v1))
+    {
+        provizio_warning("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
+                         "maximum allowed points for version 1 of the protocol!");
+    }
+    else if ((protocol_version != 1) && (num_points > PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET))
     {
         provizio_warning("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
                          "PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET!");
-        return 0;
+    }
+    else
+    {
+        result = sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
     }
 
-    return sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
+    return result;
 }
 
 void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback, void *user_data,
@@ -306,7 +327,8 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             }
             else if (protocol_version == 1)
             {
-                in_point = (provizio_radar_point *)&(((provizio_radar_point_v1_protocol *)packet->radar_points)[i]);
+                in_point =
+                    (provizio_radar_point *)&(((struct provizio_radar_point_protocol_v1 *)packet->radar_points)[i]);
             }
             else
             {

@@ -243,7 +243,8 @@ void provizio_radar_points_accumulation_filter_static(
     uint16_t num_filtered_points = 0;
     for (const provizio_radar_point *point = in_points, *end = in_points + num_in_points; point != end; ++point)
     {
-        // TODO(iivanov): uncomment this fix and update the unit tests
+        // TODO(APT-1667): dynamic adjustment of ground-relative velocity accounting for angular differences of
+        // detections
         // if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s *
         // cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threashold_m_s)
         if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s) <
