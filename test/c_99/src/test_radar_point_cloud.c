@@ -35,9 +35,7 @@ typedef struct provizio_radar_point_protocol_v1
     float signal_to_noise_ratio;
 } provizio_radar_point_protocol_v1;
 
-#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1                                                          \
-    ((uint16_t)((PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES - sizeof(provizio_radar_point_cloud_packet_header)) /      \
-                sizeof(provizio_radar_point_protocol_v1)))
+#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1 72
 
 typedef struct provizio_radar_point_cloud_packet_protocol_v1
 {
@@ -45,29 +43,6 @@ typedef struct provizio_radar_point_cloud_packet_protocol_v1
     provizio_radar_point_protocol_v1 radar_points[PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1];
 } provizio_radar_point_cloud_packet_protocol_v1;
 #pragma pack(pop)
-
-#if defined(__cplusplus) && __cplusplus >= 201103L
-static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_v1, header) == 0,
-              "Unexpected position of header in provizio_radar_point_cloud_packet_protocol_v1");
-static_assert(offsetof(provizio_radar_point_cloud_packet_protocol_v1, radar_points) ==
-                  sizeof(provizio_radar_point_cloud_packet_header),
-              "Unexpected position of radar_points in provizio_radar_point_cloud_packet");
-static_assert(sizeof(provizio_radar_point_cloud_packet_protocol_v1) ==
-                  sizeof(provizio_radar_point_cloud_packet_header) +
-                      sizeof(provizio_radar_point_v1_protocol) * PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1,
-              "Unexpected size of provizio_radar_point_cloud_packet_protocol_v1");
-static_assert(offsetof(provizio_radar_point_v1_protocol, x_meters) == 0,
-              "Unexpected position of x_meters in provizio_radar_point_v1_protocol");
-static_assert(offsetof(provizio_radar_point_v1_protocol, y_meters) == 4,
-              "Unexpected position of y_meters in provizio_radar_point_v1_protocol");
-static_assert(offsetof(provizio_radar_point_v1_protocol, z_meters) == 8,
-              "Unexpected position of z_meters in provizio_radar_point_v1_protocol");
-static_assert(offsetof(provizio_radar_point_v1_protocol, radar_relative_radial_velocity_m_s) == 12,
-              "Unexpected position of radar_relative_radial_velocity_m_s in provizio_radar_point_v1_protocol");
-static_assert(offsetof(provizio_radar_point_v1_protocol, signal_to_noise_ratio) == 16,
-              "Unexpected position of signal_to_noise_ratio in provizio_radar_point_v1_protocol");
-static_assert(sizeof(provizio_radar_point_v1_protocol) == 20, "Unexpected size of provizio_radar_point_v1_protocol");
-#endif // defined(__cplusplus) && __cplusplus >= 201103L
 
 enum
 {
@@ -611,6 +586,19 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
     free(callback_data);
 }
 
+static void test_provizio_check_radar_point_cloud_packet_v1(void)
+{
+    TEST_ASSERT_EQUAL_INT32(0, offsetof(provizio_radar_point_cloud_packet_protocol_v1, header));
+    TEST_ASSERT_EQUAL_INT32(24, offsetof(provizio_radar_point_cloud_packet_protocol_v1, radar_points));
+    TEST_ASSERT_EQUAL_INT32(1464, sizeof(provizio_radar_point_cloud_packet_protocol_v1));
+    TEST_ASSERT_EQUAL_INT32(0, offsetof(provizio_radar_point_protocol_v1, x_meters));
+    TEST_ASSERT_EQUAL_INT32(4, offsetof(provizio_radar_point_protocol_v1, y_meters));
+    TEST_ASSERT_EQUAL_INT32(8, offsetof(provizio_radar_point_protocol_v1, z_meters));
+    TEST_ASSERT_EQUAL_INT32(12, offsetof(provizio_radar_point_protocol_v1, radar_relative_radial_velocity_m_s));
+    TEST_ASSERT_EQUAL_INT32(16, offsetof(provizio_radar_point_protocol_v1, signal_to_noise_ratio));
+    TEST_ASSERT_EQUAL_INT32(20, sizeof(provizio_radar_point_protocol_v1));
+}
+
 static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
 {
     const uint32_t frame_index = 1000;
@@ -685,6 +673,7 @@ int provizio_run_test_radar_point_cloud(void)
     RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_ok);
     RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_ground_velocity);
     RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_v1);
+    RUN_TEST(test_provizio_check_radar_point_cloud_packet_v1);
 
     return UNITY_END();
 }
