@@ -35,7 +35,7 @@ typedef struct provizio_radar_point_protocol_v1
     float signal_to_noise_ratio;
 } provizio_radar_point_protocol_v1;
 
-#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1 ((uint16_t) 72)
+#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1 ((uint16_t)72)
 
 typedef struct provizio_radar_point_cloud_packet_protocol_v1
 {
