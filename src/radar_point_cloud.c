@@ -22,14 +22,16 @@
 #include "provizio/util.h"
 
 // deprecated structure used for backwards compatibility
-struct provizio_radar_point_protocol_v1
+#pragma pack(push, 1)
+typedef struct provizio_radar_point_protocol_v1
 {
     float x_meters;
     float y_meters;
     float z_meters;
     float radar_relative_radial_velocity_m_s;
     float signal_to_noise_ratio;
-};
+} provizio_radar_point_protocol_v1;
+#pragma pack(pop)
 
 static int provizio_network_floats_reversed(void)
 {
@@ -170,7 +172,7 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
     const uint16_t protocol_version = provizio_get_protocol_field_uint16_t(&header->protocol_header.protocol_version);
 
     if ((protocol_version == 1) && num_points > (PROVIZIO__MTU - sizeof(provizio_radar_point_cloud_packet_header)) /
-                                                    sizeof(struct provizio_radar_point_protocol_v1))
+                                                    sizeof(provizio_radar_point_protocol_v1))
     {
         provizio_warning("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
                          "maximum allowed points for version 1 of the protocol!");
@@ -327,8 +329,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             }
             else if (protocol_version == 1)
             {
-                in_point =
-                    (provizio_radar_point *)&(((struct provizio_radar_point_protocol_v1 *)packet->radar_points)[i]);
+                in_point = (provizio_radar_point *)&(((provizio_radar_point_protocol_v1 *)packet->radar_points)[i]);
             }
             else
             {
