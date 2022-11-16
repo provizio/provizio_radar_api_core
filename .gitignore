@@ -3,3 +3,4 @@ build/
 Testing/
 *.dump
 *.ctu-info
+.*swp

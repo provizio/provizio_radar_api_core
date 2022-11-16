@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,6 +24,25 @@
 #include "provizio/util.h"
 
 #include "test_point_cloud_callbacks.h"
+
+#pragma pack(push, 1)
+typedef struct provizio_radar_point_protocol_v1
+{
+    float x_meters;                           // Forward, radar relative
+    float y_meters;                           // Left, radar relative
+    float z_meters;                           // Up, radar relative
+    float radar_relative_radial_velocity_m_s; // Forward, radar relative
+    float signal_to_noise_ratio;
+} provizio_radar_point_protocol_v1;
+
+#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1 ((uint16_t)72)
+
+typedef struct provizio_radar_point_cloud_packet_protocol_v1
+{
+    provizio_radar_point_cloud_packet_header header;
+    provizio_radar_point_protocol_v1 radar_points[PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_PROTOCOL_V1];
+} provizio_radar_point_cloud_packet_protocol_v1;
+#pragma pack(pop)
 
 enum
 {
@@ -57,6 +75,138 @@ void test_provizio_radar_point_cloud_callback(const provizio_radar_point_cloud *
 
     // Update the most recent of last_point_clouds
     data->last_point_clouds[0] = *point_cloud;
+}
+
+static int32_t create_test_pointcloud_packet(provizio_radar_point_cloud_packet *packet, const uint32_t frame_index,
+                                             const uint64_t timestamp, const uint16_t radar_position_id,
+                                             const uint16_t radar_mode, const uint16_t total_points_in_frame,
+                                             const uint16_t num_points_in_packet)
+{
+    const float x_meters_min = -100.0F;
+    const float x_meters_max = 100.0F;
+    const float x_meters_step = 12.33F;
+    const float y_meters_min = -15.0F;
+    const float y_meters_max = 15.0F;
+    const float y_meters_step = 1.17F;
+    const float z_meters_min = -2.0F;
+    const float z_meters_max = 25.0F;
+    const float z_meters_step = 0.47F;
+    const float relative_velocity_min = -30.0F;
+    const float relative_velocity_max = 30.0F;
+    const float relative_velocity_step = 5.31F;
+    const float ground_velocity_min = -3.0F;
+    const float ground_velocity_max = 13.0F;
+    const float ground_velocity_step = 3.14F;
+    const float signal_to_noise_ratio_min = 2.0F;
+    const float signal_to_noise_ratio_max = 50.0F;
+    const float signal_to_noise_ratio_step = 3.73F;
+    const float half = 0.5F;
+
+    float x_meters = (x_meters_min + x_meters_max) * half;
+    float y_meters = (y_meters_min + y_meters_max) * half;
+    float z_meters = (z_meters_min + z_meters_max) * half;
+    float relative_velocity = (relative_velocity_min + relative_velocity_max) * half;
+    float ground_velocity = (ground_velocity_min + ground_velocity_max) * half;
+    float signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) * half;
+
+    memset(packet, 0, sizeof(provizio_radar_point_cloud_packet));
+
+    provizio_set_protocol_field_uint16_t(&packet->header.protocol_header.packet_type,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
+    provizio_set_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION);
+    provizio_set_protocol_field_uint32_t(&packet->header.frame_index, frame_index);
+    provizio_set_protocol_field_uint64_t(&packet->header.timestamp, timestamp);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_position_id, radar_position_id);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_mode, radar_mode);
+    provizio_set_protocol_field_uint16_t(&packet->header.total_points_in_frame, total_points_in_frame);
+    provizio_set_protocol_field_uint16_t(&packet->header.num_points_in_packet, num_points_in_packet);
+
+#pragma unroll(8)
+    for (uint16_t j = 0; j < num_points_in_packet; ++j) // NOLINT: The loop is just fine
+    {
+#define PROVIZIO__NEXT_TEST_VALUE(v) ((v##_min) + fmodf((v) + (v##_step) - (v##_min), (v##_max) - (v##_min)))
+        x_meters = PROVIZIO__NEXT_TEST_VALUE(x_meters);
+        y_meters = PROVIZIO__NEXT_TEST_VALUE(y_meters);
+        z_meters = PROVIZIO__NEXT_TEST_VALUE(z_meters);
+        relative_velocity = PROVIZIO__NEXT_TEST_VALUE(relative_velocity);
+        ground_velocity = PROVIZIO__NEXT_TEST_VALUE(ground_velocity);
+        signal_to_noise_ratio = PROVIZIO__NEXT_TEST_VALUE(signal_to_noise_ratio);
+#undef PROVIZIO__NEXT_TEST_VALUE
+
+        provizio_set_protocol_field_float(&packet->radar_points[j].x_meters, x_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].y_meters, y_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].z_meters, z_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].radar_relative_radial_velocity_m_s,
+                                          relative_velocity);
+        provizio_set_protocol_field_float(&packet->radar_points[j].signal_to_noise_ratio, signal_to_noise_ratio);
+        provizio_set_protocol_field_float(&packet->radar_points[j].ground_relative_radial_velocity_m_s,
+                                          ground_velocity);
+    }
+
+    return 0;
+}
+
+static int32_t create_test_pointcloud_packet_v1(provizio_radar_point_cloud_packet_protocol_v1 *packet,
+                                                const uint32_t frame_index, const uint64_t timestamp,
+                                                const uint16_t radar_position_id, const uint16_t radar_mode,
+                                                const uint16_t total_points_in_frame,
+                                                const uint16_t num_points_in_packet)
+{
+    const float x_meters_min = -100.0F;
+    const float x_meters_max = 100.0F;
+    const float x_meters_step = 12.33F;
+    const float y_meters_min = -15.0F;
+    const float y_meters_max = 15.0F;
+    const float y_meters_step = 1.17F;
+    const float z_meters_min = -2.0F;
+    const float z_meters_max = 25.0F;
+    const float z_meters_step = 0.47F;
+    const float velocity_min = -30.0F;
+    const float velocity_max = 30.0F;
+    const float velocity_step = 5.31F;
+    const float signal_to_noise_ratio_min = 2.0F;
+    const float signal_to_noise_ratio_max = 50.0F;
+    const float signal_to_noise_ratio_step = 3.73F;
+    const float half = 0.5F;
+
+    float x_meters = (x_meters_min + x_meters_max) * half;
+    float y_meters = (y_meters_min + y_meters_max) * half;
+    float z_meters = (z_meters_min + z_meters_max) * half;
+    float velocity = (velocity_min + velocity_max) * half;
+    float signal_to_noise_ratio = (signal_to_noise_ratio_min + signal_to_noise_ratio_max) * half;
+
+    memset(packet, 0, sizeof(provizio_radar_point_cloud_packet_protocol_v1));
+
+    provizio_set_protocol_field_uint16_t(&packet->header.protocol_header.packet_type,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE);
+    provizio_set_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version, 1);
+    provizio_set_protocol_field_uint32_t(&packet->header.frame_index, frame_index);
+    provizio_set_protocol_field_uint64_t(&packet->header.timestamp, timestamp);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_position_id, radar_position_id);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_mode, radar_mode);
+    provizio_set_protocol_field_uint16_t(&packet->header.total_points_in_frame, total_points_in_frame);
+    provizio_set_protocol_field_uint16_t(&packet->header.num_points_in_packet, num_points_in_packet);
+
+#pragma unroll(8)
+    for (uint16_t j = 0; j < num_points_in_packet; ++j) // NOLINT: The loop is just fine
+    {
+#define PROVIZIO__NEXT_TEST_VALUE(v) ((v##_min) + fmodf((v) + (v##_step) - (v##_min), (v##_max) - (v##_min)))
+        x_meters = PROVIZIO__NEXT_TEST_VALUE(x_meters);
+        y_meters = PROVIZIO__NEXT_TEST_VALUE(y_meters);
+        z_meters = PROVIZIO__NEXT_TEST_VALUE(z_meters);
+        velocity = PROVIZIO__NEXT_TEST_VALUE(velocity);
+        signal_to_noise_ratio = PROVIZIO__NEXT_TEST_VALUE(signal_to_noise_ratio);
+#undef PROVIZIO__NEXT_TEST_VALUE
+
+        provizio_set_protocol_field_float(&packet->radar_points[j].x_meters, x_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].y_meters, y_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].z_meters, z_meters);
+        provizio_set_protocol_field_float(&packet->radar_points[j].radar_relative_radial_velocity_m_s, velocity);
+        provizio_set_protocol_field_float(&packet->radar_points[j].signal_to_noise_ratio, signal_to_noise_ratio);
+    }
+
+    return 0;
 }
 
 static void test_provizio_radar_point_cloud_packet_size(void)
@@ -364,8 +514,10 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ok(void)
     const uint16_t num_points = 11;
     const uint16_t points_in_packet = 10;
 
-    provizio_radar_point_cloud_api_context api_contexts[2];
-    const size_t num_contexts = sizeof(api_contexts) / sizeof(api_contexts[0]);
+    const size_t num_contexts = 2;
+    provizio_radar_point_cloud_api_context *api_contexts =
+        (provizio_radar_point_cloud_api_context *)malloc(sizeof(provizio_radar_point_cloud_api_context) * num_contexts);
+    TEST_ASSERT_NOT_EQUAL(NULL, api_contexts);
     provizio_radar_point_cloud_api_contexts_init(NULL, NULL, api_contexts, num_contexts);
 
     for (size_t i = 0; i < num_contexts; ++i) // NOLINT: Don't unroll the loop
@@ -383,13 +535,123 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ok(void)
         provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
         provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, points_in_packet);
 
-        provizio_radar_point_cloud_api_context api_context;
-        provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
-
         TEST_ASSERT_EQUAL_INT32(
             0, provizio_handle_possible_radars_point_cloud_packet(
                    api_contexts, num_contexts, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     }
+    free(api_contexts);
+}
+
+static void test_provizio_handle_possible_radars_point_cloud_packet_ground_velocity(void)
+{
+    const uint32_t frame_index = 1000;
+    const uint64_t timestamp = 0x0123456789abcdef;
+    const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
+    const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
+    const uint16_t num_points = 10;
+    const uint16_t points_in_packet = 10;
+
+    const size_t num_contexts = 2;
+    provizio_radar_point_cloud_api_context *api_contexts =
+        (provizio_radar_point_cloud_api_context *)malloc(sizeof(provizio_radar_point_cloud_api_context) * num_contexts);
+    TEST_ASSERT_NOT_EQUAL(NULL, api_contexts);
+
+    test_provizio_radar_point_cloud_callback_data *callback_data =
+        (test_provizio_radar_point_cloud_callback_data *)malloc(sizeof(test_provizio_radar_point_cloud_callback_data));
+    TEST_ASSERT_NOT_EQUAL(NULL, callback_data);
+    memset(callback_data, 0, sizeof(test_provizio_radar_point_cloud_callback_data));
+
+    provizio_radar_point_cloud_api_contexts_init(&test_provizio_radar_point_cloud_callback, callback_data, api_contexts,
+                                                 num_contexts);
+
+    for (size_t i = 0; i < num_contexts; ++i) // NOLINT: Don't unroll the loop
+    {
+        provizio_radar_point_cloud_packet packet;
+        memset(&packet, 0, sizeof(packet));
+
+        TEST_ASSERT_EQUAL_INT32(0, // NOLINT
+                                create_test_pointcloud_packet(&packet, frame_index, timestamp, radar_position_ids[i],
+                                                              radar_modes[i], num_points, points_in_packet));
+
+        TEST_ASSERT_EQUAL_INT32(
+            0, // NOLINT
+            provizio_handle_possible_radars_point_cloud_packet(api_contexts, num_contexts, &packet,
+                                                               provizio_radar_point_cloud_packet_size(&packet.header)));
+
+        TEST_ASSERT_EQUAL_FLOAT( // NOLINT
+            8.14, callback_data->last_point_clouds[0].radar_points[0].ground_relative_radial_velocity_m_s);
+    }
+
+    free(api_contexts);
+    free(callback_data);
+}
+
+static void test_provizio_check_radar_point_cloud_packet_v1(void)
+{
+    TEST_ASSERT_EQUAL_INT32(0, offsetof(provizio_radar_point_cloud_packet_protocol_v1, header));
+    TEST_ASSERT_EQUAL_INT32(24, offsetof(provizio_radar_point_cloud_packet_protocol_v1, radar_points));
+    TEST_ASSERT_EQUAL_INT32(1464, sizeof(provizio_radar_point_cloud_packet_protocol_v1));
+    TEST_ASSERT_EQUAL_INT32(0, offsetof(provizio_radar_point_protocol_v1, x_meters));
+    TEST_ASSERT_EQUAL_INT32(4, offsetof(provizio_radar_point_protocol_v1, y_meters));
+    TEST_ASSERT_EQUAL_INT32(8, offsetof(provizio_radar_point_protocol_v1, z_meters));
+    TEST_ASSERT_EQUAL_INT32(12, offsetof(provizio_radar_point_protocol_v1, radar_relative_radial_velocity_m_s));
+    TEST_ASSERT_EQUAL_INT32(16, offsetof(provizio_radar_point_protocol_v1, signal_to_noise_ratio));
+    TEST_ASSERT_EQUAL_INT32(20, sizeof(provizio_radar_point_protocol_v1));
+}
+
+static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
+{
+    const uint32_t frame_index = 1000;
+    const uint64_t timestamp = 0x0123456789abcdef;
+    const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
+    const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
+    const uint16_t points_in_packet = 72;
+    const uint16_t num_points = 72;
+
+    const size_t num_contexts = 2;
+    provizio_radar_point_cloud_api_context *api_contexts =
+        (provizio_radar_point_cloud_api_context *)malloc(sizeof(provizio_radar_point_cloud_api_context) * num_contexts);
+    TEST_ASSERT_NOT_EQUAL(NULL, api_contexts);
+
+    test_provizio_radar_point_cloud_callback_data *callback_data =
+        (test_provizio_radar_point_cloud_callback_data *)malloc(sizeof(test_provizio_radar_point_cloud_callback_data));
+    TEST_ASSERT_NOT_EQUAL(NULL, callback_data);
+    memset(callback_data, 0, sizeof(test_provizio_radar_point_cloud_callback_data));
+
+    provizio_radar_point_cloud_api_contexts_init(&test_provizio_radar_point_cloud_callback, callback_data, api_contexts,
+                                                 num_contexts);
+
+    for (size_t i = 0; i < num_contexts; ++i) // NOLINT: Don't unroll the loop
+    {
+        provizio_radar_point_cloud_packet_protocol_v1 packet;
+        memset(&packet, 0, sizeof(packet));
+
+        TEST_ASSERT_EQUAL_INT32(0, // NOLINT
+                                create_test_pointcloud_packet_v1(&packet, frame_index, timestamp, radar_position_ids[i],
+                                                                 radar_modes[i], num_points, points_in_packet));
+
+        TEST_ASSERT_EQUAL_INT32( // NOLINT
+            0, provizio_handle_possible_radars_point_cloud_packet(
+                   api_contexts, num_contexts, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
+
+        for (size_t j = 0; j < num_points; ++j)
+        {
+            TEST_ASSERT_EQUAL_FLOAT( // NOLINT
+                nanf(""), callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
+        }
+
+        // test greater than max allowed radar points in udp packet for protocol version 1 (code coverage)
+        packet.header.frame_index += 1;
+        packet.header.num_points_in_packet += 1;
+
+        TEST_ASSERT_EQUAL_INT32( // NOLINT
+            PROVIZIO_E_SKIPPED,
+            provizio_handle_possible_radars_point_cloud_packet(api_contexts, num_contexts, &packet,
+                                                               provizio_radar_point_cloud_packet_size(&packet.header)));
+    }
+
+    free(api_contexts);
+    free(callback_data);
 }
 
 int provizio_run_test_radar_point_cloud(void)
@@ -409,6 +671,9 @@ int provizio_run_test_radar_point_cloud(void)
     RUN_TEST(test_provizio_handle_possible_radar_point_cloud_packet_wrong_protocol_version);
     RUN_TEST(test_provizio_handle_possible_radar_point_cloud_packet_ok);
     RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_ok);
+    RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_ground_velocity);
+    RUN_TEST(test_provizio_handle_possible_radars_point_cloud_packet_v1);
+    RUN_TEST(test_provizio_check_radar_point_cloud_packet_v1);
 
     return UNITY_END();
 }

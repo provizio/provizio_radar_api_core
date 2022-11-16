@@ -21,7 +21,7 @@
 #include "provizio/socket.h"
 
 // To be incremented on any breaking protocol changes (used for backward compatibility)
-#define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)1)
+#define PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION ((uint16_t)2)
 
 // Radar point cloud structures of the binary UDP protocol are defined here, see README.md for more details
 
@@ -38,11 +38,13 @@
  */
 typedef struct
 {
-    float x_meters;     // Forward, radar relative
-    float y_meters;     // Left, radar relative
-    float z_meters;     // Up, radar relative
-    float velocity_m_s; // Forward, radar relative
+    float x_meters;                           // Forward, radar relative
+    float y_meters;                           // Left, radar relative
+    float z_meters;                           // Up, radar relative
+    float radar_relative_radial_velocity_m_s; // Forward, radar relative
     float signal_to_noise_ratio;
+    float ground_relative_radial_velocity_m_s; // Ground relative projection to the radar forward axis (NaN if
+                                               // unavailable)
 } provizio_radar_point;
 
 /**
@@ -271,6 +273,16 @@ static_assert(sizeof(provizio_radar_point_cloud_packet) ==
                   sizeof(provizio_radar_point_cloud_packet_header) +
                       sizeof(provizio_radar_point) * PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET,
               "Unexpected size of provizio_radar_point_cloud_packet");
+static_assert(offsetof(provizio_radar_point, x_meters) == 0, "Unexpected position of x_meters in provizio_radar_point");
+static_assert(offsetof(provizio_radar_point, y_meters) == 4, "Unexpected position of y_meters in provizio_radar_point");
+static_assert(offsetof(provizio_radar_point, z_meters) == 8, "Unexpected position of z_meters in provizio_radar_point");
+static_assert(offsetof(provizio_radar_point, radar_relative_radial_velocity_m_s) == 12,
+              "Unexpected position of radar_relative_radial_velocity_m_s in provizio_radar_point");
+static_assert(offsetof(provizio_radar_point, signal_to_noise_ratio) == 16,
+              "Unexpected position of signal_to_noise_ratio in provizio_radar_point");
+static_assert(offsetof(provizio_radar_point, ground_relative_radial_velocity_m_s) == 20,
+              "Unexpected position of ground_relative_radial_velocity_m_s in provizio_radar_point");
+static_assert(sizeof(provizio_radar_point) == 24, "Unexpected size of provizio_radar_point");
 #endif // defined(__cplusplus) && __cplusplus >= 201103L
 
 #endif // PROVIZIO_RADAR_API_RADAR_POINT_CLOUD
