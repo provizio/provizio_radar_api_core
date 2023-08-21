@@ -122,3 +122,9 @@ jobs:
       - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DENABLE_COVERAGE=ON
       - run: .github/workflows/test.sh
       - run: .github/workflows/coverage.sh
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: code_coverage_report
+          path: build/code_coverage_report/
+          retention-days: 1
