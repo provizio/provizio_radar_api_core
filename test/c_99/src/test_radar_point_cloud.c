@@ -548,7 +548,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
     const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
-    const uint16_t num_points = 10;
+    const uint16_t total_points = 10;
     const uint16_t points_in_packet = 10;
 
     const size_t num_contexts = 2;
@@ -571,7 +571,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
 
         TEST_ASSERT_EQUAL_INT32(0, // NOLINT
                                 create_test_pointcloud_packet(&packet, frame_index, timestamp, radar_position_ids[i],
-                                                              radar_modes[i], num_points, points_in_packet));
+                                                              radar_modes[i], total_points, points_in_packet));
 
         TEST_ASSERT_EQUAL_INT32(
             0, // NOLINT
@@ -579,7 +579,8 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
                                                                provizio_radar_point_cloud_packet_size(&packet.header)));
 
         TEST_ASSERT_EQUAL_FLOAT( // NOLINT
-            8.14, callback_data->last_point_clouds[0].radar_points[0].ground_relative_radial_velocity_m_s);
+            8.14,                // NOLINT
+            callback_data->last_point_clouds[0].radar_points[0].ground_relative_radial_velocity_m_s);
     }
 
     free(api_contexts);
@@ -606,7 +607,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
     const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
     const uint16_t points_in_packet = 72;
-    const uint16_t num_points = 72;
+    const uint16_t total_points = 72;
 
     const size_t num_contexts = 2;
     provizio_radar_point_cloud_api_context *api_contexts =
@@ -628,13 +629,13 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
 
         TEST_ASSERT_EQUAL_INT32(0, // NOLINT
                                 create_test_pointcloud_packet_v1(&packet, frame_index, timestamp, radar_position_ids[i],
-                                                                 radar_modes[i], num_points, points_in_packet));
+                                                                 radar_modes[i], total_points, points_in_packet));
 
         TEST_ASSERT_EQUAL_INT32( // NOLINT
             0, provizio_handle_possible_radars_point_cloud_packet(
                    api_contexts, num_contexts, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
 
-        for (size_t j = 0; j < num_points; ++j)
+        for (size_t j = 0; j < total_points; ++j)
         {
             TEST_ASSERT_EQUAL_FLOAT( // NOLINT
                 nanf(""), callback_data->last_point_clouds[0].radar_points[j].ground_relative_radial_velocity_m_s);
