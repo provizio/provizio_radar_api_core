@@ -1,6 +1,6 @@
 # provizio_radar_api_core
 
-- [provizio_radar_api_core](#provizio_radar_api_core)
+- [provizio\_radar\_api\_core](#provizio_radar_api_core)
   - [How-To](#how-to)
     - [Building and Linking](#building-and-linking)
     - [Initialization](#initialization)
@@ -11,7 +11,7 @@
     - [Point Clouds Accumulation](#point-clouds-accumulation)
       - [Example of Point Clouds Accumulation](#example-of-point-clouds-accumulation)
       - [Accumulation Initialization](#accumulation-initialization)
-      - [Storing Localization Information in provizio_enu_fix](#storing-localization-information-in-provizio_enu_fix)
+      - [Storing Localization Information in provizio\_enu\_fix](#storing-localization-information-in-provizio_enu_fix)
       - [Accumulating Point Clouds](#accumulating-point-clouds)
       - [Accumulation Filters](#accumulation-filters)
       - [Retrieving Accumulated Points](#retrieving-accumulated-points)
@@ -27,7 +27,7 @@ The official C library providing API for communicating with Provizio radars.
 - Open-source as Apache License 2.0 (see [LICENSE](LICENSE))
 - Written in C (supports C99+, can also be used in C++ and other client languages)​
 - Supports Linux, macOS, Windows; x64/x86/ARM
-- Built with CMake 3.1.0+
+- Built with CMake 3.10+
 - No external dependencies (unit tests that can be disabled have open-source dependencies under compatible licenses, automatically resolved during build from Provizio forks when enabled)​
 - No dynamic allocations internally, uses client-preallocated objects (can use stack, heap, custom allocation)​
 - No threads created internally but supports single-threaded and multi-threaded use​
