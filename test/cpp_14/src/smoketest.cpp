@@ -222,8 +222,8 @@ int main(int argc, char *argv[])
                 const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to establish an API connection"};
-                // LCOV_EXCL_STOP
             }
+            // LCOV_EXCL_STOP
 
             error_code = provizio_radar_api_receive_packet(&connection);
             if (error_code != 0)
@@ -232,8 +232,8 @@ int main(int argc, char *argv[])
                 const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to receive a packet"};
-                // LCOV_EXCL_STOP
             }
+            // LCOV_EXCL_STOP
 
             if (received_point_cloud->num_points_expected != num_points ||
                 received_point_cloud->num_points_received != num_points ||
