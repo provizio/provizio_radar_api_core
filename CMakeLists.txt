@@ -23,6 +23,10 @@ set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
 include(CTest)
 enable_testing()
 
+if(BUILD_TESTING)
+find_package(Threads REQUIRED)
+endif(BUILD_TESTING)
+
 # Release by default
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")

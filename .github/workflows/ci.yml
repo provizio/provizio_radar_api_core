@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, ubuntu-20.04, macos-latest, linux_arm]
+        runner: [ubuntu-latest, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:

@@ -52,7 +52,6 @@ if(WIN32)
 
   set(MATH_LIB "")
 else(WIN32)
-  find_package(Threads REQUIRED)
   set(PTHREAD_LIB Threads::Threads)
   set(MATH_LIB m)
 endif(WIN32)

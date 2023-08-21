@@ -14,7 +14,6 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-find_package(Threads REQUIRED)
 add_executable(provizio_radar_api_core_test_cpp_14 src/smoketest.cpp)
 target_link_libraries(provizio_radar_api_core_test_cpp_14
                       provizio_radar_api_core Threads::Threads)
