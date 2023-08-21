@@ -22,8 +22,8 @@
 
 void test_provizio_radar_points_accumulation_filter_copy_all_empty(void)
 {
-    provizio_radar_point in_points;
-    provizio_radar_point out_points;
+    provizio_radar_point in_points = {0};
+    provizio_radar_point out_points = {0};
     uint16_t num_out_points = UINT16_MAX;
     provizio_radar_points_accumulation_filter_copy_all(&in_points, 0, NULL, 0, NULL, NULL, &out_points,
                                                        &num_out_points);
@@ -57,8 +57,8 @@ void test_provizio_radar_points_accumulation_filter_copy_all(void)
 
 void test_provizio_radar_points_accumulation_filter_static_empty(void)
 {
-    provizio_radar_point in_points;
-    provizio_radar_point out_points;
+    provizio_radar_point in_points = {0};
+    provizio_radar_point out_points = {0};
     uint16_t num_out_points = UINT16_MAX;
     provizio_radar_points_accumulation_filter_static(&in_points, 0, NULL, 0, NULL, NULL, &out_points, &num_out_points);
     TEST_ASSERT_EQUAL_UINT16(0, num_out_points);

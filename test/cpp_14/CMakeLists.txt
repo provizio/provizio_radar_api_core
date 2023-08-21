@@ -12,9 +12,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.10)
 
-find_package(Threads)
 add_executable(provizio_radar_api_core_test_cpp_14 src/smoketest.cpp)
 target_link_libraries(provizio_radar_api_core_test_cpp_14
                       provizio_radar_api_core Threads::Threads)

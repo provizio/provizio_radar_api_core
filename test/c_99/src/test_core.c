@@ -410,7 +410,8 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     TEST_ASSERT_EQUAL_FLOAT(22.4543F, // NOLINT
                             callback_data->last_point_clouds[0].radar_points[num_points - 1].z_meters);
     TEST_ASSERT_EQUAL_FLOAT( // NOLINT
-        -1.95574F, callback_data->last_point_clouds[0].radar_points[num_points - 1].radar_relative_radial_velocity_m_s);
+        -1.95574F,           // NOLINT
+        callback_data->last_point_clouds[0].radar_points[num_points - 1].radar_relative_radial_velocity_m_s);
     TEST_ASSERT_EQUAL_FLOAT(42.63091F, // NOLINT
                             callback_data->last_point_clouds[0].radar_points[num_points - 1].signal_to_noise_ratio);
 
@@ -501,7 +502,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
         TEST_ASSERT_EQUAL_FLOAT(22.4543F, // NOLINT
                                 callback_data->last_point_clouds[i].radar_points[num_points - 1].z_meters);
         TEST_ASSERT_EQUAL_FLOAT( // NOLINT
-            -1.95574F,
+            -1.95574F,           // NOLINT
             callback_data->last_point_clouds[i].radar_points[num_points - 1].radar_relative_radial_velocity_m_s);
         TEST_ASSERT_EQUAL_FLOAT(42.63091F, // NOLINT
                                 callback_data->last_point_clouds[i].radar_points[num_points - 1].signal_to_noise_ratio);

@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.10)
 
 project(provizio_radar_api_core VERSION 0.1.0)
 
@@ -22,6 +22,10 @@ set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
 # Enable CTest
 include(CTest)
 enable_testing()
+
+if(BUILD_TESTING)
+find_package(Threads REQUIRED)
+endif(BUILD_TESTING)
 
 # Release by default
 if(NOT CMAKE_BUILD_TYPE)
