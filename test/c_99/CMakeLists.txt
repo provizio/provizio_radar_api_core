@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.10)
 
 if(WIN32)
   # Resolve pthread-win32 (https://github.com/provizio/pthread-win32)
@@ -52,7 +52,7 @@ if(WIN32)
 
   set(MATH_LIB "")
 else(WIN32)
-  find_package(Threads)
+  find_package(Threads REQUIRED)
   set(PTHREAD_LIB Threads::Threads)
   set(MATH_LIB m)
 endif(WIN32)
