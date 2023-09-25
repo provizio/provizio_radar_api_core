@@ -24,6 +24,7 @@
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
 
+// deprecated - to be removed / refactored ???
 typedef enum provizio_radar_mode
 {
     provizio_radar_mode_short_range = 0,
@@ -34,6 +35,26 @@ typedef enum provizio_radar_mode
 
     provizio_radar_mode_unknown = ((uint16_t)0xffff)
 } provizio_radar_mode;
+
+typedef enum provizio_radar_range
+{
+    provizio_radar_range_short = 0,
+    provizio_radar_range_medium = 1,
+    provizio_radar_range_long = 2,
+    provizio_radar_range_ultra_long = 3,
+    provizio_radar_range_hyper_long = 4,
+
+    provizio_radar_range_unknown = ((uint16_t)0xffff)
+} provizio_radar_range;
+
+typedef enum provizio_radar_multiplex
+{
+    provizio_radar_multiplex_tdma = 0,
+    provizio_radar_multiplex_ddma = 1,
+    provizio_radar_multiplex_sptdma = 2,
+
+    provizio_radar_multiplex_unknown = ((uint16_t)0xffff)
+} provizio_radar_multiplex;
 
 /**
  * @brief Packet structure for a radar mode change request
