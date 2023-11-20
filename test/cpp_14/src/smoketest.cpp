@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
     {
         provizio_sockets_deinitialize();
 
-        std::cerr << e.what() << " (error code = " << error_code << ")" << std::endl;
+        std::cerr << e.what() << " (error code = " << error_code << ")\n";
         return error_code != 0 ? error_code : -1;
     }
     // LCOV_EXCL_STOP
