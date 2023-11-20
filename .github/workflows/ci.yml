@@ -63,7 +63,8 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, macos-latest, linux_arm]
+        # Disabled in Ubuntu 20 and 18 due to a known bug in them: https://bugs.launchpad.net/ubuntu/+source/gcc-9/+bug/2029910
+        runner: [ubuntu-latest, macos-latest]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
