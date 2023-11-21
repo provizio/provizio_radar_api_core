@@ -19,8 +19,8 @@
 
 // Values are used to identify packet types, can't change even on protocol updates
 #define PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE ((uint16_t)1)
-#define PROVIZIO__RADAR_API_SET_MODE_PACKET_TYPE ((uint16_t)2)
-#define PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE ((uint16_t)3)
+#define PROVIZIO__RADAR_API_SET_RANGE_PACKET_TYPE ((uint16_t)2)
+#define PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE ((uint16_t)3)
 
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)

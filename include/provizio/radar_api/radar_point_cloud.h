@@ -16,8 +16,8 @@
 #define PROVIZIO_RADAR_API_RADAR_POINT_CLOUD
 
 #include "provizio/radar_api/common.h"
-#include "provizio/radar_api/radar_modes.h"
 #include "provizio/radar_api/radar_position.h"
+#include "provizio/radar_api/radar_ranges.h"
 #include "provizio/socket.h"
 
 // To be incremented on any breaking protocol changes (used for backward compatibility)
@@ -70,7 +70,7 @@ typedef struct provizio_radar_point_cloud_packet_header
     uint16_t radar_position_id;     // Either one of provizio_radar_position enum values or a custom position id
     uint16_t total_points_in_frame; // Number of points in the entire frame
     uint16_t num_points_in_packet;  // Number of points in this single packet
-    uint16_t radar_mode;            // One of provizio_radar_mode enum values
+    uint16_t radar_range;           // One of provizio_radar_range enum values
 } provizio_radar_point_cloud_packet_header;
 
 // Max number of radar points in a single UDP packet
@@ -120,7 +120,7 @@ typedef struct provizio_radar_point_cloud
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
-    uint16_t radar_mode;          // One of provizio_radar_mode enum values
+    uint16_t radar_range;         // One of provizio_radar_range enum values
     provizio_radar_point radar_points[PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD];
 } provizio_radar_point_cloud;
 

@@ -43,7 +43,7 @@ typedef struct test_stop_when_ordered_thread_data // NOLINT: it's aligned exactl
     uint32_t first_frame_index;
     uint64_t initial_timestamp;
     uint16_t *radar_position_ids;
-    uint16_t *radar_modes;
+    uint16_t *radar_ranges;
     size_t num_radars;
     uint16_t num_points;
     test_stop_when_ordered_callback_data stop_condition;
@@ -104,7 +104,7 @@ static int32_t test_stop_when_ordered(const provizio_radar_point_cloud_packet *p
 }
 
 static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t timestamp,
-                                    const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                    const uint16_t *radar_position_ids, const uint16_t *radar_ranges,
                                     const size_t num_radars, const uint16_t num_points,
                                     const uint16_t drop_after_num_points,
                                     provizio_radar_point_cloud_packet_callback callback, void *user_data)
@@ -166,8 +166,8 @@ static int32_t make_test_pointcloud(const uint32_t frame_index, const uint64_t t
             provizio_set_protocol_field_uint32_t(&packet.header.frame_index, frame_index);
             provizio_set_protocol_field_uint64_t(&packet.header.timestamp, timestamp);
             provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_ids[i]);
-            provizio_set_protocol_field_uint16_t(&packet.header.radar_mode,
-                                                 radar_modes != NULL ? radar_modes[i] : provizio_radar_mode_unknown);
+            provizio_set_protocol_field_uint16_t(&packet.header.radar_range,
+                                                 radar_ranges != NULL ? radar_ranges[i] : provizio_radar_range_unknown);
             provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
             provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, points_in_packet);
 
@@ -237,7 +237,7 @@ static int32_t send_point_cloud_packet(const provizio_radar_point_cloud_packet *
 }
 
 static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_index, const uint64_t timestamp,
-                                     const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                     const uint16_t *radar_position_ids, const uint16_t *radar_ranges,
                                      const size_t num_radars, const uint16_t num_points,
                                      const uint16_t drop_after_num_points,
                                      provizio_radar_point_cloud_packet_callback on_packet_sent, void *user_data)
@@ -283,7 +283,7 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
     send_data.further_callback = on_packet_sent;
     send_data.user_data = user_data;
 
-    status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, radar_modes, num_radars, num_points,
+    status = make_test_pointcloud(frame_index, timestamp, radar_position_ids, radar_ranges, num_radars, num_points,
                                   drop_after_num_points, &send_point_cloud_packet, &send_data);
     if (status != 0)
     {
@@ -305,7 +305,7 @@ static int32_t send_test_point_cloud(const uint16_t port, const uint32_t frame_i
 
 static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const uint32_t first_frame_index,
                                                     const uint64_t initial_timestamp,
-                                                    const uint16_t *radar_position_ids, const uint16_t *radar_modes,
+                                                    const uint16_t *radar_position_ids, const uint16_t *radar_ranges,
                                                     const size_t num_radars, const uint16_t num_points,
                                                     provizio_radar_point_cloud_packet_callback on_packet_sent,
                                                     void *user_data)
@@ -319,7 +319,7 @@ static int32_t send_test_point_clouds_until_stopped(const uint16_t port, const u
     uint64_t timestamp = initial_timestamp;
     int32_t status = 0;
     while ((status = send_test_point_cloud(port, frame_index, timestamp, // NOLINT: don't unroll the loop
-                                           radar_position_ids, radar_modes, num_radars, num_points, num_points,
+                                           radar_position_ids, radar_ranges, num_radars, num_points, num_points,
                                            on_packet_sent, user_data)) == 0)
     {
         ++frame_index;
@@ -334,7 +334,7 @@ static void *test_stop_when_ordered_thread(void *thread_data)
 {
     test_stop_when_ordered_thread_data *data = (test_stop_when_ordered_thread_data *)thread_data;
     send_test_point_clouds_until_stopped(data->port, data->first_frame_index, data->initial_timestamp,
-                                         data->radar_position_ids, data->radar_modes, data->num_radars,
+                                         data->radar_position_ids, data->radar_ranges, data->num_radars,
                                          data->num_points, &test_stop_when_ordered, &data->stop_condition);
     return NULL;
 }
@@ -355,7 +355,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
-    const uint16_t radar_mode = provizio_radar_mode_long_range;
+    const uint16_t radar_range = provizio_radar_range_long;
     const uint16_t num_points = 32768;
 
     test_provizio_radar_point_cloud_callback_data *callback_data =
@@ -375,7 +375,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     send_test_callback_data.num_contexts = 1;
     send_test_callback_data.connection = &connection;
 
-    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, &radar_mode, 1, num_points,
+    status = send_test_point_cloud(port_number, frame_index, timestamp, &radar_position_id, &radar_range, 1, num_points,
                                    num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
@@ -386,7 +386,7 @@ static void test_receives_single_radar_point_cloud_from_single_radar(void)
     TEST_ASSERT_EQUAL_UINT32(frame_index, callback_data->last_point_clouds[0].frame_index);
     TEST_ASSERT_EQUAL_UINT64(timestamp, callback_data->last_point_clouds[0].timestamp);
     TEST_ASSERT_EQUAL_UINT16(radar_position_id, callback_data->last_point_clouds[0].radar_position_id);
-    TEST_ASSERT_EQUAL_UINT16(radar_mode, callback_data->last_point_clouds[0].radar_mode);
+    TEST_ASSERT_EQUAL_UINT16(radar_range, callback_data->last_point_clouds[0].radar_range);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[0].num_points_expected);
     TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[0].num_points_received);
 
@@ -436,7 +436,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     const uint32_t frame_index = 17;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_front_center};
-    const uint16_t radar_modes[2] = {provizio_radar_mode_short_range, provizio_radar_mode_ultra_long_range};
+    const uint16_t radar_ranges[2] = {provizio_radar_range_short, provizio_radar_range_ultra_long};
     const uint16_t num_radars = sizeof(radar_position_ids) / sizeof(radar_position_ids[0]);
     const uint16_t num_contexts = num_radars;
     const uint16_t num_points = 32768;
@@ -461,7 +461,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
     send_test_callback_data.connection = &connection;
 
     status =
-        send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, radar_modes, num_radars,
+        send_test_point_cloud(port_number, frame_index, timestamp, radar_position_ids, radar_ranges, num_radars,
                               num_points, num_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
@@ -478,7 +478,7 @@ static void test_receives_single_radar_point_cloud_from_2_radars(void)
         TEST_ASSERT_EQUAL_UINT64(timestamp, callback_data->last_point_clouds[i].timestamp);
         TEST_ASSERT_EQUAL_UINT16(radar_position_ids[radar_index],
                                  callback_data->last_point_clouds[i].radar_position_id);
-        TEST_ASSERT_EQUAL_UINT16(radar_modes[radar_index], callback_data->last_point_clouds[i].radar_mode);
+        TEST_ASSERT_EQUAL_UINT16(radar_ranges[radar_index], callback_data->last_point_clouds[i].radar_range);
         TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[i].num_points_expected);
         TEST_ASSERT_EQUAL_UINT16(num_points, callback_data->last_point_clouds[i].num_points_received);
 
@@ -775,7 +775,7 @@ static void test_receive_radar_point_cloud_timeout_ok(void)
     thread_data.first_frame_index = first_frame_index;
     thread_data.initial_timestamp = initial_timestamp;
     thread_data.radar_position_ids = &radar_position_id;
-    thread_data.radar_modes = NULL;
+    thread_data.radar_ranges = NULL;
     thread_data.num_radars = 1;
     thread_data.num_points = num_points;
     thread_data.stop_condition.mutex = &mutex;
@@ -880,7 +880,7 @@ static void test_provizio_radar_point_cloud_api_close_fails_as_not_connected(voi
     provizio_set_on_error(NULL);
 }
 
-typedef struct test_provizio_set_radar_mode_radar_thread_data
+typedef struct test_provizio_set_radar_range_radar_thread_data
 {
     pthread_mutex_t *mutex;
     int32_t ready_flag;
@@ -889,16 +889,16 @@ typedef struct test_provizio_set_radar_mode_radar_thread_data
     uint16_t packet_type;
     uint16_t protocol_version;
     uint16_t radar_position_id;
-    uint16_t requested_radar_mode;
+    uint16_t requested_radar_range;
     int32_t error_code;
 
-    provizio_set_radar_mode_packet requested_packet;
-} test_provizio_set_radar_mode_radar_thread_data;
+    provizio_set_radar_range_packet requested_packet;
+} test_provizio_set_radar_range_radar_thread_data;
 
-static void *test_provizio_set_radar_mode_radar_thread(void *thread_data_void)
+static void *test_provizio_set_radar_range_radar_thread(void *thread_data_void)
 {
-    test_provizio_set_radar_mode_radar_thread_data *thread_data =
-        (test_provizio_set_radar_mode_radar_thread_data *)thread_data_void;
+    test_provizio_set_radar_range_radar_thread_data *thread_data =
+        (test_provizio_set_radar_range_radar_thread_data *)thread_data_void;
 
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -916,10 +916,10 @@ static void *test_provizio_set_radar_mode_radar_thread(void *thread_data_void)
 
         struct sockaddr from;
         socklen_t from_len = (socklen_t)sizeof(from);
-        if ((size_t)recvfrom(sock, (char *)&thread_data->requested_packet, sizeof(provizio_set_radar_mode_packet), 0,
-                             &from, &from_len) == sizeof(provizio_set_radar_mode_packet))
+        if ((size_t)recvfrom(sock, (char *)&thread_data->requested_packet, sizeof(provizio_set_radar_range_packet), 0,
+                             &from, &from_len) == sizeof(provizio_set_radar_range_packet))
         {
-            provizio_set_radar_mode_acknowledgement_packet acknowledgement_packet;
+            provizio_set_radar_range_acknowledgement_packet acknowledgement_packet;
             memset(&acknowledgement_packet, 0, sizeof(acknowledgement_packet));
             provizio_set_protocol_field_uint16_t(&acknowledgement_packet.protocol_header.packet_type,
                                                  thread_data->packet_type);
@@ -927,8 +927,8 @@ static void *test_provizio_set_radar_mode_radar_thread(void *thread_data_void)
                                                  thread_data->protocol_version);
             provizio_set_protocol_field_uint16_t(&acknowledgement_packet.radar_position_id,
                                                  thread_data->radar_position_id);
-            provizio_set_protocol_field_uint16_t(&acknowledgement_packet.requested_radar_mode,
-                                                 thread_data->requested_radar_mode);
+            provizio_set_protocol_field_uint16_t(&acknowledgement_packet.requested_radar_range,
+                                                 thread_data->requested_radar_range);
             provizio_set_protocol_field_uint32_t((uint32_t *)&acknowledgement_packet.error_code,
                                                  (uint32_t)thread_data->error_code);
 
@@ -947,8 +947,8 @@ static void *test_provizio_set_radar_mode_radar_thread(void *thread_data_void)
     return NULL;
 }
 
-static void wait_till_test_provizio_set_radar_mode_radar_thread_ready(
-    test_provizio_set_radar_mode_radar_thread_data *thread_data)
+static void wait_till_test_provizio_set_radar_range_radar_thread_ready(
+    test_provizio_set_radar_range_radar_thread_data *thread_data)
 {
     const uint64_t sleep_time_ns = 20000000ULL;
     struct timespec sleep_timespec;
@@ -966,135 +966,137 @@ static void wait_till_test_provizio_set_radar_mode_radar_thread_ready(
     }
 }
 
-static void test_provizio_set_radar_mode_ok(void)
+static void test_provizio_set_radar_range_ok(void)
 {
-    const uint16_t port_number = 10011 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10011 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
-    TEST_ASSERT_EQUAL(0, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL(0, provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
 
     TEST_ASSERT_EQUAL(0, pthread_join(radar_thread, NULL));
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 
-    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_MODE_PACKET_TYPE,
+    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_RANGE_PACKET_TYPE,
                       provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.packet_type));
     TEST_ASSERT_EQUAL(
-        PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION,
+        PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION,
         provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.protocol_version));
     TEST_ASSERT_EQUAL((uint16_t)radar_position_id,
                       provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_position_id));
-    TEST_ASSERT_EQUAL((uint16_t)mode, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_mode));
+    TEST_ASSERT_EQUAL((uint16_t)range, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_range));
 }
 
-static void test_provizio_set_radar_mode_broadcasting_ok(void)
+static void test_provizio_set_radar_range_broadcasting_ok(void)
 {
-    const uint16_t port_number = 10012 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10012 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
-    TEST_ASSERT_EQUAL(0, provizio_set_radar_mode(radar_position_id, mode, port_number, "255.255.255.255"));
+    TEST_ASSERT_EQUAL(0, provizio_set_radar_range(radar_position_id, range, port_number, "255.255.255.255"));
 
     TEST_ASSERT_EQUAL(0, pthread_join(radar_thread, NULL));
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 
-    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_MODE_PACKET_TYPE,
+    TEST_ASSERT_EQUAL(PROVIZIO__RADAR_API_SET_RANGE_PACKET_TYPE,
                       provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.packet_type));
     TEST_ASSERT_EQUAL(
-        PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION,
+        PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION,
         provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.protocol_header.protocol_version));
     TEST_ASSERT_EQUAL((uint16_t)radar_position_id,
                       provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_position_id));
-    TEST_ASSERT_EQUAL((uint16_t)mode, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_mode));
+    TEST_ASSERT_EQUAL((uint16_t)range, provizio_get_protocol_field_uint16_t(&thread_data.requested_packet.radar_range));
 }
 
-static void test_provizio_set_radar_mode_invalid_mode(void)
+static void test_provizio_set_radar_range_invalid_range(void)
 {
-    const uint16_t port_number = 10013 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
-    // radar_position_id, mode
+    const uint16_t port_number = 10013 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
+    // radar_position_id, range
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_unknown;
+    const provizio_radar_range range = provizio_radar_range_unknown;
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_ARGUMENT, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: provizio_radar_mode_unknown is not a valid mode option!",
+    TEST_ASSERT_EQUAL(PROVIZIO_E_ARGUMENT,
+                      provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: provizio_radar_range_unknown is not a valid range option!",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
-static void test_provizio_set_radar_mode_timeout(void)
+static void test_provizio_set_radar_range_timeout(void)
 {
-    const uint16_t port_number = 10014 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10014 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: No acknowledgement received, likely due to a connection issue",
+    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: No acknowledgement received, likely due to a connection issue",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
-static void test_provizio_set_radar_mode_invalid_ack_packet_type(void)
+static void test_provizio_set_radar_range_invalid_ack_packet_type(void)
 {
-    const uint16_t port_number = 10015 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10015 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE + 1;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE + 1;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_PROTOCOL, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: Invalid acknowledgement packet type received",
+    TEST_ASSERT_EQUAL(PROVIZIO_E_PROTOCOL,
+                      provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: Invalid acknowledgement packet type received",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 
@@ -1102,64 +1104,65 @@ static void test_provizio_set_radar_mode_invalid_ack_packet_type(void)
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 }
 
-static void test_provizio_set_radar_mode_invalid_ack_protocol_version(void)
+static void test_provizio_set_radar_range_invalid_ack_protocol_version(void)
 {
-    const uint16_t port_number = 10016 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10016 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION + 1;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION + 1;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_PROTOCOL, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: Incompatible protocol version", provizio_test_error);
+    TEST_ASSERT_EQUAL(PROVIZIO_E_PROTOCOL,
+                      provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: Incompatible protocol version", provizio_test_error);
     provizio_set_on_error(NULL);
 
     TEST_ASSERT_EQUAL(0, pthread_join(radar_thread, NULL));
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 }
 
-static void test_provizio_set_radar_mode_timeout_due_to_incorrect_position(void)
+static void test_provizio_set_radar_range_timeout_due_to_incorrect_position(void)
 {
-    const uint16_t port_number = 10017 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10017 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = (uint16_t)(radar_position_id + 1);
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: No acknowledgement received, likely due to a connection issue",
+    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: No acknowledgement received, likely due to a connection issue",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 
@@ -1167,32 +1170,32 @@ static void test_provizio_set_radar_mode_timeout_due_to_incorrect_position(void)
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 }
 
-static void test_provizio_set_radar_mode_timeout_due_to_incorrect_mode(void)
+static void test_provizio_set_radar_range_timeout_due_to_incorrect_range(void)
 {
-    const uint16_t port_number = 10018 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10018 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = (uint16_t)(mode + 1);
+    thread_data.requested_radar_range = (uint16_t)(range + 1);
     thread_data.error_code = 0;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: No acknowledgement received, likely due to a connection issue",
+    TEST_ASSERT_EQUAL(PROVIZIO_E_TIMEOUT, provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: No acknowledgement received, likely due to a connection issue",
                              provizio_test_error);
     provizio_set_on_error(NULL);
 
@@ -1200,33 +1203,33 @@ static void test_provizio_set_radar_mode_timeout_due_to_incorrect_mode(void)
     TEST_ASSERT_EQUAL(0, pthread_mutex_destroy(&mutex));
 }
 
-static void test_provizio_set_radar_mode_unsupported_mode(void)
+static void test_provizio_set_radar_range_unsupported_range(void)
 {
-    const uint16_t port_number = 10019 + PROVIZIO__RADAR_API_SET_MODE_DEFAULT_PORT;
+    const uint16_t port_number = 10019 + PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT;
     const provizio_radar_position radar_position_id = provizio_radar_position_rear_right;
-    const provizio_radar_mode mode = provizio_radar_mode_long_range;
+    const provizio_radar_range range = provizio_radar_range_long;
 
     // Start the test radar thread
     pthread_mutex_t mutex;
     TEST_ASSERT_EQUAL(0, pthread_mutex_init(&mutex, NULL));
-    test_provizio_set_radar_mode_radar_thread_data thread_data;
+    test_provizio_set_radar_range_radar_thread_data thread_data;
     thread_data.mutex = &mutex;
     thread_data.ready_flag = 0;
     thread_data.port_number = port_number;
-    thread_data.packet_type = PROVIZIO__RADAR_API_SET_MODE_ACKNOWLEDGEMENT_PACKET_TYPE;
-    thread_data.protocol_version = PROVIZIO__RADAR_API_MODE_PROTOCOL_VERSION;
+    thread_data.packet_type = PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE;
+    thread_data.protocol_version = PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION;
     thread_data.radar_position_id = radar_position_id;
-    thread_data.requested_radar_mode = mode;
+    thread_data.requested_radar_range = range;
     thread_data.error_code = PROVIZIO_E_NOT_PERMITTED;
     pthread_t radar_thread; // NOLINT: Initialized in the next line
     TEST_ASSERT_EQUAL_INT32(
-        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_mode_radar_thread, &thread_data));
-    wait_till_test_provizio_set_radar_mode_radar_thread_ready(&thread_data);
+        0, pthread_create(&radar_thread, NULL, &test_provizio_set_radar_range_radar_thread, &thread_data));
+    wait_till_test_provizio_set_radar_range_radar_thread_ready(&thread_data);
 
     provizio_set_on_error(&test_provizio_on_error);
     TEST_ASSERT_EQUAL(PROVIZIO_E_NOT_PERMITTED,
-                      provizio_set_radar_mode(radar_position_id, mode, port_number, "127.0.0.1"));
-    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_mode: Failed to set the requested mode", provizio_test_error);
+                      provizio_set_radar_range(radar_position_id, range, port_number, "127.0.0.1"));
+    TEST_ASSERT_EQUAL_STRING("provizio_set_radar_range: Failed to set the requested range", provizio_test_error);
     provizio_set_on_error(NULL);
 
     TEST_ASSERT_EQUAL(0, pthread_join(radar_thread, NULL));
@@ -1248,15 +1251,15 @@ int provizio_run_test_core(void)
     RUN_TEST(test_receive_radar_point_cloud_timeout_fails);
     RUN_TEST(test_provizio_radar_point_cloud_api_contexts_receive_packet_fails_as_not_connected);
     RUN_TEST(test_provizio_radar_point_cloud_api_close_fails_as_not_connected);
-    RUN_TEST(test_provizio_set_radar_mode_ok);
-    RUN_TEST(test_provizio_set_radar_mode_broadcasting_ok);
-    RUN_TEST(test_provizio_set_radar_mode_invalid_mode);
-    RUN_TEST(test_provizio_set_radar_mode_timeout);
-    RUN_TEST(test_provizio_set_radar_mode_invalid_ack_packet_type);
-    RUN_TEST(test_provizio_set_radar_mode_invalid_ack_protocol_version);
-    RUN_TEST(test_provizio_set_radar_mode_timeout_due_to_incorrect_position);
-    RUN_TEST(test_provizio_set_radar_mode_timeout_due_to_incorrect_mode);
-    RUN_TEST(test_provizio_set_radar_mode_unsupported_mode);
+    RUN_TEST(test_provizio_set_radar_range_ok);
+    RUN_TEST(test_provizio_set_radar_range_broadcasting_ok);
+    RUN_TEST(test_provizio_set_radar_range_invalid_range);
+    RUN_TEST(test_provizio_set_radar_range_timeout);
+    RUN_TEST(test_provizio_set_radar_range_invalid_ack_packet_type);
+    RUN_TEST(test_provizio_set_radar_range_invalid_ack_protocol_version);
+    RUN_TEST(test_provizio_set_radar_range_timeout_due_to_incorrect_position);
+    RUN_TEST(test_provizio_set_radar_range_timeout_due_to_incorrect_range);
+    RUN_TEST(test_provizio_set_radar_range_unsupported_range);
 
     return UNITY_END();
 }

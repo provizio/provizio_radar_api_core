@@ -79,7 +79,7 @@ void test_provizio_radar_point_cloud_callback(const provizio_radar_point_cloud *
 
 static int32_t create_test_pointcloud_packet(provizio_radar_point_cloud_packet *packet, const uint32_t frame_index,
                                              const uint64_t timestamp, const uint16_t radar_position_id,
-                                             const uint16_t radar_mode, const uint16_t total_points_in_frame,
+                                             const uint16_t radar_range, const uint16_t total_points_in_frame,
                                              const uint16_t num_points_in_packet)
 {
     const float x_meters_min = -100.0F;
@@ -118,7 +118,7 @@ static int32_t create_test_pointcloud_packet(provizio_radar_point_cloud_packet *
     provizio_set_protocol_field_uint32_t(&packet->header.frame_index, frame_index);
     provizio_set_protocol_field_uint64_t(&packet->header.timestamp, timestamp);
     provizio_set_protocol_field_uint16_t(&packet->header.radar_position_id, radar_position_id);
-    provizio_set_protocol_field_uint16_t(&packet->header.radar_mode, radar_mode);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_range, radar_range);
     provizio_set_protocol_field_uint16_t(&packet->header.total_points_in_frame, total_points_in_frame);
     provizio_set_protocol_field_uint16_t(&packet->header.num_points_in_packet, num_points_in_packet);
 
@@ -149,7 +149,7 @@ static int32_t create_test_pointcloud_packet(provizio_radar_point_cloud_packet *
 
 static int32_t create_test_pointcloud_packet_v1(provizio_radar_point_cloud_packet_protocol_v1 *packet,
                                                 const uint32_t frame_index, const uint64_t timestamp,
-                                                const uint16_t radar_position_id, const uint16_t radar_mode,
+                                                const uint16_t radar_position_id, const uint16_t radar_range,
                                                 const uint16_t total_points_in_frame,
                                                 const uint16_t num_points_in_packet)
 {
@@ -184,7 +184,7 @@ static int32_t create_test_pointcloud_packet_v1(provizio_radar_point_cloud_packe
     provizio_set_protocol_field_uint32_t(&packet->header.frame_index, frame_index);
     provizio_set_protocol_field_uint64_t(&packet->header.timestamp, timestamp);
     provizio_set_protocol_field_uint16_t(&packet->header.radar_position_id, radar_position_id);
-    provizio_set_protocol_field_uint16_t(&packet->header.radar_mode, radar_mode);
+    provizio_set_protocol_field_uint16_t(&packet->header.radar_range, radar_range);
     provizio_set_protocol_field_uint16_t(&packet->header.total_points_in_frame, total_points_in_frame);
     provizio_set_protocol_field_uint16_t(&packet->header.num_points_in_packet, num_points_in_packet);
 
@@ -346,7 +346,7 @@ static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
     provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_id);
     provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
     provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, 1);
-    provizio_set_protocol_field_uint16_t(&packet.header.radar_mode, provizio_radar_mode_medium_range);
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_range, provizio_radar_range_medium);
 
     // Send first point
     TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
@@ -363,12 +363,12 @@ static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
                              provizio_test_warning);
     provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
 
-    // radar_mode mismatch
-    provizio_set_protocol_field_uint16_t(&packet.header.radar_mode, provizio_radar_mode_ultra_long_range);
+    // radar_range mismatch
+    provizio_set_protocol_field_uint16_t(&packet.header.radar_range, provizio_radar_range_ultra_long);
     TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
                                    &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     TEST_ASSERT_EQUAL_STRING(
-        "provizio_get_point_cloud_being_received: radar_mode mismatch across different packets of the same frame",
+        "provizio_get_point_cloud_being_received: radar_range mismatch across different packets of the same frame",
         provizio_test_warning);
 
     provizio_set_on_warning(NULL);
@@ -547,7 +547,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
     const uint32_t frame_index = 1000;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
-    const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
+    const uint16_t radar_ranges[2] = {provizio_radar_range_long, provizio_radar_range_medium};
     const uint16_t total_points = 10;
     const uint16_t points_in_packet = 10;
 
@@ -571,7 +571,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_ground_veloc
 
         TEST_ASSERT_EQUAL_INT32(0, // NOLINT
                                 create_test_pointcloud_packet(&packet, frame_index, timestamp, radar_position_ids[i],
-                                                              radar_modes[i], total_points, points_in_packet));
+                                                              radar_ranges[i], total_points, points_in_packet));
 
         TEST_ASSERT_EQUAL_INT32(
             0, // NOLINT
@@ -605,7 +605,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
     const uint32_t frame_index = 1000;
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_ids[2] = {provizio_radar_position_rear_left, provizio_radar_position_rear_right};
-    const uint16_t radar_modes[2] = {provizio_radar_mode_long_range, provizio_radar_mode_medium_range};
+    const uint16_t radar_ranges[2] = {provizio_radar_range_long, provizio_radar_range_medium};
     const uint16_t points_in_packet = 72;
     const uint16_t total_points = 72;
 
@@ -629,7 +629,7 @@ static void test_provizio_handle_possible_radars_point_cloud_packet_v1(void)
 
         TEST_ASSERT_EQUAL_INT32(0, // NOLINT
                                 create_test_pointcloud_packet_v1(&packet, frame_index, timestamp, radar_position_ids[i],
-                                                                 radar_modes[i], total_points, points_in_packet));
+                                                                 radar_ranges[i], total_points, points_in_packet));
 
         TEST_ASSERT_EQUAL_INT32( // NOLINT
             0, provizio_handle_possible_radars_point_cloud_packet(
