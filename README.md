@@ -1,6 +1,6 @@
 # provizio_radar_api_core
 
-- [provizio_radar_api_core](#provizio_radar_api_core)
+- [provizio\_radar\_api\_core](#provizio_radar_api_core)
   - [How-To](#how-to)
     - [Building and Linking](#building-and-linking)
     - [Initialization](#initialization)
@@ -11,7 +11,7 @@
     - [Point Clouds Accumulation](#point-clouds-accumulation)
       - [Example of Point Clouds Accumulation](#example-of-point-clouds-accumulation)
       - [Accumulation Initialization](#accumulation-initialization)
-      - [Storing Localization Information in provizio_enu_fix](#storing-localization-information-in-provizio_enu_fix)
+      - [Storing Localization Information in provizio\_enu\_fix](#storing-localization-information-in-provizio_enu_fix)
       - [Accumulating Point Clouds](#accumulating-point-clouds)
       - [Accumulation Filters](#accumulation-filters)
       - [Retrieving Accumulated Points](#retrieving-accumulated-points)
@@ -27,7 +27,7 @@ The official C library providing API for communicating with Provizio radars.
 - Open-source as Apache License 2.0 (see [LICENSE](LICENSE))
 - Written in C (supports C99+, can also be used in C++ and other client languages)​
 - Supports Linux, macOS, Windows; x64/x86/ARM
-- Built with CMake 3.1.0+
+- Built with CMake 3.10+
 - No external dependencies (unit tests that can be disabled have open-source dependencies under compatible licenses, automatically resolved during build from Provizio forks when enabled)​
 - No dynamic allocations internally, uses client-preallocated objects (can use stack, heap, custom allocation)​
 - No threads created internally but supports single-threaded and multi-threaded use​
@@ -125,7 +125,7 @@ There is a number of options to use it in your project. Some of the options:
 
     ```C
     // Somewhere in a header
-    
+
     void your_warning_handler(const char *warning);
     void your_error_handler(const char *error);
 
@@ -139,7 +139,7 @@ There is a number of options to use it in your project. Some of the options:
     * @note By default printing to stderr is used on warning.
     */
     provizio_set_on_warning(&your_warning_handler);
-    
+
     /**
     * @brief Specifies a custom function to be called on error
     *
@@ -179,7 +179,7 @@ There is a number of options to use it in your project. Some of the options:
     void* your_callback_data = <your optional callback data, may be NULL>;
 
     provizio_radar_point_cloud_api_context api_context;  // Large object, may cause stack overflow depending on your stack size
-    
+
     /**
     * @brief Initializes a provizio_radar_point_cloud_api_context object to handle a single radar
     *
@@ -208,7 +208,7 @@ There is a number of options to use it in your project. Some of the options:
 
     provizio_radar_point_cloud_api_context *api_contexts =
         (provizio_radar_point_cloud_api_context *)malloc(sizeof(provizio_radar_point_cloud_api_context) * num_contexts);
-    
+
     /**
     * @brief Initializes multiple provizio_radar_point_cloud_api_context objects to handle packets from multiple radars
     *
@@ -920,7 +920,7 @@ The Provizio radars UDP protocol:
 
 - Binary packets up to 1472 bytes long​
 - Can tolerate lost packets​
-- Point Clouds: up to 65535 points per point cloud, up to 72 points per UDP packet​
+- Point Clouds: up to 65535 points per point cloud, up to 60 points per UDP packet​
 - Supports single or multiple radars, on the same or different ports​
 - Permits identifying radars by position ids to allow for replacing radars easily​
 
@@ -932,24 +932,25 @@ Each packet has a size of 1472 bytes or less, depending on a number of points it
 
 Each packet has the following structure (all fields use network bytes order when applicable, no padding):
 
-| Field                          | Size (bytes)                         | Data Type | Description                                                                                                                     |
-| ------------------------------ | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| packet_type                    | 2                                    | uint16_t  | Always = 1, can't change even on protocol updates                                                                               |
-| protocol_version               | 2                                    | uint16_t  | Currently = 1, to be incremented on any protocol changes (used for backward compatibility)                                      |
-| frame_index                    | 4                                    | uint32_t  | 0-based frame index (resets back to 0 if ever exceeds 4294967295)                                                               |
-| timestamp                      | 8                                    | uint64_t  | Time of the frame capture measured in absolute number of nanoseconds since the start of the GPS Epoch (midnight on Jan 6, 1980) |
-| radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
-| total_points_in_frame          | 2                                    | uint16_t  | Total number of points in the frame #frame_index, never exceeds 65535                                                           |
-| num_points_in_packet           | 2                                    | uint16_t  | Number of points in the current packet, never exceeds (1472 - 24) / 20                                                          |
-| radar_mode                     | 2                                    | uint16_t  | Radar mode, one of provizio_radar_mode enum values                                                                              |
-| point_0: x_meters              | 4                                    | float     | Radar-relative X (forward) position of the point in meters                                                                      |
-| point_0: y_meters              | 4                                    | float     | Radar-relative Y (left) position of the point in meters                                                                         |
-| point_0: z_meters              | 4                                    | float     | Radar-relative Z (up) position of the point in meters                                                                           |
-| point_0: velocity_m_s          | 4                                    | float     | Radar-relative velocity of the point in meters per second                                                                       |
-| point_0: signal_to_noise_ratio | 4                                    | float     | Signal-to-noise ratio (unitless)                                                                                                |
-| point_1: ...                   |                                      |           |                                                                                                                                 |
-| ...                            |                                      |           |                                                                                                                                 |
-| **Total**                      | **24 + (20 * num_points_in_packet)** |           | Never exceeds 1472 bytes                                                                                                        |
+| Field                                                 | Size (bytes)                         | Data Type | Description                                                                                                                     |
+| ----------------------------------------------------- | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| packet_type                                           | 2                                    | uint16_t  | Always = 1, can't change even on protocol updates                                                                               |
+| protocol_version                                      | 2                                    | uint16_t  | Currently = 2, to be incremented on any protocol changes (used for backward compatibility)                                      |
+| frame_index                                           | 4                                    | uint32_t  | 0-based frame index (resets back to 0 if ever exceeds 4294967295)                                                               |
+| timestamp                                             | 8                                    | uint64_t  | Time of the frame capture measured in absolute number of nanoseconds since the start of the GPS Epoch (midnight on Jan 6, 1980) |
+| radar_position_id                                     | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
+| total_points_in_frame                                 | 2                                    | uint16_t  | Total number of points in the frame #frame_index, never exceeds 65535                                                           |
+| num_points_in_packet                                  | 2                                    | uint16_t  | Number of points in the current packet, never exceeds (1472 - 24) / 24                                                          |
+| radar_mode                                            | 2                                    | uint16_t  | Radar mode, one of provizio_radar_mode enum values                                                                              |
+| point_0: x_meters                                     | 4                                    | float     | Radar-relative X (forward) position of the point in meters                                                                      |
+| point_0: y_meters                                     | 4                                    | float     | Radar-relative Y (left) position of the point in meters                                                                         |
+| point_0: z_meters                                     | 4                                    | float     | Radar-relative Z (up) position of the point in meters                                                                           |
+| point_0: radar_relative_radial velocity_m_s           | 4                                    | float     | Radar-relative radial velocity of the point in meters per second                                                                |
+| point_0: signal_to_noise_ratio                        | 4                                    | float     | Signal-to-noise ratio (unitless)                                                                                                |
+| point_0: ground_relative_radial velocity_m_s          | 4                                    | float     | Ground-relative radial velocity of the point in meters per second                                                               |
+| point_1: ...                                          |                                      |           |                                                                                                                                 |
+| ...                                                   |                                      |           |                                                                                                                                 |
+| **Total**                                             | **24 + (24 * num_points_in_packet)** |           | Never exceeds 1472 bytes                                                                                                        |
 
 ### Radar Modes
 

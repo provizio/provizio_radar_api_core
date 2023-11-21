@@ -30,6 +30,7 @@ typedef enum provizio_radar_mode
     provizio_radar_mode_medium_range = 1,
     provizio_radar_mode_long_range = 2,
     provizio_radar_mode_ultra_long_range = 3,
+    provizio_radar_mode_hyper_long_range = 4,
 
     provizio_radar_mode_unknown = ((uint16_t)0xffff)
 } provizio_radar_mode;

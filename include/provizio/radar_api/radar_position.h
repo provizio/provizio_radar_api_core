@@ -24,6 +24,7 @@ typedef enum provizio_radar_position
     provizio_radar_position_front_right = 2,
     provizio_radar_position_rear_left = 3,
     provizio_radar_position_rear_right = 4,
+    provizio_radar_position_rear_center = 5,
 
     provizio_radar_position_custom = ((uint16_t)0x1000),
 

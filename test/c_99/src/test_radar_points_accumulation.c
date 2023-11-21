@@ -209,25 +209,25 @@ static void test_accumulate_radar_point_cloud_move(void)
     // Point Cloud 0
     point_clouds[0].frame_index = 0;
     point_clouds[0].num_points_expected = point_clouds[0].num_points_received = 1;
-    point_clouds[0].radar_points[0].x_meters = 1.0F;              // NOLINT: Fine in tests
-    point_clouds[0].radar_points[0].y_meters = 2.0F;              // NOLINT: Fine in tests
-    point_clouds[0].radar_points[0].z_meters = 3.0F;              // NOLINT: Fine in tests
-    point_clouds[0].radar_points[0].velocity_m_s = 4.0F;          // NOLINT: Fine in tests
-    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F; // NOLINT: Fine in tests
+    point_clouds[0].radar_points[0].x_meters = 1.0F;                           // NOLINT: Fine in tests
+    point_clouds[0].radar_points[0].y_meters = 2.0F;                           // NOLINT: Fine in tests
+    point_clouds[0].radar_points[0].z_meters = 3.0F;                           // NOLINT: Fine in tests
+    point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s = 4.0F; // NOLINT: Fine in tests
+    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: Fine in tests
 
     // Point Cloud 1
     point_clouds[1].frame_index = 2;
     point_clouds[1].num_points_expected = point_clouds[1].num_points_received = 2;
-    point_clouds[1].radar_points[0].x_meters = 10.0F;               // NOLINT: Fine in tests
-    point_clouds[1].radar_points[0].y_meters = 20.0F;               // NOLINT: Fine in tests
-    point_clouds[1].radar_points[0].z_meters = 30.0F;               // NOLINT: Fine in tests
-    point_clouds[1].radar_points[0].velocity_m_s = 40.0F;           // NOLINT: Fine in tests
-    point_clouds[1].radar_points[0].signal_to_noise_ratio = 50.0F;  // NOLINT: Fine in tests
-    point_clouds[1].radar_points[1].x_meters = 100.0F;              // NOLINT: Fine in tests
-    point_clouds[1].radar_points[1].y_meters = 200.0F;              // NOLINT: Fine in tests
-    point_clouds[1].radar_points[1].z_meters = 300.0F;              // NOLINT: Fine in tests
-    point_clouds[1].radar_points[1].velocity_m_s = 400.0F;          // NOLINT: Fine in tests
-    point_clouds[1].radar_points[1].signal_to_noise_ratio = 500.0F; // NOLINT: Fine in tests
+    point_clouds[1].radar_points[0].x_meters = 10.0F;                            // NOLINT: Fine in tests
+    point_clouds[1].radar_points[0].y_meters = 20.0F;                            // NOLINT: Fine in tests
+    point_clouds[1].radar_points[0].z_meters = 30.0F;                            // NOLINT: Fine in tests
+    point_clouds[1].radar_points[0].radar_relative_radial_velocity_m_s = 40.0F;  // NOLINT: Fine in tests
+    point_clouds[1].radar_points[0].signal_to_noise_ratio = 50.0F;               // NOLINT: Fine in tests
+    point_clouds[1].radar_points[1].x_meters = 100.0F;                           // NOLINT: Fine in tests
+    point_clouds[1].radar_points[1].y_meters = 200.0F;                           // NOLINT: Fine in tests
+    point_clouds[1].radar_points[1].z_meters = 300.0F;                           // NOLINT: Fine in tests
+    point_clouds[1].radar_points[1].radar_relative_radial_velocity_m_s = 400.0F; // NOLINT: Fine in tests
+    point_clouds[1].radar_points[1].signal_to_noise_ratio = 500.0F;              // NOLINT: Fine in tests
 
     // Fix 0
     fix_when_received[0].position.east_meters = 1.0F;  // NOLINT: Fine in tests
@@ -373,8 +373,8 @@ static void test_accumulate_radar_point_cloud_move(void)
                                 fix_when_received[1].position.up_meters + fix_when_received[0].position.up_meters,
                             transformed_accumulated_point_cloud->radar_points[0].z_meters);
     // TODO(APT-746): Velocities need to be updated for accumulated points
-    TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].velocity_m_s, // NOLINT
-                            transformed_accumulated_point_cloud->radar_points[0].velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s, // NOLINT
+                            transformed_accumulated_point_cloud->radar_points[0].radar_relative_radial_velocity_m_s);
     TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].signal_to_noise_ratio, // NOLINT
                             transformed_accumulated_point_cloud->radar_points[0].signal_to_noise_ratio);
 
@@ -395,8 +395,8 @@ static void test_accumulate_radar_point_cloud_move(void)
                                 fix_when_received[1].position.up_meters + fix_when_received[0].position.up_meters,
                             transformed_accumulated_point.z_meters);
     // TODO(APT-746): Velocities need to be updated for accumulated points
-    TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].velocity_m_s, // NOLINT
-                            transformed_accumulated_point.velocity_m_s);
+    TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s, // NOLINT
+                            transformed_accumulated_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_EQUAL_FLOAT(point_clouds[0].radar_points[0].signal_to_noise_ratio, // NOLINT
                             transformed_accumulated_point.signal_to_noise_ratio);
 
@@ -521,30 +521,30 @@ static void test_accumulate_radar_point_cloud_rotation_yaw(void)
     point_clouds[0].radar_points[0].x_meters = 101.0F;                                         // NOLINT: fine in tests
     point_clouds[0].radar_points[0].y_meters = 102.0F;                                         // NOLINT: fine in tests
     point_clouds[0].radar_points[0].z_meters = 103.0F;                                         // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].velocity_m_s = 5.0F;                                       // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F;                 // NOLINT: fine in tests
     point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F;                              // NOLINT: fine in tests
     provizio_quaternion_set_euler_angles(0.0F, 0.0F, 0.0F, &fix_when_received[0].orientation); // NOLINT: fine in tests
 
     // Point Cloud 1
     point_clouds[1].frame_index = 1;
     point_clouds[1].num_points_expected = point_clouds[1].num_points_received = 1;
-    point_clouds[1].radar_points[0].x_meters = 110.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].y_meters = 120.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].z_meters = 130.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles(0.0F, 0.0F, (float)(M_PI / 6.0), // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].x_meters = 110.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].y_meters = 120.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].z_meters = 130.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles(0.0F, 0.0F, (float)(M_PI / 6.0),      // NOLINT: fine in tests
                                          &fix_when_received[1].orientation);
 
     // Point Cloud 2
     point_clouds[2].frame_index = 2;
     point_clouds[2].num_points_expected = point_clouds[2].num_points_received = 1;
-    point_clouds[2].radar_points[0].x_meters = 200.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].y_meters = 300.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].z_meters = 400.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles(0.0F, 0.0F, (float)(M_PI / 4.0), // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].x_meters = 200.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].y_meters = 300.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].z_meters = 400.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles(0.0F, 0.0F, (float)(M_PI / 4.0),      // NOLINT: fine in tests
                                          &fix_when_received[2].orientation);
 
     // Accumulate and check: iteration 0
@@ -639,33 +639,33 @@ static void test_accumulate_radar_point_cloud_rotation_pitch(void)
     // Point Cloud 0
     point_clouds[0].frame_index = 0;
     point_clouds[0].num_points_expected = point_clouds[0].num_points_received = 1;
-    point_clouds[0].radar_points[0].x_meters = 101.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].y_meters = 102.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].z_meters = 103.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].velocity_m_s = 5.0F;          // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F; // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].x_meters = 101.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].y_meters = 102.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].z_meters = 103.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
     provizio_quaternion_set_euler_angles(0.0F, 0.0F, 0.0F, &fix_when_received[0].orientation);
 
     // Point Cloud 1
     point_clouds[1].frame_index = 1;
     point_clouds[1].num_points_expected = point_clouds[1].num_points_received = 1;
-    point_clouds[1].radar_points[0].x_meters = 110.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].y_meters = 120.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].z_meters = 130.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles(0.0F, (float)(M_PI / 6.0), 0.0F, // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].x_meters = 110.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].y_meters = 120.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].z_meters = 130.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles(0.0F, (float)(M_PI / 6.0), 0.0F,      // NOLINT: fine in tests
                                          &fix_when_received[1].orientation);
 
     // Point Cloud 2
     point_clouds[2].frame_index = 2;
     point_clouds[2].num_points_expected = point_clouds[2].num_points_received = 1;
-    point_clouds[2].radar_points[0].x_meters = 200.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].y_meters = 300.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].z_meters = 400.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles(0.0F, (float)(M_PI / 4.0), 0.0F, // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].x_meters = 200.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].y_meters = 300.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].z_meters = 400.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles(0.0F, (float)(M_PI / 4.0), 0.0F,      // NOLINT: fine in tests
                                          &fix_when_received[2].orientation);
 
     // Accumulate and check: iteration 0
@@ -760,33 +760,33 @@ static void test_accumulate_radar_point_cloud_rotation_roll(void)
     // Point Cloud 0
     point_clouds[0].frame_index = 0;
     point_clouds[0].num_points_expected = point_clouds[0].num_points_received = 1;
-    point_clouds[0].radar_points[0].x_meters = 101.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].y_meters = 102.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].z_meters = 103.0F;            // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].velocity_m_s = 5.0F;          // NOLINT: fine in tests
-    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F; // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].x_meters = 101.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].y_meters = 102.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].z_meters = 103.0F;                         // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
     provizio_quaternion_set_euler_angles(0.0F, 0.0F, 0.0F, &fix_when_received[0].orientation);
 
     // Point Cloud 1
     point_clouds[1].frame_index = 1;
     point_clouds[1].num_points_expected = point_clouds[1].num_points_received = 1;
-    point_clouds[1].radar_points[0].x_meters = 110.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].y_meters = 120.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].z_meters = 130.0F;                    // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles((float)(M_PI / 6.0), 0.0F, 0.0F, // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].x_meters = 110.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].y_meters = 120.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].z_meters = 130.0F;                         // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles((float)(M_PI / 6.0), 0.0F, 0.0F,      // NOLINT: fine in tests
                                          &fix_when_received[1].orientation);
 
     // Point Cloud 2
     point_clouds[2].frame_index = 2;
     point_clouds[2].num_points_expected = point_clouds[2].num_points_received = 1;
-    point_clouds[2].radar_points[0].x_meters = 200.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].y_meters = 300.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].z_meters = 400.0F;                    // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: fine in tests
-    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: fine in tests
-    provizio_quaternion_set_euler_angles((float)(M_PI / 4.0), 0.0F, 0.0F, // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].x_meters = 200.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].y_meters = 300.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].z_meters = 400.0F;                         // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].radar_relative_radial_velocity_m_s = 5.0F; // NOLINT: fine in tests
+    point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;              // NOLINT: fine in tests
+    provizio_quaternion_set_euler_angles((float)(M_PI / 4.0), 0.0F, 0.0F,      // NOLINT: fine in tests
                                          &fix_when_received[2].orientation);
 
     // Accumulate and check: iteration 0
@@ -862,11 +862,11 @@ static void test_accumulate_radar_point_cloud_rotation_and_move_simple(void)
     memset(point_cloud, 0, sizeof(provizio_radar_point_cloud));
 
     point_cloud->num_points_expected = point_cloud->num_points_received = 1;
-    point_cloud->radar_points[0].x_meters = 1.0F;               // NOLINT: magic numbers are fine in tests
-    point_cloud->radar_points[0].y_meters = 2.0F;               // NOLINT: magic numbers are fine in tests
-    point_cloud->radar_points[0].z_meters = 3.0F;               // NOLINT: magic numbers are fine in tests
-    point_cloud->radar_points[0].velocity_m_s = 10.0F;          // NOLINT: magic numbers are fine in tests
-    point_cloud->radar_points[0].signal_to_noise_ratio = 10.0F; // NOLINT: magic numbers are fine in tests
+    point_cloud->radar_points[0].x_meters = 1.0F;                            // NOLINT: magic numbers are fine in tests
+    point_cloud->radar_points[0].y_meters = 2.0F;                            // NOLINT: magic numbers are fine in tests
+    point_cloud->radar_points[0].z_meters = 3.0F;                            // NOLINT: magic numbers are fine in tests
+    point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = 10.0F; // NOLINT: magic numbers are fine in tests
+    point_cloud->radar_points[0].signal_to_noise_ratio = 10.0F;              // NOLINT: magic numbers are fine in tests
 
     provizio_enu_fix fix_when_received;
     fix_when_received.position.east_meters = 10.0F;  // NOLINT: magic numbers are fine in tests
@@ -933,10 +933,11 @@ static void test_accumulate_radar_point_cloud_rotation_and_move(void)
     // Point Cloud 0
     point_clouds[0].frame_index = 0;
     point_clouds[0].num_points_expected = point_clouds[0].num_points_received = 1;
-    point_clouds[0].radar_points[0].x_meters = 101.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[0].radar_points[0].y_meters = 102.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[0].radar_points[0].z_meters = 103.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[0].radar_points[0].velocity_m_s = 5.0F;          // NOLINT: magic numbers are fine in tests
+    point_clouds[0].radar_points[0].x_meters = 101.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[0].radar_points[0].y_meters = 102.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[0].radar_points[0].z_meters = 103.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[0].radar_points[0].radar_relative_radial_velocity_m_s =
+        5.0F;                                                     // NOLINT: magic numbers are fine in tests
     point_clouds[0].radar_points[0].signal_to_noise_ratio = 5.0F; // NOLINT: magic numbers are fine in tests
     fix_when_received[0].position.east_meters = 879.020F;         // NOLINT: magic numbers are fine in tests
     fix_when_received[0].position.north_meters = 529.971F;        // NOLINT: magic numbers are fine in tests
@@ -945,10 +946,11 @@ static void test_accumulate_radar_point_cloud_rotation_and_move(void)
     // Point Cloud 1
     point_clouds[1].frame_index = 1;
     point_clouds[1].num_points_expected = point_clouds[1].num_points_received = 1;
-    point_clouds[1].radar_points[0].x_meters = 110.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[1].radar_points[0].y_meters = 120.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[1].radar_points[0].z_meters = 130.0F;            // NOLINT: magic numbers are fine in tests
-    point_clouds[1].radar_points[0].velocity_m_s = 5.0F;          // NOLINT: magic numbers are fine in tests
+    point_clouds[1].radar_points[0].x_meters = 110.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[1].radar_points[0].y_meters = 120.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[1].radar_points[0].z_meters = 130.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[1].radar_points[0].radar_relative_radial_velocity_m_s =
+        5.0F;                                                     // NOLINT: magic numbers are fine in tests
     point_clouds[1].radar_points[0].signal_to_noise_ratio = 5.0F; // NOLINT: magic numbers are fine in tests
     fix_when_received[1].position.east_meters = 871.156F;         // NOLINT: magic numbers are fine in tests
     fix_when_received[1].position.north_meters = 548.981F;        // NOLINT: magic numbers are fine in tests
@@ -957,10 +959,11 @@ static void test_accumulate_radar_point_cloud_rotation_and_move(void)
     // Point Cloud 2
     point_clouds[2].frame_index = 2;
     point_clouds[2].num_points_expected = point_clouds[2].num_points_received = 1;
-    point_clouds[2].radar_points[0].x_meters = 200.0F;                    // NOLINT: magic numbers are fine in tests
-    point_clouds[2].radar_points[0].y_meters = 300.0F;                    // NOLINT: magic numbers are fine in tests
-    point_clouds[2].radar_points[0].z_meters = 400.0F;                    // NOLINT: magic numbers are fine in tests
-    point_clouds[2].radar_points[0].velocity_m_s = 5.0F;                  // NOLINT: magic numbers are fine in tests
+    point_clouds[2].radar_points[0].x_meters = 200.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[2].radar_points[0].y_meters = 300.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[2].radar_points[0].z_meters = 400.0F; // NOLINT: magic numbers are fine in tests
+    point_clouds[2].radar_points[0].radar_relative_radial_velocity_m_s =
+        5.0F;                                                             // NOLINT: magic numbers are fine in tests
     point_clouds[2].radar_points[0].signal_to_noise_ratio = 5.0F;         // NOLINT: magic numbers are fine in tests
     fix_when_received[2].position.east_meters = 899.447F;                 // NOLINT: magic numbers are fine in tests
     fix_when_received[2].position.north_meters = 562.369F;                // NOLINT: magic numbers are fine in tests
@@ -1149,13 +1152,13 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     point_cloud->radar_points[0].y_meters = 0.0F;
     point_cloud->radar_points[0].signal_to_noise_ratio = default_signal_to_noise_ratio;
     // Ground-relative velocity is 0 m/s
-    point_cloud->radar_points[0].velocity_m_s = -ego_velocity_m_s + 0.0F;
+    point_cloud->radar_points[0].radar_relative_radial_velocity_m_s = -ego_velocity_m_s + 0.0F;
     // All 3 times, there is a dynamic point at EgoRelative(0, 1)
     point_cloud->radar_points[1].x_meters = 0.0F;
     point_cloud->radar_points[1].y_meters = 1.0F;
     point_cloud->radar_points[1].signal_to_noise_ratio = default_signal_to_noise_ratio;
     // Ground-relative velocity is 10 m/s
-    point_cloud->radar_points[1].velocity_m_s = -ego_velocity_m_s + 10.0F; // NOLINT: fine in test
+    point_cloud->radar_points[1].radar_relative_radial_velocity_m_s = -ego_velocity_m_s + 10.0F; // NOLINT: fine in test
 
     // 1st reading: ENU(1, 1, 0), heading = 0, static point at ENU(2, 1, 0), moving point at ENU(1, 2, 0)
     fix_when_received.position.east_meters = fix_when_received.position.north_meters = 1.0F;
@@ -1175,7 +1178,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 1.0F, transformed_point.x_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.y_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1201,7 +1204,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 1.0F, transformed_point.x_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.y_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1212,7 +1215,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, -1.0F, transformed_point.x_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.y_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1238,7 +1241,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 1.0F, transformed_point.x_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.y_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1249,7 +1252,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 1.0F, transformed_point.x_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.y_meters);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1260,7 +1263,7 @@ static void test_provizio_accumulate_radar_point_cloud_static(void)
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 1.0F, transformed_point.x_meters); // NOLINT
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 2.0F, transformed_point.y_meters); // NOLINT
     TEST_ASSERT_FLOAT_WITHIN(epsilon, 0.0F, transformed_point.z_meters); // NOLINT
-    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.velocity_m_s);
+    TEST_ASSERT_FLOAT_WITHIN(epsilon, -ego_velocity_m_s + 0.0F, transformed_point.radar_relative_radial_velocity_m_s);
     TEST_ASSERT_FLOAT_WITHIN(epsilon, default_signal_to_noise_ratio, transformed_point.signal_to_noise_ratio);
     provizio_accumulated_radar_point_cloud_iterator_next_point(&iterator, accumulated_point_clouds,
                                                                num_accumulated_clouds);
@@ -1421,12 +1424,12 @@ static void test_provizio_accumulated_radar_point_cloud_iterator_get_point_end(v
         &iterator, NULL, accumulated_point_clouds, num_accumulated_point_clouds, &transformed_point,
         (float *)transformation_matrix);
     TEST_ASSERT_NULL(point);
-    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.x_meters);              // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.y_meters);              // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.z_meters);              // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.velocity_m_s);          // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.signal_to_noise_ratio); // NOLINT
-    TEST_ASSERT_TRUE(                                                    // It checks it's all zeroes now
+    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.x_meters);                           // NOLINT
+    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.y_meters);                           // NOLINT
+    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.z_meters);                           // NOLINT
+    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.radar_relative_radial_velocity_m_s); // NOLINT
+    TEST_ASSERT_EQUAL_FLOAT(0, transformed_point.signal_to_noise_ratio);              // NOLINT
+    TEST_ASSERT_TRUE(                                                                 // It checks it's all zeroes now
         *((uint8_t *)transformation_matrix) == 0 &&
         memcmp(transformation_matrix, (uint8_t *)transformation_matrix + 1, // NOLINT
                sizeof(transformation_matrix) - 1) == 0);

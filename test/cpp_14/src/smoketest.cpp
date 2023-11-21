@@ -153,9 +153,12 @@ int main(int argc, char *argv[])
                 provizio_set_protocol_field_float(&packet.radar_points[0].x_meters, point_x);
                 provizio_set_protocol_field_float(&packet.radar_points[0].y_meters, point_y);
                 provizio_set_protocol_field_float(&packet.radar_points[0].z_meters, point_z);
-                provizio_set_protocol_field_float(&packet.radar_points[0].velocity_m_s, point_velocity);
+                provizio_set_protocol_field_float(&packet.radar_points[0].radar_relative_radial_velocity_m_s,
+                                                  point_velocity);
                 provizio_set_protocol_field_float(&packet.radar_points[0].signal_to_noise_ratio,
                                                   point_signal_to_noise_ratio);
+                provizio_set_protocol_field_float(&packet.radar_points[0].ground_relative_radial_velocity_m_s,
+                                                  -point_velocity);
 
                 for (auto frame_index = start_frame_index; !finish; ++frame_index) // NOLINT: Don't unroll
                 {
@@ -219,8 +222,8 @@ int main(int argc, char *argv[])
                 const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to establish an API connection"};
-                // LCOV_EXCL_STOP
             }
+            // LCOV_EXCL_STOP
 
             error_code = provizio_radar_api_receive_packet(&connection);
             if (error_code != 0)
@@ -229,8 +232,8 @@ int main(int argc, char *argv[])
                 const std::lock_guard<std::mutex> lock{exception_in_thread_mutex};
                 throw std::runtime_error{!exception_in_send_thread.empty() ? exception_in_send_thread
                                                                            : "Failed to receive a packet"};
-                // LCOV_EXCL_STOP
             }
+            // LCOV_EXCL_STOP
 
             if (received_point_cloud->num_points_expected != num_points ||
                 received_point_cloud->num_points_received != num_points ||
@@ -239,8 +242,9 @@ int main(int argc, char *argv[])
                 received_point_cloud->radar_points[0].x_meters != point_x ||
                 received_point_cloud->radar_points[0].y_meters != point_y ||
                 received_point_cloud->radar_points[0].z_meters != point_z ||
-                received_point_cloud->radar_points[0].velocity_m_s != point_velocity ||
-                received_point_cloud->radar_points[0].signal_to_noise_ratio != point_signal_to_noise_ratio)
+                received_point_cloud->radar_points[0].radar_relative_radial_velocity_m_s != point_velocity ||
+                received_point_cloud->radar_points[0].signal_to_noise_ratio != point_signal_to_noise_ratio ||
+                received_point_cloud->radar_points[0].ground_relative_radial_velocity_m_s != -point_velocity)
             {
                 throw std::runtime_error{"Incorrect point cloud received"}; // LCOV_EXCL_LINE: Shouldn't happen
             }
@@ -273,7 +277,7 @@ int main(int argc, char *argv[])
     {
         provizio_sockets_deinitialize();
 
-        std::cerr << e.what() << " (error code = " << error_code << ")" << std::endl;
+        std::cerr << e.what() << " (error code = " << error_code << ")\n";
         return error_code != 0 ? error_code : -1;
     }
     // LCOV_EXCL_STOP

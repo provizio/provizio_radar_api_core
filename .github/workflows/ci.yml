@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
+        runner: [ubuntu-latest, ubuntu-20.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -46,7 +46,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
+        runner: [ubuntu-latest, ubuntu-20.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -63,7 +63,8 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, ubuntu-18.04, macos-latest, linux_arm]
+        # Disabled in Ubuntu 20 and 18 due to a known bug in them: https://bugs.launchpad.net/ubuntu/+source/gcc-9/+bug/2029910
+        runner: [ubuntu-latest, macos-latest]
         build_type: [Debug, Release]
         cc: [gcc, clang]
     env:
@@ -80,7 +81,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     strategy:
       matrix:
-        runner: [ubuntu-latest, ubuntu-18.04]
+        runner: [ubuntu-latest, ubuntu-20.04]
         build_type: [Debug, Release]
         cc: [clang]
     env:
@@ -122,3 +123,9 @@ jobs:
       - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DENABLE_COVERAGE=ON
       - run: .github/workflows/test.sh
       - run: .github/workflows/coverage.sh
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: code_coverage_report
+          path: build/code_coverage_report/
+          retention-days: 1
