@@ -70,7 +70,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     const uint16_t radar_position_id = provizio_get_protocol_field_uint16_t(&packet_header->radar_position_id);
     const uint32_t frame_index = provizio_get_protocol_field_uint32_t(&packet_header->frame_index);
     const uint16_t total_points_in_frame = provizio_get_protocol_field_uint16_t(&packet_header->total_points_in_frame);
-    const uint16_t radar_mode = provizio_get_protocol_field_uint16_t(&packet_header->radar_mode);
+    const uint16_t radar_range = provizio_get_protocol_field_uint16_t(&packet_header->radar_range);
 
     if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threashold)
     {
@@ -108,9 +108,9 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
                                  "different packets of the same frame");
             }
 
-            if (point_cloud->radar_mode != radar_mode)
+            if (point_cloud->radar_range != radar_range)
             {
-                provizio_warning("provizio_get_point_cloud_being_received: radar_mode mismatch across different "
+                provizio_warning("provizio_get_point_cloud_being_received: radar_range mismatch across different "
                                  "packets of the same frame");
             }
 
@@ -158,7 +158,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
         result->timestamp = provizio_get_protocol_field_uint64_t(&packet_header->timestamp);
         result->radar_position_id = radar_position_id;
         result->num_points_expected = total_points_in_frame;
-        result->radar_mode = radar_mode;
+        result->radar_range = radar_range;
         assert(result->num_points_received == 0);
     }
 

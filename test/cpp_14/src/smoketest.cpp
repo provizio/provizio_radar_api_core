@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         constexpr std::uint64_t timestamp = 0x0123456701234567ULL;
         constexpr std::uint16_t radar_position_id = provizio_radar_position_front_left;
         constexpr std::uint16_t num_points = 1;
-        constexpr std::uint16_t radar_mode = provizio_radar_mode_long_range;
+        constexpr std::uint16_t radar_range = provizio_radar_range_long;
         constexpr std::uint64_t timeout_ns = 1000000000ULL;
         constexpr float point_x = 1.0F;
         constexpr float point_y = 2.0F;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
                 provizio_set_protocol_field_uint16_t(&packet.header.radar_position_id, radar_position_id);
                 provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points);
                 provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, num_points);
-                provizio_set_protocol_field_uint16_t(&packet.header.radar_mode, radar_mode);
+                provizio_set_protocol_field_uint16_t(&packet.header.radar_range, radar_range);
                 provizio_set_protocol_field_float(&packet.radar_points[0].x_meters, point_x);
                 provizio_set_protocol_field_float(&packet.radar_points[0].y_meters, point_y);
                 provizio_set_protocol_field_float(&packet.radar_points[0].z_meters, point_z);
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
             if (received_point_cloud->num_points_expected != num_points ||
                 received_point_cloud->num_points_received != num_points ||
                 received_point_cloud->radar_position_id != radar_position_id ||
-                received_point_cloud->timestamp != timestamp || received_point_cloud->radar_mode != radar_mode ||
+                received_point_cloud->timestamp != timestamp || received_point_cloud->radar_range != radar_range ||
                 received_point_cloud->radar_points[0].x_meters != point_x ||
                 received_point_cloud->radar_points[0].y_meters != point_y ||
                 received_point_cloud->radar_points[0].z_meters != point_z ||
