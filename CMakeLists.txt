@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-project(provizio_radar_api_core VERSION 0.1.0)
+project(provizio_radar_api_core VERSION 2024.4.15)
 
 # Dependencies versions
 set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
@@ -186,16 +186,6 @@ if(UNIX)
   endif(CPPCHECK_PATH)
 
   # ASan+LSan+UBsan / MSan / TSan
-  if(NOT ENABLE_TSAN
-     AND NOT ENABLE_MSAN
-     AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # ASan is automatically enabled in Debug builds, unless TSan or MSan is
-    # enabled
-    set(ENABLE_ASAN TRUE)
-  endif(
-    NOT ENABLE_TSAN
-    AND NOT ENABLE_MSAN
-    AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(ENABLE_TSAN)
     message("Enabling TSan")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
