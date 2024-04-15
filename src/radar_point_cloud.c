@@ -263,7 +263,14 @@ int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packe
         return PROVIZIO_E_PROTOCOL;
     }
 
-    if (packet_size != provizio_radar_point_cloud_packet_size(&packet->header))
+    size_t expected_packet_size = provizio_radar_point_cloud_packet_size(&packet->header);
+    if (expected_packet_size == 0)
+    {
+        provizio_error("provizio_check_radar_point_cloud_packet: incorrect num_points_in_packet");
+        return PROVIZIO_E_PROTOCOL;
+    }
+
+    if (packet_size != expected_packet_size)
     {
         provizio_error("provizio_check_radar_point_cloud_packet: incorrect packet_size");
         return PROVIZIO_E_PROTOCOL;
@@ -273,6 +280,18 @@ int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packe
     {
         provizio_error("provizio_check_radar_point_cloud_packet: the value of radar_position_id can't be "
                        "provizio_radar_position_unknown");
+        return PROVIZIO_E_PROTOCOL;
+    }
+
+    return 0;
+}
+
+int32_t provizio_check_for_too_many_points(provizio_radar_point_cloud *cloud, const uint16_t num_points_in_packet)
+{
+    // Use uint32_t to avoid overflowing uint16_t
+    if ((uint32_t)cloud->num_points_received + (uint32_t)num_points_in_packet > (uint32_t)cloud->num_points_expected)
+    {
+        provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received");
         return PROVIZIO_E_PROTOCOL;
     }
 
@@ -296,12 +315,20 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     }
 
     const uint16_t num_points_in_packet = provizio_get_protocol_field_uint16_t(&packet->header.num_points_in_packet);
-    // Use uint32_t to avoid overflowing uint16_t
-    if ((uint32_t)cloud->num_points_received + (uint32_t)num_points_in_packet > (uint32_t)cloud->num_points_expected)
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received");
-        return PROVIZIO_E_PROTOCOL;
+        int32_t status = provizio_check_for_too_many_points(cloud, num_points_in_packet);
+        if (status != 0)
+        {
+            return status;
+        }
     }
+    provizio_radar_point *output_to = &cloud->radar_points[cloud->num_points_received];
+#else
+    provizio_radar_point output_buffer[PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_IN_ALL_PROTOCOL_VERSIONS];
+    memset(output_buffer, 0, sizeof(output_buffer));
+    provizio_radar_point *output_to = output_buffer;
+#endif
 
     const uint16_t protocol_version =
         provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version);
@@ -311,8 +338,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     {
         // Optimized version: host machine uses network byte order for floats, no need to convert them
         // LCOV_EXCL_START: host CPU arch dependent
-        memcpy(&cloud->radar_points[cloud->num_points_received], &packet->radar_points,
-               sizeof(provizio_radar_point) * num_points_in_packet);
+        memcpy(output_to, &packet->radar_points, sizeof(provizio_radar_point) * num_points_in_packet);
         // LCOV_EXCL_STOP
     }
     else
@@ -320,7 +346,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         // LCOV_EXCL_START: host CPU arch dependent
         for (uint16_t i = 0; i < num_points_in_packet; ++i)
         {
-            provizio_radar_point *out_point = &cloud->radar_points[cloud->num_points_received + i];
+            provizio_radar_point *out_point = output_to + i;
             provizio_radar_point *in_point = NULL;
 
             if (protocol_version >= 2)
@@ -356,6 +382,33 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         }
         // LCOV_EXCL_STOP
     }
+
+#ifdef PROVIZIO__AVOID_PACKETS_DUPLICATION
+    if (cloud->num_points_received >= num_points_in_packet)
+    {
+        for (uint16_t past_packet_start = 0, max_past_packet_start = cloud->num_points_received - num_points_in_packet;
+             past_packet_start <= max_past_packet_start; ++past_packet_start)
+        {
+            provizio_radar_point *packet_in_cloud = &cloud->radar_points[past_packet_start];
+            if (memcmp(packet_in_cloud, output_buffer, sizeof(provizio_radar_point) * num_points_in_packet) == 0)
+            {
+                // Drop the duplication
+                return PROVIZIO_E_SKIPPED;
+            }
+        }
+    }
+
+    {
+        int32_t status = provizio_check_for_too_many_points(cloud, num_points_in_packet);
+        if (status != 0)
+        {
+            return status;
+        }
+    }
+
+    memcpy(&cloud->radar_points[cloud->num_points_received], output_buffer,
+           sizeof(provizio_radar_point) * num_points_in_packet);
+#endif
 
     cloud->num_points_received += num_points_in_packet;
 

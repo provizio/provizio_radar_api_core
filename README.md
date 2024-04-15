@@ -3,6 +3,7 @@
 - [provizio\_radar\_api\_core](#provizio_radar_api_core)
   - [How-To](#how-to)
     - [Building and Linking](#building-and-linking)
+    - [Advanced Build Configuration](#advanced-build-configuration)
     - [Initialization](#initialization)
     - [Connection](#connection)
     - [Receiving Point Clouds](#receiving-point-clouds)
@@ -112,6 +113,12 @@ There is a number of options to use it in your project. Some of the options:
     <your Makefile target>: $(PROVIZIO_RADAR_API_CORE_INSTALL)/lib/libprovizio_radar_api_core.a <any other dependencies>
         ...
     ```
+
+### Advanced Build Configuration
+
+Optionally, a number of CMake arguments can be specified when configuring the library:
+
+- `-DAVOID_PACKETS_DUPLICATION=ON/OFF` - enable detection and dropping duplicated packets, disabled by default
 
 ### Initialization
 

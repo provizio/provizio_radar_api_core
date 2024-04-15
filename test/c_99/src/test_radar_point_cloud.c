@@ -331,6 +331,8 @@ static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
     const uint64_t timestamp = 2;
     const uint16_t radar_position_id = provizio_radar_position_front_center;
     const uint16_t num_points = 4;
+    const float x_in_2 = 2.0F;
+    const float x_in_3 = 3.0F;
 
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
@@ -356,6 +358,7 @@ static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
 
     // num_points_expected mismatch
     provizio_set_protocol_field_uint16_t(&packet.header.total_points_in_frame, num_points + 1);
+    provizio_set_protocol_field_float(&packet.radar_points[0].x_meters, x_in_2); // So it's not a duplication
     TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
                                    &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     TEST_ASSERT_EQUAL_STRING("provizio_get_point_cloud_being_received: num_points_expected mismatch across different "
@@ -365,6 +368,7 @@ static void test_provizio_handle_radar_point_cloud_packet_warnings(void)
 
     // radar_range mismatch
     provizio_set_protocol_field_uint16_t(&packet.header.radar_range, provizio_radar_range_ultra_long);
+    provizio_set_protocol_field_float(&packet.radar_points[0].x_meters, x_in_3); // So it's not a duplication
     TEST_ASSERT_EQUAL_INT32(0, provizio_handle_radar_point_cloud_packet(
                                    &api_context, &packet, provizio_radar_point_cloud_packet_size(&packet.header)));
     TEST_ASSERT_EQUAL_STRING(
