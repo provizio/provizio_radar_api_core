@@ -309,9 +309,8 @@ add_library(
 target_include_directories(provizio_radar_api_core PUBLIC include)
 target_include_directories(provizio_radar_api_core SYSTEM
   PRIVATE "${LINMATH_HEADER_DIR}")
-set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined
+set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA
 
-# by MISRA
 if(WIN32)
   target_link_libraries(provizio_radar_api_core ws2_32)
 endif(WIN32)
