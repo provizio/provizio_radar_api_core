@@ -202,11 +202,12 @@ int32_t provizio_close_radars_connection(provizio_radar_api_connection *connecti
 int32_t provizio_set_radar_range(provizio_radar_position radar_position_id, provizio_radar_range range,
                                  uint16_t udp_port, const char *ipv4_address)
 {
-    provizio_verbose("provizio_set_radar_range: Setting a radar range...");
-
     const char *broadcast_ipv4_address = "255.255.255.255";
     const uint64_t recv_timeout_ns = 250000000; // 0.25s
     const int max_recv_tries = 5;
+
+    provizio_verbose("provizio_set_radar_range: Setting a radar range of %d to %d at %s:%d...", (int)radar_position_id,
+                     (int)range, (ipv4_address != NULL ? ipv4_address : broadcast_ipv4_address), (int)udp_port);
 
     if (range == provizio_radar_range_unknown)
     {

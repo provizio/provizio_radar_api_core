@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 #ifndef PROVIZIO__EXTERN_C
 #define PROVIZIO__EXTERN_C extern "C"
@@ -35,6 +36,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifndef PROVIZIO__EXTERN_C
 #define PROVIZIO__EXTERN_C
@@ -84,6 +86,19 @@ PROVIZIO__EXTERN_C void provizio_set_on_warning(void (*warning_function)(const c
 PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char *));
 
 #ifdef PROVIZIO__VERBOSE
+
+#define PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH 512
+/**
+ * @brief Logs a verbose message with printf-like arguments
+ */
+#define provizio_verbose(...)                                                                                          \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        char provizio_verbose_message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];                                           \
+        (void)snprintf(provizio_verbose_message, sizeof(provizio_verbose_message), __VA_ARGS__);                       \
+        provizio_verbose_impl(provizio_verbose_message);                                                               \
+    } while (0)
+
 /**
  * @brief Logs a verbose message
  *
@@ -91,9 +106,12 @@ PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char 
  * @see provizio_set_on_verbose for more details
  * @return PROVIZIO__EXTERN_C
  */
-PROVIZIO__EXTERN_C void provizio_verbose(const char *message);
+PROVIZIO__EXTERN_C void provizio_verbose_impl(const char *message);
+
 #else
+
 #define provizio_verbose(msg) ((void)msg)
+
 #endif // PROVIZIO__VERBOSE
 
 /**

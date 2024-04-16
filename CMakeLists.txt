@@ -17,8 +17,8 @@ cmake_minimum_required(VERSION 3.10)
 project(provizio_radar_api_core VERSION 2024.4.16)
 
 # Configuration
-set(AVOID_PACKETS_DUPLICATION FALSE CACHE BOOL "Detect and drop received duplicated packets")
-set(VERBOSE FALSE CACHE BOOL "Enable verbose logging")
+set(AVOID_PACKETS_DUPLICATION ON CACHE BOOL "Detect and drop received duplicated packets")
+set(VERBOSE OFF CACHE BOOL "Enable verbose logging")
 set(FORMAT_CMAKE_VERSION "1.7.3" CACHE STRING "Provizio Format.cmake version, without v prefix")
 
 # Enable CTest

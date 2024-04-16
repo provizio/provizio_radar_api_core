@@ -53,7 +53,7 @@ void provizio_print_message(FILE *stream, const char *message_type, const char *
 }
 
 #ifdef PROVIZIO__VERBOSE
-void provizio_verbose(const char *message)
+void provizio_verbose_impl(const char *message)
 {
     provizio_print_message(stdout, "verbose", message, provizio_verbose_function);
 }

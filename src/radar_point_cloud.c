@@ -16,15 +16,10 @@
 
 #include <assert.h>
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
-
-#ifdef PROVIZIO__VERBOSE
-#define PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH 512
-#endif // PROVIZIO__VERBOSE
 
 // deprecated structure used for backwards compatibility
 #pragma pack(push, 1)
@@ -341,13 +336,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version);
 
 #ifdef PROVIZIO__VERBOSE
-    {
-        char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];
-        (void)snprintf(message, sizeof(message),
-                       "provizio_handle_radar_point_cloud_packet_checked: protocol_version = %d",
-                       (int)protocol_version);
-        provizio_verbose(message);
-    }
+    provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: protocol_version = %d", (int)protocol_version);
 #endif // PROVIZIO__VERBOSE
 
     // Append new points to the point cloud being received
@@ -432,14 +421,11 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     for (uint16_t i = 0; i < num_points_in_packet; ++i)
     {
         provizio_radar_point *out_point = output_to + i;
-        char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];
-        (void)snprintf(
-            message, sizeof(message),
+        provizio_verbose(
             "provizio_handle_radar_point_cloud_packet_checked: Got point at frame #%d: {%f, %f, %f, %f, %f, %f}",
             (int)cloud->frame_index, out_point->x_meters, out_point->y_meters, out_point->z_meters,
             out_point->radar_relative_radial_velocity_m_s, out_point->ground_relative_radial_velocity_m_s,
             out_point->signal_to_noise_ratio);
-        provizio_verbose(message);
     }
 #endif // PROVIZIO__VERBOSE
 
