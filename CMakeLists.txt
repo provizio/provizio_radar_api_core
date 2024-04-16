@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-project(provizio_radar_api_core VERSION 2024.4.15)
+project(provizio_radar_api_core VERSION 2024.4.16)
 
 # Configuration
 set(AVOID_PACKETS_DUPLICATION FALSE CACHE BOOL "Detect and drop received duplicated packets")
