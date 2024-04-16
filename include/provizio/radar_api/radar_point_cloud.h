@@ -78,7 +78,7 @@ typedef struct provizio_radar_point_cloud_packet_header
     ((uint16_t)((PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES - sizeof(provizio_radar_point_cloud_packet_header)) /      \
                 sizeof(provizio_radar_point)))
 
-#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_IN_ALL_PROTOCOL_VERSIONS ((uint16_t)72)
+#define PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_IN_ALL_PROTOCOL_VERSIONS ((uint16_t)73)
 
 // Max number of radar points in a single point cloud
 #define PROVIZIO__MAX_RADAR_POINTS_IN_POINT_CLOUD ((uint16_t)0xffff)

@@ -118,8 +118,10 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
                 return PROVIZIO_E_TIMEOUT;
             }
 
+            // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
             provizio_verbose("provizio_open_radars_connection: Failure on connection check");
-            return error_code; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
+            return error_code;
+            // LCOV_EXCL_STOP
         }
     }
 

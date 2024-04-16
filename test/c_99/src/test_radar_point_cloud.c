@@ -285,8 +285,23 @@ static void test_provizio_check_radar_point_cloud_packet(void)
                                 &api_context, &packet, sizeof(provizio_radar_point_cloud_packet_header) - 1));
     TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: insufficient packet_size", provizio_test_error);
 
-    // Check size mismatch as specified and as estimated by header (i.e. number of points in packet)
+    // Check too many points in a packet
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version, 1);
+    provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet,
+                                         PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET_IN_ALL_PROTOCOL_VERSIONS + 1);
+    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL,
+                            provizio_handle_radar_point_cloud_packet(&api_context, &packet, sizeof(packet)));
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect num_points_in_packet",
+                             provizio_test_error);
+    provizio_set_protocol_field_uint16_t(&packet.header.protocol_header.protocol_version,
+                                         PROVIZIO__RADAR_API_POINT_CLOUD_PROTOCOL_VERSION);
+    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL,
+                            provizio_handle_radar_point_cloud_packet(&api_context, &packet, sizeof(packet)));
+    TEST_ASSERT_EQUAL_STRING("provizio_check_radar_point_cloud_packet: incorrect num_points_in_packet",
+                             provizio_test_error);
     provizio_set_protocol_field_uint16_t(&packet.header.num_points_in_packet, num_points);
+
+    // Check size mismatch as specified and as estimated by header (i.e. number of points in packet)
     TEST_ASSERT_EQUAL_INT32(
         PROVIZIO_E_PROTOCOL,
         provizio_handle_radar_point_cloud_packet(
