@@ -119,6 +119,7 @@ There is a number of options to use it in your project. Some of the options:
 Optionally, a number of CMake arguments can be specified when configuring the library:
 
 - `-DAVOID_PACKETS_DUPLICATION=ON/OFF` - enable detection and dropping duplicated packets, disabled by default
+- `-DVERBOSE=ON/OFF` - enable verbose logging, disabled by default
 
 ### Initialization
 

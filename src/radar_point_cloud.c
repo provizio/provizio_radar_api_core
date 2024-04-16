@@ -16,10 +16,15 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "provizio/radar_api/errno.h"
 #include "provizio/util.h"
+
+#ifdef PROVIZIO__VERBOSE
+#define PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH 512
+#endif // PROVIZIO__VERBOSE
 
 // deprecated structure used for backwards compatibility
 #pragma pack(push, 1)
@@ -295,6 +300,7 @@ int32_t provizio_check_for_too_many_points(provizio_radar_point_cloud *cloud, co
         return PROVIZIO_E_PROTOCOL;
     }
 
+    provizio_verbose("provizio_check_for_too_many_points: OK");
     return 0;
 }
 
@@ -311,6 +317,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     if (provizio_get_protocol_field_uint16_t(&packet->header.total_points_in_frame) == 0)
     {
         // No points in the frame - just skip it
+        provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Empty frame");
         return PROVIZIO_E_SKIPPED;
     }
 
@@ -332,6 +339,16 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
 
     const uint16_t protocol_version =
         provizio_get_protocol_field_uint16_t(&packet->header.protocol_header.protocol_version);
+
+#ifdef PROVIZIO__VERBOSE
+    {
+        char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];
+        (void)snprintf(message, sizeof(message),
+                       "provizio_handle_radar_point_cloud_packet_checked: protocol_version = %d",
+                       (int)protocol_version);
+        provizio_verbose(message);
+    }
+#endif // PROVIZIO__VERBOSE
 
     // Append new points to the point cloud being received
     if (!provizio_network_floats_reversed() && (protocol_version >= 2))
@@ -393,6 +410,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
             if (memcmp(packet_in_cloud, output_buffer, sizeof(provizio_radar_point) * num_points_in_packet) == 0)
             {
                 // Drop the duplication
+                provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Packet dropped as duplicated");
                 return PROVIZIO_E_SKIPPED;
             }
         }
@@ -410,11 +428,31 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
            sizeof(provizio_radar_point) * num_points_in_packet);
 #endif
 
+#ifdef PROVIZIO__VERBOSE
+    for (uint16_t i = 0; i < num_points_in_packet; ++i)
+    {
+        provizio_radar_point *out_point = output_to + i;
+        char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];
+        (void)snprintf(
+            message, sizeof(message),
+            "provizio_handle_radar_point_cloud_packet_checked: Got point at frame #%d: {%f, %f, %f, %f, %f, %f}",
+            (int)cloud->frame_index, out_point->x_meters, out_point->y_meters, out_point->z_meters,
+            out_point->radar_relative_radial_velocity_m_s, out_point->ground_relative_radial_velocity_m_s,
+            out_point->signal_to_noise_ratio);
+        provizio_verbose(message);
+    }
+#endif // PROVIZIO__VERBOSE
+
     cloud->num_points_received += num_points_in_packet;
 
     if (cloud->num_points_received == cloud->num_points_expected)
     {
+        provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Return complete point cloud");
         provizio_return_point_cloud(context, cloud);
+    }
+    else
+    {
+        provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Success, but incomplete yet");
     }
 
     return 0;
@@ -426,6 +464,7 @@ int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_
     const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
     if (check_status != 0)
     {
+        provizio_verbose("provizio_handle_radar_point_cloud_packet: Packet check failed");
         return check_status;
     }
 
@@ -471,6 +510,7 @@ int32_t provizio_handle_radars_point_cloud_packet(provizio_radar_point_cloud_api
     const int32_t check_status = provizio_check_radar_point_cloud_packet(packet, packet_size);
     if (check_status != 0)
     {
+        provizio_verbose("provizio_handle_radars_point_cloud_packet: Packet check failed");
         return check_status;
     }
 
@@ -498,7 +538,7 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
 {
     if (payload_size < sizeof(provizio_radar_point_cloud_packet_header))
     {
-        // Not enough data
+        provizio_verbose("provizio_handle_possible_radars_point_cloud_packet: Not enough data");
         return PROVIZIO_E_SKIPPED;
     }
 
@@ -506,7 +546,7 @@ int32_t provizio_handle_possible_radars_point_cloud_packet(provizio_radar_point_
     if (provizio_get_protocol_field_uint16_t(&packet_header->protocol_header.packet_type) !=
         PROVIZIO__RADAR_API_POINT_CLOUD_PACKET_TYPE)
     {
-        // Non-point cloud packet
+        provizio_verbose("provizio_handle_possible_radars_point_cloud_packet: Non-point cloud packet");
         return PROVIZIO_E_SKIPPED;
     }
 

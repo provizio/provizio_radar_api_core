@@ -52,6 +52,19 @@
 #define PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES (PROVIZIO__MTU - (size_t)28)
 #endif // PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES
 
+#ifdef PROVIZIO__VERBOSE
+/**
+ * @brief Specifies a custom function to be called on verbose message
+ *
+ * @param verbose_function Function pointer or NULL (resets to default)
+ * @warning Not thread safe, so it's recommended to call prior to starting any threads
+ * @note By default printing to stdout is used on verbose message.
+ */
+PROVIZIO__EXTERN_C void provizio_set_on_verbose(void (*verbose_function)(const char *));
+#else
+#define provizio_set_on_verbose(func) ((void)func)
+#endif // PROVIZIO__VERBOSE
+
 /**
  * @brief Specifies a custom function to be called on warning
  *
@@ -69,6 +82,19 @@ PROVIZIO__EXTERN_C void provizio_set_on_warning(void (*warning_function)(const c
  * @note By default printing to stderr is used on error.
  */
 PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char *));
+
+#ifdef PROVIZIO__VERBOSE
+/**
+ * @brief Logs a verbose message
+ *
+ * @param message Verbose message
+ * @see provizio_set_on_verbose for more details
+ * @return PROVIZIO__EXTERN_C
+ */
+PROVIZIO__EXTERN_C void provizio_verbose(const char *message);
+#else
+#define provizio_verbose(msg) ((void)msg)
+#endif // PROVIZIO__VERBOSE
 
 /**
  * @brief Informs about a warning

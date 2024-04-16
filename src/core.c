@@ -102,6 +102,8 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
 
     if (check_connection)
     {
+        provizio_verbose("provizio_open_radars_connection: Checking connection...");
+
         provizio_radar_point_cloud_packet packet;
         int32_t received = (int32_t)recv(sock, (char *)&packet, sizeof(packet), 0);
         if (received == (int32_t)-1)
@@ -112,9 +114,11 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
 
             if (error_code == 0 || error_code == (int32_t)EWOULDBLOCK)
             {
+                provizio_verbose("provizio_open_radars_connection: Timed out on connection check");
                 return PROVIZIO_E_TIMEOUT;
             }
 
+            provizio_verbose("provizio_open_radars_connection: Failure on connection check");
             return error_code; // LCOV_EXCL_LINE: Can't be unit-tested as it depends on the state of the OS
         }
     }
@@ -123,11 +127,15 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
     out_connection->radar_point_cloud_api_contexts = radar_point_cloud_api_contexts;
     out_connection->num_radar_point_cloud_api_contexts = num_radar_point_cloud_api_contexts;
 
+    provizio_verbose("provizio_open_radars_connection: Connected");
+
     return 0;
 }
 
 int32_t provizio_radar_api_receive_packet(provizio_radar_api_connection *connection)
 {
+    provizio_verbose("provizio_radar_api_receive_packet: Receiving next packet...");
+
     if (!provizio_socket_valid(connection->sock))
     {
         provizio_error("provizio_radar_api_receive_packet: Not connected");
@@ -147,8 +155,11 @@ int32_t provizio_radar_api_receive_packet(provizio_radar_api_connection *connect
             // LCOV_EXCL_STOP
         }
 
+        provizio_verbose("provizio_radar_api_receive_packet: Timed out");
         return (int32_t)PROVIZIO_E_TIMEOUT;
     }
+
+    provizio_verbose("provizio_radar_api_receive_packet: Received a packet");
 
     int32_t status_code = PROVIZIO_E_SKIPPED;
 
@@ -182,12 +193,17 @@ int32_t provizio_close_radars_connection(provizio_radar_api_connection *connecti
     }
 
     connection->sock = PROVIZIO__INVALID_SOCKET;
+
+    provizio_verbose("provizio_close_radars_connection: Connection closed");
+
     return 0;
 }
 
 int32_t provizio_set_radar_range(provizio_radar_position radar_position_id, provizio_radar_range range,
                                  uint16_t udp_port, const char *ipv4_address)
 {
+    provizio_verbose("provizio_set_radar_range: Setting a radar range...");
+
     const char *broadcast_ipv4_address = "255.255.255.255";
     const uint64_t recv_timeout_ns = 250000000; // 0.25s
     const int max_recv_tries = 5;
@@ -313,12 +329,21 @@ int32_t provizio_set_radar_range(provizio_radar_position radar_position_id, prov
             {
                 // Correct acknowledgement packet, but from a previous provizio_set_radar_range request: keep waiting
                 // for the correct one
+                provizio_verbose("provizio_set_radar_range: Attempt timeout");
                 status = PROVIZIO_E_TIMEOUT;
             }
             else
             {
                 // Correct acknowledgement
                 status = (int32_t)provizio_get_protocol_field_uint32_t((uint32_t *)&acknowledgement_packet.error_code);
+                if (status == 0)
+                {
+                    provizio_verbose("provizio_set_radar_range: Received acknowledgement - Success");
+                }
+                else
+                {
+                    provizio_verbose("provizio_set_radar_range: Received acknowledgement - Failure");
+                }
             }
         }
         else
@@ -326,6 +351,7 @@ int32_t provizio_set_radar_range(provizio_radar_position radar_position_id, prov
             status = errno;
             if (status == 0 || status == (int32_t)EWOULDBLOCK)
             {
+                provizio_verbose("provizio_set_radar_range: Timed out");
                 status = PROVIZIO_E_TIMEOUT;
             }
         }
@@ -353,6 +379,8 @@ int32_t provizio_set_radar_range(provizio_radar_position radar_position_id, prov
         return status;
         // LCOV_EXCL_STOP
     }
+
+    provizio_verbose("provizio_set_radar_range: Success");
 
     return 0;
 }

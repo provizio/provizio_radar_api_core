@@ -18,6 +18,7 @@ project(provizio_radar_api_core VERSION 2024.4.15)
 
 # Configuration
 set(AVOID_PACKETS_DUPLICATION FALSE CACHE BOOL "Detect and drop received duplicated packets")
+set(VERBOSE FALSE CACHE BOOL "Enable verbose logging")
 set(FORMAT_CMAKE_VERSION "1.7.3" CACHE STRING "Provizio Format.cmake version, without v prefix")
 
 # Enable CTest
@@ -271,6 +272,10 @@ endif()
 if(AVOID_PACKETS_DUPLICATION)
   add_compile_definitions(PROVIZIO__AVOID_PACKETS_DUPLICATION)
 endif(AVOID_PACKETS_DUPLICATION)
+
+if(VERBOSE)
+  add_compile_definitions(PROVIZIO__VERBOSE)
+endif(VERBOSE)
 
 # linmath.h (https://github.com/provizio/linmath.h)
 set(LINMATH_BRANCH "provizio")

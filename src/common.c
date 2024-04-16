@@ -16,8 +16,18 @@
 
 #include <stdio.h>
 
+#ifdef PROVIZIO__VERBOSE
+static void (*provizio_verbose_function)(const char *) = NULL; // NOLINT: non-const global by design
+#endif                                                         // PROVIZIO__VERBOSE
 static void (*provizio_warning_function)(const char *) = NULL; // NOLINT: non-const global by design
 static void (*provizio_error_function)(const char *) = NULL;   // NOLINT: non-const global by design
+
+#ifdef PROVIZIO__VERBOSE
+void provizio_set_on_verbose(void (*verbose_function)(const char *))
+{
+    provizio_verbose_function = verbose_function;
+}
+#endif // PROVIZIO__VERBOSE
 
 void provizio_set_on_warning(void (*warning_function)(const char *))
 {
@@ -41,6 +51,13 @@ void provizio_print_message(FILE *stream, const char *message_type, const char *
         (void)fprintf(stream, "[provizio_radar_api_core %s] %s\n", message_type, message);
     }
 }
+
+#ifdef PROVIZIO__VERBOSE
+void provizio_verbose(const char *message)
+{
+    provizio_print_message(stdout, "verbose", message, provizio_verbose_function);
+}
+#endif // PROVIZIO__VERBOSE
 
 void provizio_warning(const char *message)
 {
