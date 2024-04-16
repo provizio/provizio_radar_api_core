@@ -110,7 +110,7 @@ PROVIZIO__EXTERN_C void provizio_verbose_impl(const char *message);
 
 #else
 
-#define provizio_verbose(msg) ((void)msg)
+#define provizio_verbose(...) ((void)__LINE__) // To avoid compiler complaints on "same body of if branches"
 
 #endif // PROVIZIO__VERBOSE
 

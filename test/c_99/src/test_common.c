@@ -53,14 +53,21 @@ static void test_provizio_verbose(void)
     TEST_ASSERT_EQUAL_STRING("test_verbose_2 with arguments", provizio_test_verbose);
 
     // A very long message
+#ifdef __has_warning
+#if __has_warning("-Wformat-truncation")
     char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH + 1];
     for (size_t i = 0; i < PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH; ++i)
     {
         message[i] = '-';
     }
     message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH] = '\0';
-    provizio_verbose("%s", message);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    provizio_verbose("%s", message); // NOLINT: Truncation is exactly what we check in this test!
+#pragma GCC diagnostic pop
     TEST_ASSERT_EQUAL_size_t(PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH - 1, strlen(provizio_test_verbose));
+#endif // __has_warning("-Wformat-truncation")
+#endif // __has_warning
 
     // Reset to default
     provizio_verbose("prior to handler resetting");
