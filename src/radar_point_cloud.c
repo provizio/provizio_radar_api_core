@@ -171,8 +171,9 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
     const uint16_t num_points = provizio_get_protocol_field_uint16_t(&header->num_points_in_packet);
     const uint16_t protocol_version = provizio_get_protocol_field_uint16_t(&header->protocol_header.protocol_version);
 
-    if ((protocol_version == 1) && num_points > (PROVIZIO__MTU - sizeof(provizio_radar_point_cloud_packet_header)) /
-                                                    sizeof(provizio_radar_point_protocol_v1))
+    if ((protocol_version == 1) &&
+        num_points > (PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES - sizeof(provizio_radar_point_cloud_packet_header)) /
+                         sizeof(provizio_radar_point_protocol_v1))
     {
         provizio_warning("provizio_radar_point_cloud_packet_size: num_points_in_packet exceeds "
                          "maximum allowed points for version 1 of the protocol!");
@@ -291,7 +292,11 @@ int32_t provizio_check_for_too_many_points(provizio_radar_point_cloud *cloud, co
     // Use uint32_t to avoid overflowing uint16_t
     if ((uint32_t)cloud->num_points_received + (uint32_t)num_points_in_packet > (uint32_t)cloud->num_points_expected)
     {
-        provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received");
+        provizio_error("provizio_handle_radar_point_cloud_packet_checked: Too many points received"
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
+                       ", consider enabling AVOID_PACKETS_DUPLICATION option"
+#endif
+        );
         return PROVIZIO_E_PROTOCOL;
     }
 

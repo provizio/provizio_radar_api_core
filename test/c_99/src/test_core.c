@@ -710,8 +710,12 @@ static void test_receive_radar_point_cloud_too_many_points(void)
     status = send_test_point_cloud(port_number, frame_index, timestamp, 1.0F, &radar_position_id, NULL, 1, num_points,
                                    num_extra_points, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL, status);
-    TEST_ASSERT_EQUAL_STRING("provizio_handle_radar_point_cloud_packet_checked: Too many points received",
-                             provizio_test_error);
+    const char *expected_message = "provizio_handle_radar_point_cloud_packet_checked: Too many points received"
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
+                                   ", consider enabling AVOID_PACKETS_DUPLICATION option"
+#endif
+        ;
+    TEST_ASSERT_EQUAL_STRING(expected_message, provizio_test_error);
     provizio_set_on_error(NULL);
 
     status = provizio_close_radar_connection(&connection);
@@ -1278,7 +1282,8 @@ static void test_duplicated_packets(void)
 #ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
     // No duplications avoidance, i.e. it'll hit the "Too many points received" issue
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL, status);
-    TEST_ASSERT_EQUAL_STRING("provizio_handle_radar_point_cloud_packet_checked: Too many points received",
+    TEST_ASSERT_EQUAL_STRING("provizio_handle_radar_point_cloud_packet_checked: Too many points received, consider "
+                             "enabling AVOID_PACKETS_DUPLICATION option",
                              provizio_test_error);
 #else
     // Duplications will be detected and dropped, and no error
