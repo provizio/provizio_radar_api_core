@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-project(provizio_radar_api_core VERSION 0.1.0)
+project(provizio_radar_api_core VERSION 2024.4.15)
 
 # Dependencies versions
 set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
@@ -24,15 +24,15 @@ include(CTest)
 enable_testing()
 
 if(BUILD_TESTING)
-find_package(Threads REQUIRED)
+  find_package(Threads REQUIRED)
 endif(BUILD_TESTING)
 
 # Release by default
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE
-      "Release"
-      CACHE STRING "Choose the type of build." FORCE)
+    "Release"
+    CACHE STRING "Choose the type of build." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # Make sure TLS_VERIFY has any value
@@ -42,6 +42,7 @@ endif(NOT DEFINED TLS_VERIFY)
 
 # ccache
 find_program(CCACHE ccache)
+
 if(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
   message("ccache found!")
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE}")
@@ -51,45 +52,46 @@ endif(CCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
 # Format checking option is enabled by default
 if(NOT ENABLE_CHECK_FORMAT)
   set(ENABLE_CHECK_FORMAT
-      "ON"
-      CACHE STRING "Enable Format Checking")
+    "ON"
+    CACHE STRING "Enable Format Checking")
 endif(NOT ENABLE_CHECK_FORMAT)
 
 # Static analysis disabled by default
 if(NOT STATIC_ANALYSIS)
   set(STATIC_ANALYSIS
-      "OFF"
-      CACHE STRING "Enable Static Analysis")
+    "OFF"
+    CACHE STRING "Enable Static Analysis")
 endif(NOT STATIC_ANALYSIS)
 
 # Generating code coverage info is disabled by default
 if(NOT ENABLE_COVERAGE)
   set(ENABLE_COVERAGE
-      "OFF"
-      CACHE STRING "Enable Code Coverage Checks")
+    "OFF"
+    CACHE STRING "Enable Code Coverage Checks")
 endif(NOT ENABLE_COVERAGE)
 
 # Linux/macOS specific checks
 if(UNIX)
   # clang-tidy (use as clang-tidy;arguments)
   set(CMAKE_C_CLANG_TIDY
-      ""
-      CACHE STRING "clang-tidy binary and config (C)")
+    ""
+    CACHE STRING "clang-tidy binary and config (C)")
   set(CMAKE_CXX_CLANG_TIDY
-      ""
-      CACHE STRING "clang-tidy binary and config (C++)")
+    ""
+    CACHE STRING "clang-tidy binary and config (C++)")
 
   # Automatically enable clang-tidy if STATIC_ANALYSIS is turned on
   if(NOT CMAKE_C_CLANG_TIDY AND STATIC_ANALYSIS)
     message(STATUS "STATIC_ANALYSIS is enabled. Turning on clang-tidy.")
     find_program(CLANG_TIDY_PATH clang-tidy)
+
     if(CLANG_TIDY_PATH)
       set(CMAKE_C_CLANG_TIDY
-          "${CLANG_TIDY_PATH}"
-          CACHE STRING "clang-tidy binary and config" FORCE)
+        "${CLANG_TIDY_PATH}"
+        CACHE STRING "clang-tidy binary and config" FORCE)
       set(CMAKE_CXX_CLANG_TIDY
-          "${CLANG_TIDY_PATH}"
-          CACHE STRING "clang-tidy binary and config" FORCE)
+        "${CLANG_TIDY_PATH}"
+        CACHE STRING "clang-tidy binary and config" FORCE)
     else(CLANG_TIDY_PATH)
       message("clang-tidy not found. Appropriate checks won't be done!")
     endif(CLANG_TIDY_PATH)
@@ -99,32 +101,36 @@ if(UNIX)
   # https://github.com/TheLartians/Format.cmake), if supported and enabled
   if(ENABLE_CHECK_FORMAT)
     execute_process(COMMAND clang-format --version
-                    OUTPUT_VARIABLE CLANG_FORMAT_VERSION)
+      OUTPUT_VARIABLE CLANG_FORMAT_VERSION)
+
     if(CLANG_FORMAT_VERSION)
       string(STRIP CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
       string(REPLACE "\n" "" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION}")
       string(REPLACE "clang-format version " "" CLANG_FORMAT_VERSION
-                     "${CLANG_FORMAT_VERSION}")
+        "${CLANG_FORMAT_VERSION}")
       string(REGEX MATCH "[^\.]*" CLANG_FORMAT_VERSION_MAJOR
-                   "${CLANG_FORMAT_VERSION}")
+        "${CLANG_FORMAT_VERSION}")
     endif(CLANG_FORMAT_VERSION)
+
     if(CLANG_FORMAT_VERSION_MAJOR AND NOT CLANG_FORMAT_VERSION_MAJOR LESS 10)
       message(
         "Compatible version of clang-format found: ${CLANG_FORMAT_VERSION}")
       set(FORMAT_CMAKE_PATH
-          "${CMAKE_BINARY_DIR}/Format.cmake-${FORMAT_CMAKE_VERSION}")
+        "${CMAKE_BINARY_DIR}/Format.cmake-${FORMAT_CMAKE_VERSION}")
+
       if(NOT EXISTS "${FORMAT_CMAKE_PATH}")
         set(FORMAT_CMAKE_DOWNLOAD_URL
-            "https://github.com/provizio/Format.cmake/archive/refs/tags/v${FORMAT_CMAKE_VERSION}.tar.gz"
+          "https://github.com/provizio/Format.cmake/archive/refs/tags/v${FORMAT_CMAKE_VERSION}.tar.gz"
         )
         file(DOWNLOAD "${FORMAT_CMAKE_DOWNLOAD_URL}"
-             "${FORMAT_CMAKE_PATH}.tar.gz" TLS_VERIFY ${TLS_VERIFY})
+          "${FORMAT_CMAKE_PATH}.tar.gz" TLS_VERIFY ${TLS_VERIFY})
         execute_process(COMMAND tar -xf "${FORMAT_CMAKE_PATH}.tar.gz" -C
-                                "${CMAKE_BINARY_DIR}")
+          "${CMAKE_BINARY_DIR}")
       endif(NOT EXISTS "${FORMAT_CMAKE_PATH}")
+
       set(FORMAT_SKIP_CMAKE
-          YES
-          CACHE BOOL "" FORCE)
+        YES
+        CACHE BOOL "" FORCE)
       add_subdirectory("${FORMAT_CMAKE_PATH}" EXCLUDE_FROM_ALL)
 
       # Automatically enable clang-format checks if STATIC_ANALYSIS is turned on
@@ -138,7 +144,7 @@ if(UNIX)
         # clang-format is too old
         message(
           WARNING
-            "clang-format version ${CLANG_FORMAT_VERSION} is not supported. Format checks won't be done!"
+          "clang-format version ${CLANG_FORMAT_VERSION} is not supported. Format checks won't be done!"
         )
       else(CLANG_FORMAT_VERSION)
         # clang-format is missing
@@ -149,12 +155,14 @@ if(UNIX)
 
   # cppcheck
   find_program(CPPCHECK_PATH cppcheck)
+
   if(CPPCHECK_PATH)
     execute_process(COMMAND "${CPPCHECK_PATH}" --version
-                    OUTPUT_VARIABLE CPPCHECK_VERSION)
+      OUTPUT_VARIABLE CPPCHECK_VERSION)
     string(STRIP CPPCHECK_VERSION "${CPPCHECK_VERSION}")
     string(REPLACE "\n" "" CPPCHECK_VERSION "${CPPCHECK_VERSION}")
     string(REPLACE "Cppcheck " "" CPPCHECK_VERSION "${CPPCHECK_VERSION}")
+
     if(NOT "${CPPCHECK_VERSION}" VERSION_LESS "1.90")
       message(
         "Compatible version of cppcheck found: ${CPPCHECK_VERSION}. Adding target cppcheck-misra."
@@ -169,6 +177,7 @@ if(UNIX)
         --dump
         --addon=misra.py
         --project="${CMAKE_BINARY_DIR}/compile_commands.json")
+
       # Automatically enable cppcheck-misra if STATIC_ANALYSIS is turned on
       if(STATIC_ANALYSIS)
         message(
@@ -178,7 +187,7 @@ if(UNIX)
     else(NOT "${CPPCHECK_VERSION}" VERSION_LESS "1.90")
       message(
         WARNING
-          "Unsupported version of cppcheck: ${CPPCHECK_VERSION}. cppcheck-misra target won't be added."
+        "Unsupported version of cppcheck: ${CPPCHECK_VERSION}. cppcheck-misra target won't be added."
       )
     endif(NOT "${CPPCHECK_VERSION}" VERSION_LESS "1.90")
   else(CPPCHECK_PATH)
@@ -186,16 +195,6 @@ if(UNIX)
   endif(CPPCHECK_PATH)
 
   # ASan+LSan+UBsan / MSan / TSan
-  if(NOT ENABLE_TSAN
-     AND NOT ENABLE_MSAN
-     AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # ASan is automatically enabled in Debug builds, unless TSan or MSan is
-    # enabled
-    set(ENABLE_ASAN TRUE)
-  endif(
-    NOT ENABLE_TSAN
-    AND NOT ENABLE_MSAN
-    AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(ENABLE_TSAN)
     message("Enabling TSan")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
@@ -207,9 +206,10 @@ if(UNIX)
   elseif(ENABLE_ASAN)
     message("Enabling ASan, LSan (GCC) and UBSan")
     set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+      "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
     set(CMAKE_C_FLAGS
-        "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
+      "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
+
     if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
@@ -228,13 +228,13 @@ if(ENABLE_COVERAGE)
         add_custom_target(
           code_coverage
           COMMAND
-            lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info"
-            --exclude '/usr/include/*' --exclude '/usr/lib/*' --exclude
-            '/usr/local/*'
+          lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info"
+          --exclude '/usr/include/*' --exclude '/usr/lib/*' --exclude
+          '/usr/local/*'
           COMMAND
-            genhtml "${CMAKE_BINARY_DIR}/lcov.info" -o
-            "${CMAKE_BINARY_DIR}/code_coverage_report" >
-            "${CMAKE_BINARY_DIR}/genhtml.out" 2>&1
+          genhtml "${CMAKE_BINARY_DIR}/lcov.info" -o
+          "${CMAKE_BINARY_DIR}/code_coverage_report" >
+          "${CMAKE_BINARY_DIR}/genhtml.out" 2>&1
           COMMAND cat "${CMAKE_BINARY_DIR}/genhtml.out"
           COMMAND grep "lines.*100\.0\%" "${CMAKE_BINARY_DIR}/genhtml.out")
       else(CMAKE_C_COMPILER_ID STREQUAL "GNU")
@@ -245,7 +245,7 @@ if(ENABLE_COVERAGE)
     else(CMAKE_BUILD_TYPE STREQUAL "Debug")
       message(
         WARNING
-          "Can't enable code coverage checking as only Debug builds are supported"
+        "Can't enable code coverage checking as only Debug builds are supported"
       )
     endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
   else(BUILD_TESTING)
@@ -260,6 +260,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 # Strict language standards
 set(C_STANDARD_REQUIRED TRUE)
 set(CXX_STANDARD_REQUIRED TRUE)
+
 if(NOT MSVC)
   add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unknown-pragmas)
 else()
@@ -271,10 +272,28 @@ set(LINMATH_BRANCH "provizio")
 set(LINMATH_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/linmath")
 set(LINMATH_HEADER_NAME "linmath.h")
 set(LINMATH_DOWNLOAD_URL
-    "https://raw.githubusercontent.com/provizio/linmath.h/${LINMATH_BRANCH}/${LINMATH_HEADER_NAME}"
+  "https://raw.githubusercontent.com/provizio/linmath.h/${LINMATH_BRANCH}/${LINMATH_HEADER_NAME}"
 )
+file(REMOVE "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}")
 file(DOWNLOAD "${LINMATH_DOWNLOAD_URL}"
-     "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY ${TLS_VERIFY})
+  "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY ${TLS_VERIFY}
+  STATUS LINMATH_DOWNLOAD_STATUS)
+list(GET LINMATH_DOWNLOAD_STATUS 0 LINMATH_STATUS_CODE)
+list(GET LINMATH_DOWNLOAD_STATUS 1 LINMATH_ERROR_MESSAGE)
+
+if(NOT LINMATH_DOWNLOAD_STATUS EQUAL 0 AND TLS_VERIFY)
+  # Likely hit this bug in Github runners: https://github.com/actions/runner-images/issues/9447
+  message(WARNING "Failed to download ${LINMATH_DOWNLOAD_URL} with TLS_VERIFY enabled. Retrying without TLS_VERIFY...")
+  file(DOWNLOAD "${LINMATH_DOWNLOAD_URL}"
+    "${LINMATH_HEADER_DIR}/${LINMATH_HEADER_NAME}" TLS_VERIFY OFF
+    STATUS LINMATH_DOWNLOAD_STATUS)
+  list(GET LINMATH_DOWNLOAD_STATUS 0 LINMATH_STATUS_CODE)
+  list(GET LINMATH_DOWNLOAD_STATUS 1 LINMATH_ERROR_MESSAGE)
+endif(NOT LINMATH_DOWNLOAD_STATUS EQUAL 0 AND TLS_VERIFY)
+
+if(NOT LINMATH_DOWNLOAD_STATUS EQUAL 0)
+  message(FATAL_ERROR "Failed to download ${LINMATH_DOWNLOAD_URL}: ${LINMATH_ERROR_MESSAGE}")
+endif(NOT LINMATH_DOWNLOAD_STATUS EQUAL 0)
 
 # Define the core library
 add_library(
@@ -289,9 +308,9 @@ add_library(
   src/core.c)
 target_include_directories(provizio_radar_api_core PUBLIC include)
 target_include_directories(provizio_radar_api_core SYSTEM
-                           PRIVATE "${LINMATH_HEADER_DIR}")
-set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined
-                                                                    # by MISRA
+  PRIVATE "${LINMATH_HEADER_DIR}")
+set_property(TARGET provizio_radar_api_core PROPERTY C_STANDARD 99) # As defined by MISRA
+
 if(WIN32)
   target_link_libraries(provizio_radar_api_core ws2_32)
 endif(WIN32)
