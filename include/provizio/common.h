@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 #ifndef PROVIZIO__EXTERN_C
 #define PROVIZIO__EXTERN_C extern "C"
@@ -35,6 +36,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifndef PROVIZIO__EXTERN_C
 #define PROVIZIO__EXTERN_C
@@ -51,6 +53,19 @@
 // UDP+IP packet header is 28 bytes which leaves MTU (1500 normally) - 28 = 1472 for payload
 #define PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES (PROVIZIO__MTU - (size_t)28)
 #endif // PROVIZIO__MAX_PAYLOAD_PER_UDP_PACKET_BYTES
+
+#ifdef PROVIZIO__VERBOSE
+/**
+ * @brief Specifies a custom function to be called on verbose message
+ *
+ * @param verbose_function Function pointer or NULL (resets to default)
+ * @warning Not thread safe, so it's recommended to call prior to starting any threads
+ * @note By default printing to stdout is used on verbose message.
+ */
+PROVIZIO__EXTERN_C void provizio_set_on_verbose(void (*verbose_function)(const char *));
+#else
+#define provizio_set_on_verbose(func) ((void)func)
+#endif // PROVIZIO__VERBOSE
 
 /**
  * @brief Specifies a custom function to be called on warning
@@ -69,6 +84,35 @@ PROVIZIO__EXTERN_C void provizio_set_on_warning(void (*warning_function)(const c
  * @note By default printing to stderr is used on error.
  */
 PROVIZIO__EXTERN_C void provizio_set_on_error(void (*error_function)(const char *));
+
+#ifdef PROVIZIO__VERBOSE
+
+#define PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH 512
+/**
+ * @brief Logs a verbose message with printf-like arguments
+ */
+#define provizio_verbose(...)                                                                                          \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        char provizio_verbose_message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH];                                           \
+        (void)snprintf(provizio_verbose_message, sizeof(provizio_verbose_message), __VA_ARGS__);                       \
+        provizio_verbose_impl(provizio_verbose_message);                                                               \
+    } while (0)
+
+/**
+ * @brief Logs a verbose message
+ *
+ * @param message Verbose message
+ * @see provizio_set_on_verbose for more details
+ * @return PROVIZIO__EXTERN_C
+ */
+PROVIZIO__EXTERN_C void provizio_verbose_impl(const char *message);
+
+#else
+
+#define provizio_verbose(...) ((void)__LINE__) // To avoid compiler complaints on "same body of if branches"
+
+#endif // PROVIZIO__VERBOSE
 
 /**
  * @brief Informs about a warning

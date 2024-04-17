@@ -49,13 +49,15 @@ jobs:
         runner: [ubuntu-latest, ubuntu-20.04, macos-latest, linux_arm]
         build_type: [Debug, Release]
         cc: [gcc, clang]
+        avoid_packets_duplication: [ON, OFF]
+        verbose: [ON, OFF]
     env:
       CC: ${{matrix.cc}}
       STATIC_ANALYSIS: OFF
     steps:
       - uses: actions/checkout@v2
       - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
-      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_ASAN=ON
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_ASAN=ON -DAVOID_PACKETS_DUPLICATION="${{matrix.avoid_packets_duplication}}" -DVERBOSE="${{matrix.verbose}}"
       - run: .github/workflows/test.sh
 
   test-nix-tsan:
@@ -67,13 +69,15 @@ jobs:
         runner: [ubuntu-latest, macos-latest]
         build_type: [Debug, Release]
         cc: [gcc, clang]
+        avoid_packets_duplication: [ON, OFF]
+        verbose: [ON, OFF]
     env:
       CC: ${{matrix.cc}}
       STATIC_ANALYSIS: OFF
     steps:
       - uses: actions/checkout@v2
       - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
-      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_TSAN=ON
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_TSAN=ON -DAVOID_PACKETS_DUPLICATION="${{matrix.avoid_packets_duplication}}" -DVERBOSE="${{matrix.verbose}}"
       - run: .github/workflows/test.sh
 
   test-nix-msan:
@@ -84,13 +88,15 @@ jobs:
         runner: [ubuntu-latest, ubuntu-20.04]
         build_type: [Debug, Release]
         cc: [clang]
+        avoid_packets_duplication: [ON, OFF]
+        verbose: [ON, OFF]
     env:
       CC: ${{matrix.cc}}
       STATIC_ANALYSIS: OFF
     steps:
       - uses: actions/checkout@v2
       - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh "${STATIC_ANALYSIS}"
-      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_MSAN=ON
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DSTATIC_ANALYSIS="${STATIC_ANALYSIS}" -DENABLE_MSAN=ON -DAVOID_PACKETS_DUPLICATION="${{matrix.avoid_packets_duplication}}" -DVERBOSE="${{matrix.verbose}}"
       - run: .github/workflows/test.sh
 
   test-windows:
@@ -100,11 +106,13 @@ jobs:
       matrix:
         runner: [windows-latest]
         build_type: [Debug, Release]
+        avoid_packets_duplication: [ON, OFF]
+        verbose: [ON, OFF]
     env:
       STATIC_ANALYSIS: OFF
     steps:
       - uses: actions/checkout@v2
-      - run: .github/workflows/build.bat "${{matrix.build_type}}" -DSTATIC_ANALYSIS="$env:STATIC_ANALYSIS"
+      - run: .github/workflows/build.bat "${{matrix.build_type}}" -DSTATIC_ANALYSIS="$env:STATIC_ANALYSIS" -DAVOID_PACKETS_DUPLICATION="${{matrix.avoid_packets_duplication}}" -DVERBOSE="${{matrix.verbose}}"
       - run: .github/workflows/test.bat "${{matrix.build_type}}"
 
   code-coverage:
@@ -115,12 +123,14 @@ jobs:
         runner: [ubuntu-latest]
         build_type: [Debug]
         cc: [gcc]
+        avoid_packets_duplication: [ON, OFF]
+        verbose: [ON, OFF]
     env:
       CC: ${{matrix.cc}}
     steps:
       - uses: actions/checkout@v2
       - run: .github/workflows/sudo.sh .github/workflows/install_dependencies.sh OFF ON
-      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DENABLE_COVERAGE=ON
+      - run: .github/workflows/build.sh -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -DENABLE_COVERAGE=ON -DAVOID_PACKETS_DUPLICATION="${{matrix.avoid_packets_duplication}}" -DVERBOSE="${{matrix.verbose}}"
       - run: .github/workflows/test.sh
       - run: .github/workflows/coverage.sh
       - uses: actions/upload-artifact@v3

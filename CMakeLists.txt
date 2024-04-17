@@ -14,10 +14,12 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-project(provizio_radar_api_core VERSION 2024.4.15)
+project(provizio_radar_api_core VERSION 2024.4.16)
 
-# Dependencies versions
-set(FORMAT_CMAKE_VERSION "1.7.3") # Format.cmake, optional code format checker
+# Configuration
+set(AVOID_PACKETS_DUPLICATION ON CACHE BOOL "Detect and drop received duplicated packets")
+set(VERBOSE OFF CACHE BOOL "Enable verbose logging")
+set(FORMAT_CMAKE_VERSION "1.7.3" CACHE STRING "Provizio Format.cmake version, without v prefix")
 
 # Enable CTest
 include(CTest)
@@ -266,6 +268,14 @@ if(NOT MSVC)
 else()
   add_compile_options(/W4 /WX /wd4068 /wd4996)
 endif()
+
+if(AVOID_PACKETS_DUPLICATION)
+  add_compile_definitions(PROVIZIO__AVOID_PACKETS_DUPLICATION)
+endif(AVOID_PACKETS_DUPLICATION)
+
+if(VERBOSE)
+  add_compile_definitions(PROVIZIO__VERBOSE)
+endif(VERBOSE)
 
 # linmath.h (https://github.com/provizio/linmath.h)
 set(LINMATH_BRANCH "provizio")

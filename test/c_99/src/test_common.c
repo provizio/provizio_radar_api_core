@@ -35,6 +35,48 @@ static void test_provizio_common_on_error(const char *error)
     strncpy(provizio_test_error, error, test_message_length - 1);
 }
 
+#ifdef PROVIZIO__VERBOSE
+static char provizio_test_verbose[test_message_length]; // NOLINT: non-const global by design
+static void test_provizio_common_on_verbose(const char *verbose)
+{
+    strncpy(provizio_test_verbose, verbose, test_message_length - 1);
+}
+
+static void test_provizio_verbose(void)
+{
+    // Check it doen't crash
+    provizio_verbose("test_verbose");
+
+    // Custom handler
+    provizio_set_on_verbose(&test_provizio_common_on_verbose);
+    provizio_verbose("test_verbose_%d %s", 2, "with arguments");
+    TEST_ASSERT_EQUAL_STRING("test_verbose_2 with arguments", provizio_test_verbose);
+
+    // A very long message
+#ifdef __has_warning
+#if __has_warning("-Wformat-truncation")
+    char message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH + 1];
+    for (size_t i = 0; i < PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH; ++i)
+    {
+        message[i] = '-';
+    }
+    message[PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH] = '\0';
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    provizio_verbose("%s", message); // NOLINT: Truncation is exactly what we check in this test!
+#pragma GCC diagnostic pop
+    TEST_ASSERT_EQUAL_size_t(PROVIZIO__MAX_VERBOSE_MESSAGE_LENGTH - 1, strlen(provizio_test_verbose));
+#endif // __has_warning("-Wformat-truncation")
+#endif // __has_warning
+
+    // Reset to default
+    provizio_verbose("prior to handler resetting");
+    provizio_set_on_verbose(NULL);
+    provizio_verbose("test_verbose_3");
+    TEST_ASSERT_EQUAL_STRING("prior to handler resetting", provizio_test_verbose); // Check it didn't change
+}
+#endif // PROVIZIO__VERBOSE
+
 static void test_provizio_warnings(void)
 {
     // Check it doen't crash
@@ -74,6 +116,9 @@ int provizio_run_test_common(void)
 
     UNITY_BEGIN();
 
+#ifdef PROVIZIO__VERBOSE
+    RUN_TEST(test_provizio_verbose);
+#endif // PROVIZIO__VERBOSE
     RUN_TEST(test_provizio_warnings);
     RUN_TEST(test_provizio_errors);
 
