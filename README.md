@@ -164,7 +164,7 @@ Optionally, a number of CMake arguments can be specified when configuring the li
     /**
     * @brief Enables sockets operations - to be called once prior to any other API calls
     *
-    * @return 0 if successfull, non-zero error code otherwise
+    * @return 0 if successful, non-zero error code otherwise
     * @note Required in Windows, unless WSAStartup is called somewhere else, can be omitted in other platforms
     */
     int32_t status = provizio_sockets_initialize();
@@ -874,11 +874,13 @@ Now you can retrive the point clouds (and their appropriate points) accumulated 
 ### Changing Radar Ranges
 
 Provizio radars can operate in various range modes, such as short, medium, long, ultra long and hyper long ranges.
-Current radar ranges are specified in `provizio_radar_point_cloud`, you can change them using `provizio_set_radar_range`:
+Current radar ranges are specified in `provizio_radar_point_cloud`, you can change them using `provizio_set_radar_range`
+and `provizio_set_radar_range_with_timeout`:
 
 ```C
 /**
- * @brief Makes a radar (or all radars) change a range
+ * @brief Makes a radar (or all radars) change a range with a default timeout =
+ * PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_TIMEOUT
  *
  * @param radar_position_id Either one of provizio_radar_position enum values or a custom position id. Can also be
  * provizio_radar_position_any to set for all radars
@@ -887,9 +889,58 @@ Current radar ranges are specified in `provizio_radar_point_cloud`, you can chan
  * (if 0)
  * @param ipv4_address IP address to send change range message, in the standard IPv4 dotted decimal notation. By default
  * = "255.255.255.255" - broadcast (if NULL)
+ * @param out_actual_radar_range If not NULL, actual radar range after the operation will be stored here if received
+ * from the radar (will be provizio_radar_range_unknown otherwise)
+ * @return 0 if set successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
+ */
+PROVIZIO__EXTERN_C int32_t provizio_set_radar_range(provizio_radar_position radar_position_id,
+                                                    provizio_radar_range range, uint16_t udp_port,
+                                                    const char *ipv4_address,
+                                                    provizio_radar_range *out_actual_radar_range);
+```
+
+```C
+/**
+ * @brief Makes a radar (or all radars) change a range with a custom timeout
+ *
+ * @param radar_position_id Either one of provizio_radar_position enum values or a custom position id. Can also be
+ * provizio_radar_position_any to set for all radars
+ * @param range Target range to set
+ * @param udp_port UDP port to send change range message, by default = PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT
+ * (if 0)
+ * @param ipv4_address IP address to send change range message, in the standard IPv4 dotted decimal notation. By default
+ * = "255.255.255.255" - broadcast (if NULL)
+ * @param out_actual_radar_range If not NULL, actual radar range after the operation will be stored here if received
+ * from the radar (will be provizio_radar_range_unknown otherwise)
+ * @param timeout_ns The operation timeout (nanoseconds)
+ * @return 0 if set successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
+ */
+PROVIZIO__EXTERN_C int32_t provizio_set_radar_range_with_timeout(provizio_radar_position radar_position_id,
+                                                                 provizio_radar_range range, uint16_t udp_port,
+                                                                 const char *ipv4_address,
+                                                                 provizio_radar_range *out_actual_radar_range,
+                                                                 uint64_t timeout_ns);
+```
+
+You can also request the current radar range (instead of waiting for a point cloud):
+
+```C
+/**
+ * @brief Requests the current range a radar operates
+ *
+ * @param radar_position_id Either one of provizio_radar_position enum values or a custom position id. Can also be
+ * provizio_radar_position_any to request from any radar (assumes a single Provizio radar in the network)
+ * @param udp_port UDP port to send the request message, by default = PROVIZIO__RADAR_API_REQUEST_RANGE_DEFAULT_PORT
+ * (if 0)
+ * @param ipv4_address IP address to send request range message, in the standard IPv4 dotted decimal notation. By
+ * default = "255.255.255.255" - broadcast (if NULL)
+ * @param out_current_radar_range Current radar range is stored here if successful (will be provizio_radar_range_unknown
+ * otherwise)
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
  */
-int32_t status = provizio_set_radar_range(radar_position_id, range, udp_port, ipv4_address);
+PROVIZIO__EXTERN_C int32_t provizio_request_current_range(provizio_radar_position radar_position_id, uint16_t udp_port,
+                                                          const char *ipv4_address,
+                                                          provizio_radar_range *out_current_radar_range);
 ```
 
 ### Shutting Down
@@ -903,7 +954,7 @@ When you finished with the API, it has to be properly shut down.
     * @brief Closes a previously connected radar API (either a single or multiple radars on the same port)
     *
     * @param connection A previously connected provizio_radar_api_connection
-    * @return 0 if successfull, error code otherwise
+    * @return 0 if successful, error code otherwise
     */
     int32_t status = provizio_close_radars_connection(&connection);
     ```
@@ -916,7 +967,7 @@ When you finished with the API, it has to be properly shut down.
     /**
     * @brief Terminates sockets operations - to be called once after all the other API calls
     *
-    * @return 0 if successfull, non-zero error code otherwise
+    * @return 0 if successful, non-zero error code otherwise
     * @note Required in Windows, unless WSACleanup is called somewhere else, can be omitted in other platforms
     */
     int32_t status = provizio_sockets_deinitialize();
@@ -954,7 +1005,7 @@ Each packet has the following structure (all fields use network bytes order when
 | point_0: y_meters                                     | 4                                    | float     | Radar-relative Y (left) position of the point in meters                                                                         |
 | point_0: z_meters                                     | 4                                    | float     | Radar-relative Z (up) position of the point in meters                                                                           |
 | point_0: radar_relative_radial velocity_m_s           | 4                                    | float     | Radar-relative radial velocity of the point in meters per second                                                                |
-| point_0: signal_to_noise_ratio                        | 4                                    | float     | Signal-to-noise ratio (unitless)                                                                                                |
+| point_0: signal_to_noise_ratio                        | 4                                    | float     | Signal-to-noise ratio (dB)                                                                                                |
 | point_0: ground_relative_radial velocity_m_s          | 4                                    | float     | Ground-relative radial velocity of the point in meters per second                                                               |
 | point_1: ...                                          |                                      |           |                                                                                                                                 |
 | ...                                                   |                                      |           |                                                                                                                                 |
@@ -963,25 +1014,31 @@ Each packet has the following structure (all fields use network bytes order when
 ### Radar Ranges
 
 Setting radar ranges is done via sending UDP packets to an appropriate port of a radar (or all radars in the local
-network), default UDP port number: 7770. The radar sends back an acknowledgement packet.
+network), default UDP port number: 7770. The radar sends back an acknowledgement packet immediately and later a response
+packet when the operation is complete successfully or not.
+
+***Note***: In case current_radar_range == requested_radar_range or error_code != 0 in acknowledgement the response is
+**not** sent as in either of the cases the radar range is not updated.
 
 Set range packet:
 
 | Field                          | Size (bytes)                         | Data Type | Description                                                                                                                     |
 | ------------------------------ | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | packet_type                    | 2                                    | uint16_t  | Always = 2, can't change even on protocol updates                                                                               |
-| protocol_version               | 2                                    | uint16_t  | Currently = 1, to be incremented on any protocol changes (used for backward compatibility)                                      |
+| protocol_version               | 2                                    | uint16_t  | Currently = 2, to be incremented on any protocol changes (used for backward compatibility)                                      |
 | radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
 | radar_range                    | 2                                    | uint16_t  | One of provizio_radar_range enum values                                                                                         |
 | **Total**                      | **8**                                |           |                                                                                                                                 |
 
-Acknowledgement packet:
+Acknowledgement/Response packet:
 
 | Field                          | Size (bytes)                         | Data Type | Description                                                                                                                     |
 | ------------------------------ | ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| packet_type                    | 2                                    | uint16_t  | Always = 3, can't change even on protocol updates                                                                               |
-| protocol_version               | 2                                    | uint16_t  | Currently = 1, to be incremented on any protocol changes (used for backward compatibility)                                      |
+| packet_type                    | 2                                    | uint16_t  | Always = 3 for acknowledgement, = 4 for response, can't change even on protocol updates                                         |
+| protocol_version               | 2                                    | uint16_t  | Currently = 2, to be incremented on any protocol changes (used for backward compatibility)                                      |
 | radar_position_id              | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
 | requested_radar_range          | 2                                    | uint16_t  | One of provizio_radar_range enum values                                                                                         |
-| error_code                     | 4                                    | int32_t   | 0 for success, PROVIZIO_E_NOT_PERMITTED if the range is not supported                                                           |
-| **Total**                      | **12**                               |           |                                                                                                                                 |
+| current_radar_range            | 2                                    | uint16_t  | One of provizio_radar_range enum values                                                                                         |
+| reserved                       | 2                                    | uint16_t  | Reserved for future use and better memory alignment                                                                             |
+| error_code                     | 4                                    | int32_t   | 0 for success, PROVIZIO_E_NOT_SUPPORTED=95 if the range is not supported                                                        |
+| **Total**                      | **16**                               |           |                                                                                                                                 |

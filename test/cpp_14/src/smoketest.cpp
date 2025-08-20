@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         std::atomic<bool> finish{false};
         std::mutex exception_in_thread_mutex;
         std::string exception_in_send_thread;
-        std::thread send_messages_thread{[&]() {
+        std::thread send_messages_thread{[&]() { // LCOV_EXCL_LINE: False positive in some versions of gcov/lcov
             try
             {
                 const auto send_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);

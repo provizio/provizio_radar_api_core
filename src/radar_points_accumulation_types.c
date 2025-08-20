@@ -34,17 +34,17 @@ void provizio_quaternion_set_euler_angles(float x_rad, float y_rad, float z_rad,
     const float cos_half_z = cosf(z_rad * half);
     const float sin_half_z = sinf(z_rad * half);
 
-    out_quaternion->w = cos_half_x * cos_half_y * cos_half_z + sin_half_x * sin_half_y * sin_half_z;
-    out_quaternion->x = sin_half_x * cos_half_y * cos_half_z - cos_half_x * sin_half_y * sin_half_z;
-    out_quaternion->y = cos_half_x * sin_half_y * cos_half_z + sin_half_x * cos_half_y * sin_half_z;
-    out_quaternion->z = cos_half_x * cos_half_y * sin_half_z - sin_half_x * sin_half_y * cos_half_z;
+    out_quaternion->w = (cos_half_x * cos_half_y * cos_half_z) + (sin_half_x * sin_half_y * sin_half_z);
+    out_quaternion->x = (sin_half_x * cos_half_y * cos_half_z) - (cos_half_x * sin_half_y * sin_half_z);
+    out_quaternion->y = (cos_half_x * sin_half_y * cos_half_z) + (sin_half_x * cos_half_y * sin_half_z);
+    out_quaternion->z = (cos_half_x * cos_half_y * sin_half_z) - (sin_half_x * sin_half_y * cos_half_z);
 }
 
 uint8_t provizio_quaternion_is_valid_rotation(const provizio_quaternion *quaternion)
 {
     const float epsilon = 0.0001F;
-    const float squared_length = quaternion->w * quaternion->w + quaternion->x * quaternion->x +
-                                 quaternion->y * quaternion->y + quaternion->z * quaternion->z;
+    const float squared_length = (quaternion->w * quaternion->w) + (quaternion->x * quaternion->x) +
+                                 (quaternion->y * quaternion->y) + (quaternion->z * quaternion->z);
     return 1.0F - epsilon < squared_length && squared_length < 1.0F + epsilon;
 }
 
@@ -53,5 +53,5 @@ float provizio_enu_distance(const provizio_enu_position *position_a, const provi
     const float diff_east = position_a->east_meters - position_b->east_meters;
     const float diff_north = position_a->north_meters - position_b->north_meters;
     const float diff_up = position_a->up_meters - position_b->up_meters;
-    return sqrtf(diff_east * diff_east + diff_north * diff_north + diff_up * diff_up);
+    return sqrtf((diff_east * diff_east) + (diff_north * diff_north) + (diff_up * diff_up));
 }
