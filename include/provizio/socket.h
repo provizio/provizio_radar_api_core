@@ -45,7 +45,7 @@
 /**
  * @brief Enables sockets operations - to be called once prior to any other API calls
  *
- * @return 0 if successfull, non-zero error code otherwise
+ * @return 0 if successful, non-zero error code otherwise
  * @note Required in Windows, unless WSAStartup is called somewhere else, can be omitted in other platforms
  */
 PROVIZIO__EXTERN_C int32_t provizio_sockets_initialize(void);
@@ -53,7 +53,7 @@ PROVIZIO__EXTERN_C int32_t provizio_sockets_initialize(void);
 /**
  * @brief Terminates sockets operations - to be called once after all the other API calls
  *
- * @return 0 if successfull, non-zero error code otherwise
+ * @return 0 if successful, non-zero error code otherwise
  * @note Required in Windows, unless WSACleanup is called somewhere else, can be omitted in other platforms
  */
 PROVIZIO__EXTERN_C int32_t provizio_sockets_deinitialize(void);
@@ -63,14 +63,15 @@ PROVIZIO__EXTERN_C int32_t provizio_sockets_deinitialize(void);
  *
  * @param sock `socket`-returned socket object
  * @return nonzero if valid, 0 otherwise
+ * @note Made a macro so clang-tidy can see it and doesn't produce false-positive warnings (treated as errors)
  */
-PROVIZIO__EXTERN_C int32_t provizio_socket_valid(PROVIZIO__SOCKET sock);
+#define provizio_socket_valid(sock) ((int32_t)((sock) != PROVIZIO__INVALID_SOCKET))
 
 /**
  * @brief Closes a previously opened socket
  *
  * @param sock `socket`-returned socket object
- * @return 0 if successfull, non-zero error code otherwise
+ * @return 0 if successful, non-zero error code otherwise
  */
 PROVIZIO__EXTERN_C int32_t provizio_socket_close(PROVIZIO__SOCKET sock);
 
@@ -79,7 +80,7 @@ PROVIZIO__EXTERN_C int32_t provizio_socket_close(PROVIZIO__SOCKET sock);
  *
  * @param sock `socket`-returned socket object
  * @param timeout_ns Timeout in nanoseconds
- * @return 0 if successfull, error code otherwise
+ * @return 0 if successful, error code otherwise
  */
 PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET sock, uint64_t timeout_ns);
 
@@ -87,7 +88,7 @@ PROVIZIO__EXTERN_C int32_t provizio_socket_set_recv_timeout(PROVIZIO__SOCKET soc
  * @brief Permits for having multiple processes in the system to receive same UDP messages
  *
  * @param sock `socket`-returned socket object
- * @return 0 if successfull, error code otherwise
+ * @return 0 if successful, error code otherwise
  */
 PROVIZIO__EXTERN_C int32_t provizio_socket_enable_address_and_port_reuse(PROVIZIO__SOCKET sock);
 

@@ -19,7 +19,7 @@
 #include "provizio/radar_api/radar_position.h"
 
 // To be incremented on any breaking protocol changes (used for backward compatibility)
-#define PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION ((uint16_t)1)
+#define PROVIZIO__RADAR_API_RANGE_PROTOCOL_VERSION ((uint16_t)2)
 
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)
@@ -63,14 +63,16 @@ typedef struct provizio_set_radar_range_packet
  * @see provizio_set_protocol_field_uint32_t
  * @see provizio_get_protocol_field_uint32_t
  */
-typedef struct provizio_set_radar_range_acknowledgement_packet
+typedef struct provizio_set_radar_range_response_packet
 {
     provizio_radar_api_protocol_header protocol_header;
 
     uint16_t radar_position_id;     // Either one of provizio_radar_position enum values or a custom position id
     uint16_t requested_radar_range; // One of provizio_radar_range enum values
-    int32_t error_code;             // 0 for success, PROVIZIO_E_NOT_PERMITTED if the range is not supported
-} provizio_set_radar_range_acknowledgement_packet;
+    uint16_t current_radar_range;   // One of provizio_radar_range enum values
+    uint16_t reserved;              // Reserved for future use and better memory alignment |
+    int32_t error_code;             // 0 for success, PROVIZIO_E_NOT_SUPPORTED if the range is not supported
+} provizio_set_radar_range_response_packet;
 
 // Reset alignment settings
 #pragma pack(pop)
@@ -83,16 +85,18 @@ static_assert(offsetof(provizio_set_radar_range_packet, radar_position_id) == 4,
 static_assert(offsetof(provizio_set_radar_range_packet, radar_range) == 6,
               "Unexpected position of radar_range in provizio_set_radar_range_packet");
 static_assert(sizeof(provizio_set_radar_range_packet) == 8, "Unexpected size of provizio_set_radar_range_packet");
-static_assert(offsetof(provizio_set_radar_range_acknowledgement_packet, protocol_header) == 0,
-              "Unexpected position of protocol_header in provizio_set_radar_range_acknowledgement_packet");
-static_assert(offsetof(provizio_set_radar_range_acknowledgement_packet, radar_position_id) == 4,
-              "Unexpected position of radar_position_id in provizio_set_radar_range_acknowledgement_packet");
-static_assert(offsetof(provizio_set_radar_range_acknowledgement_packet, requested_radar_range) == 6,
-              "Unexpected position of requested_radar_range in provizio_set_radar_range_acknowledgement_packet");
-static_assert(offsetof(provizio_set_radar_range_acknowledgement_packet, error_code) == 8,
-              "Unexpected position of error_code in provizio_set_radar_range_acknowledgement_packet");
-static_assert(sizeof(provizio_set_radar_range_acknowledgement_packet) == 12,
-              "Unexpected size of provizio_set_radar_range_acknowledgement_packet");
+static_assert(offsetof(provizio_set_radar_range_response_packet, protocol_header) == 0,
+              "Unexpected position of protocol_header in provizio_set_radar_range_response_packet");
+static_assert(offsetof(provizio_set_radar_range_response_packet, radar_position_id) == 4,
+              "Unexpected position of radar_position_id in provizio_set_radar_range_response_packet");
+static_assert(offsetof(provizio_set_radar_range_response_packet, requested_radar_range) == 6,
+              "Unexpected position of requested_radar_range in provizio_set_radar_range_response_packet");
+static_assert(offsetof(provizio_set_radar_range_response_packet, current_radar_range) == 8,
+              "Unexpected position of current_radar_range in provizio_set_radar_range_response_packet");
+static_assert(offsetof(provizio_set_radar_range_response_packet, error_code) == 12,
+              "Unexpected position of error_code in provizio_set_radar_range_response_packet");
+static_assert(sizeof(provizio_set_radar_range_response_packet) == 16,
+              "Unexpected size of provizio_set_radar_range_response_packet");
 #endif // defined(__cplusplus) && __cplusplus >= 201103L
 
 #endif // PROVIZIO_RADAR_API_RADAR_RANGES

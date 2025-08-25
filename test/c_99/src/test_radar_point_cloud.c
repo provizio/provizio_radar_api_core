@@ -222,11 +222,12 @@ static void test_provizio_radar_point_cloud_packet_size(void)
                              provizio_radar_point_cloud_packet_size(&header));
 
     provizio_set_protocol_field_uint16_t(&header.num_points_in_packet, 2);
-    TEST_ASSERT_EQUAL_UINT64(sizeof(header) + sizeof(provizio_radar_point) * 2,
+    TEST_ASSERT_EQUAL_UINT64(sizeof(header) + (sizeof(provizio_radar_point) * 2),
                              provizio_radar_point_cloud_packet_size(&header));
 
     provizio_set_protocol_field_uint16_t(&header.num_points_in_packet, PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET);
-    TEST_ASSERT_EQUAL_UINT64(sizeof(header) + sizeof(provizio_radar_point) * PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET,
+    TEST_ASSERT_EQUAL_UINT64(sizeof(header) +
+                                 (sizeof(provizio_radar_point) * PROVIZIO__MAX_RADAR_POINTS_PER_UDP_PACKET),
                              provizio_radar_point_cloud_packet_size(&header));
 
     provizio_set_on_warning(&test_provizio_on_warning);
@@ -446,7 +447,7 @@ static void test_provizio_radar_point_cloud_api_context_assign(void)
 
     // Reassign to another position once assigned - Fails
     provizio_set_on_error(&test_provizio_on_error);
-    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_NOT_PERMITTED,
+    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_NOT_SUPPORTED,
                             provizio_radar_point_cloud_api_context_assign(&api_context, radar_position_id + 1));
     TEST_ASSERT_EQUAL_STRING("provizio_radar_point_cloud_api_context_assign: already assigned", provizio_test_error);
     provizio_set_on_error(NULL);

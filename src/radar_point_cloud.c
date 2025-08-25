@@ -233,7 +233,7 @@ int32_t provizio_radar_point_cloud_api_context_assign(provizio_radar_point_cloud
     }
 
     provizio_error("provizio_radar_point_cloud_api_context_assign: already assigned");
-    return PROVIZIO_E_NOT_PERMITTED;
+    return PROVIZIO_E_NOT_SUPPORTED;
 }
 
 int32_t provizio_check_radar_point_cloud_packet(provizio_radar_point_cloud_packet *packet, size_t packet_size)

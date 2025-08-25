@@ -224,15 +224,13 @@ if(ENABLE_COVERAGE)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         message("Enabling code coverage checking")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-update=atomic")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-update=atomic")
 
         add_custom_target(
           code_coverage
           COMMAND
-          lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info"
-          --exclude '/usr/include/*' --exclude '/usr/lib/*' --exclude
-          '/usr/local/*'
+          lcov -c -d "${CMAKE_BINARY_DIR}" -o "${CMAKE_BINARY_DIR}/lcov.info" --exclude '/usr/*'
           COMMAND
           genhtml "${CMAKE_BINARY_DIR}/lcov.info" -o
           "${CMAKE_BINARY_DIR}/code_coverage_report" >

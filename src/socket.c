@@ -33,11 +33,6 @@ int32_t provizio_sockets_deinitialize(void)
 #endif
 }
 
-int32_t provizio_socket_valid(PROVIZIO__SOCKET sock)
-{
-    return (int32_t)(sock != PROVIZIO__INVALID_SOCKET);
-}
-
 int32_t provizio_socket_close(PROVIZIO__SOCKET sock)
 {
 #ifdef _WIN32

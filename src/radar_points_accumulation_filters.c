@@ -89,7 +89,7 @@ static float provizio_estimate_radars_forward_velocity_using_velocities_histogra
     }
 
     const float half = 0.5F;
-    return -(min_velocity + (half + (float)largest_bin) * bin_size);
+    return -(min_velocity + ((half + (float)largest_bin) * bin_size));
 }
 
 static float provizio_estimate_radars_forward_velocity(
