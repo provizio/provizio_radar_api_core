@@ -22,6 +22,7 @@
 #define PROVIZIO__RADAR_API_SET_RANGE_PACKET_TYPE ((uint16_t)2)
 #define PROVIZIO__RADAR_API_SET_RANGE_ACKNOWLEDGEMENT_PACKET_TYPE ((uint16_t)3)
 #define PROVIZIO__RADAR_API_SET_RANGE_RESPONSE_PACKET_TYPE ((uint16_t)4)
+#define PROVIZIO__RADAR_API_ENTITIES_PACKET_TYPE ((uint16_t)5)
 
 // Use packed structs intended to be sent for binary compatibility across all CPUs
 #pragma pack(push, 1)

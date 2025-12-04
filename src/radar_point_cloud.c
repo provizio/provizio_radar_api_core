@@ -63,7 +63,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     provizio_radar_point_cloud_api_context *context, provizio_radar_point_cloud_packet_header *packet_header)
 {
     const uint32_t small_frame_index_cap = 0x0000ffff;
-    const uint32_t large_frame_index_threashold = 0xffff0000;
+    const uint32_t large_frame_index_threshold = 0xffff0000;
 
     provizio_radar_point_cloud *point_cloud = NULL;
 
@@ -72,7 +72,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     const uint16_t total_points_in_frame = provizio_get_protocol_field_uint16_t(&packet_header->total_points_in_frame);
     const uint16_t radar_range = provizio_get_protocol_field_uint16_t(&packet_header->radar_range);
 
-    if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threashold)
+    if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threshold)
     {
         // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
         // state of the API to avoid complicated state-related issues.
@@ -185,7 +185,7 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
     }
     else
     {
-        result = sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
+        result = sizeof(provizio_radar_point_cloud_packet_header) + (sizeof(provizio_radar_point) * num_points);
     }
 
     return result;

@@ -63,8 +63,8 @@ static float provizio_estimate_radars_forward_velocity_using_velocities_histogra
     {
         const float half = 0.5F;
         const float average_velocity = (max_velocity + min_velocity) * half;
-        min_velocity = average_velocity - min_velocities_range * half;
-        max_velocity = average_velocity + min_velocities_range * half;
+        min_velocity = average_velocity - (min_velocities_range * half);
+        max_velocity = average_velocity + (min_velocities_range * half);
     }
 
     const float bin_size = (max_velocity - min_velocity) / histogram_bins;
@@ -174,7 +174,7 @@ static float provizio_estimate_radars_forward_velocity(
                 const float ego_direction_up = current_fix.position.up_meters - previous_position.up_meters;
 
                 provizio_quaternion ego_orientation;
-                if (ego_direction_north * ego_direction_north + ego_direction_east * ego_direction_east > 0)
+                if ((ego_direction_north * ego_direction_north) + (ego_direction_east * ego_direction_east) > 0)
                 {
                     const float yaw = atan2f(ego_direction_north, ego_direction_east);
                     const float pitch =
@@ -236,7 +236,7 @@ void provizio_radar_points_accumulation_filter_static(
 {
     (void)user_data;
 
-    const float dynamic_velocity_threashold_m_s = 1.5F;
+    const float dynamic_velocity_threshold_m_s = 1.5F;
     const float radars_forward_velocity_m_s = provizio_estimate_radars_forward_velocity(
         in_points, num_in_points, accumulated_point_clouds, num_accumulated_point_clouds, new_iterator);
 
@@ -246,9 +246,9 @@ void provizio_radar_points_accumulation_filter_static(
         // TODO(APT-1667): dynamic adjustment of ground-relative velocity accounting for angular differences of
         // detections
         // if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s *
-        // cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threashold_m_s)
+        // cosf(atan2f(point->y_meters, point->x_meters) * -1)) < dynamic_velocity_threshold_m_s)
         if (fabsf(point->radar_relative_radial_velocity_m_s + radars_forward_velocity_m_s) <
-            dynamic_velocity_threashold_m_s)
+            dynamic_velocity_threshold_m_s)
         {
             // Static point, let's accumulate it
             out_points[num_filtered_points++] = *point;

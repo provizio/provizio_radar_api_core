@@ -191,11 +191,10 @@ provizio_accumulated_radar_point_cloud_iterator provizio_accumulate_radar_point_
         accumulated_point_clouds[iterator.point_cloud_index].point_cloud.frame_index >= point_cloud->frame_index)
     {
         const uint32_t small_frame_index_cap = 0x0000ffff;
-        const uint32_t large_frame_index_threashold = 0xffff0000;
+        const uint32_t large_frame_index_threshold = 0xffff0000;
 
         if (point_cloud->frame_index >= small_frame_index_cap ||
-            accumulated_point_clouds[iterator.point_cloud_index].point_cloud.frame_index <=
-                large_frame_index_threashold)
+            accumulated_point_clouds[iterator.point_cloud_index].point_cloud.frame_index <= large_frame_index_threshold)
         {
             provizio_error(
                 "provizio_accumulate_radar_point_cloud: Can't accumulate an older point cloud after a newer one");

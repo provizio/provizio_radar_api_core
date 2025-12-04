@@ -32,9 +32,11 @@
 #include "provizio/radar_api/radar_points_accumulation.h"
 #include "provizio/socket.h"
 
+// Different versions of clang-tidy have different preferences to static vs anonymous namespace, we go with anonymous
+// namespace plus NOLINT to make it pass clean all anyways.
 namespace
 {
-    std::unique_ptr<void, std::function<void(void *)>> make_guard(const PROVIZIO__SOCKET sock)
+    std::unique_ptr<void, std::function<void(void *)>> make_guard(const PROVIZIO__SOCKET sock) // NOLINT
     {
         // LCOV_EXCL_START: lcov isn't great at handling C++ lambdas
         return std::unique_ptr<void, std::function<void(void *)>>{
@@ -49,7 +51,7 @@ namespace
         // LCOV_EXCL_STOP
     }
 
-    std::unique_ptr<void, std::function<void(void *)>> make_guard(provizio_radar_api_connection &connection)
+    std::unique_ptr<void, std::function<void(void *)>> make_guard(provizio_radar_api_connection &connection) // NOLINT
     {
         // LCOV_EXCL_START: lcov isn't great at handling C++ lambdas
         return std::unique_ptr<void, std::function<void(void *)>>{
@@ -65,7 +67,7 @@ namespace
     }
 
     template <typename functor>
-    void callback_wrapper(const provizio_radar_point_cloud *point_cloud,
+    void callback_wrapper(const provizio_radar_point_cloud *point_cloud, // NOLINT
                           struct provizio_radar_point_cloud_api_context *context)
     {
         (*static_cast<functor *>(context->user_data))(point_cloud, context);
@@ -215,7 +217,8 @@ int main(int argc, char *argv[])
 
             provizio_radar_api_connection connection;
             const auto connection_guard = make_guard(connection);
-            error_code = provizio_open_radar_connection(port_number, timeout_ns, 1, api_context.get(), &connection);
+            error_code =
+                provizio_open_radar_connection(port_number, timeout_ns, 1, api_context.get(), nullptr, &connection);
             if (error_code != 0)
             {
                 // LCOV_EXCL_START: Shouldn't happen

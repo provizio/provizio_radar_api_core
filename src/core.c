@@ -15,20 +15,25 @@
 #include "provizio/radar_api/core.h"
 #include "provizio/util.h"
 
+#include <stdio.h>
 #include <string.h>
 
 int32_t provizio_open_radar_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
                                        provizio_radar_point_cloud_api_context *radar_point_cloud_api_context,
+                                       provizio_radar_entities_api_context *radar_entities_api_context,
                                        provizio_radar_api_connection *out_connection)
 {
     return provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection,
                                            radar_point_cloud_api_context, radar_point_cloud_api_context != NULL ? 1 : 0,
+                                           radar_entities_api_context, radar_entities_api_context != NULL ? 1 : 0,
                                            out_connection);
 }
 
 int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_timeout_ns, uint8_t check_connection,
                                         provizio_radar_point_cloud_api_context *radar_point_cloud_api_contexts,
                                         size_t num_radar_point_cloud_api_contexts,
+                                        provizio_radar_entities_api_context *radar_entities_api_contexts,
+                                        size_t num_radar_entities_api_contexts,
                                         provizio_radar_api_connection *out_connection)
 {
     memset(out_connection, 0, sizeof(provizio_radar_api_connection));
@@ -128,6 +133,8 @@ int32_t provizio_open_radars_connection(uint16_t udp_port, uint64_t receive_time
     out_connection->sock = sock;
     out_connection->radar_point_cloud_api_contexts = radar_point_cloud_api_contexts;
     out_connection->num_radar_point_cloud_api_contexts = num_radar_point_cloud_api_contexts;
+    out_connection->radar_entities_api_contexts = radar_entities_api_contexts;
+    out_connection->num_radar_entities_api_contexts = num_radar_entities_api_contexts;
 
     provizio_verbose("provizio_open_radars_connection: Connected");
 
@@ -165,13 +172,21 @@ int32_t provizio_radar_api_receive_packet(provizio_radar_api_connection *connect
 
     int32_t status_code = PROVIZIO_E_SKIPPED;
 
-    // Let's try to handle it as a point cloud packet
+    // Try handling it as a point cloud packet
     if (status_code == PROVIZIO_E_SKIPPED && connection->num_radar_point_cloud_api_contexts > 0 &&
         connection->radar_point_cloud_api_contexts != NULL)
     {
         status_code = provizio_handle_possible_radars_point_cloud_packet(connection->radar_point_cloud_api_contexts,
                                                                          connection->num_radar_point_cloud_api_contexts,
                                                                          packet, received);
+    }
+
+    // Try handling it as an entities packet
+    if (status_code == PROVIZIO_E_SKIPPED && connection->num_radar_entities_api_contexts > 0 &&
+        connection->radar_entities_api_contexts != NULL)
+    {
+        status_code = provizio_handle_possible_radars_entities_packet(
+            connection->radar_entities_api_contexts, connection->num_radar_entities_api_contexts, packet, received);
     }
 
     return status_code;
@@ -226,7 +241,7 @@ int32_t provizio_set_radar_range_with_timeout(provizio_radar_position radar_posi
         *out_actual_radar_range = provizio_radar_range_unknown;
     }
 
-    if (timeout_ns / recv_timeout_ns + max_ack_recv_tries > INT32_MAX)
+    if ((timeout_ns / recv_timeout_ns) + max_ack_recv_tries > INT32_MAX)
     {
         provizio_error("provizio_set_radar_range_with_timeout: timeout_ns is too large");
         return PROVIZIO_E_ARGUMENT;
@@ -268,6 +283,22 @@ int32_t provizio_set_radar_range_with_timeout(provizio_radar_position radar_posi
             return status;
             // LCOV_EXCL_STOP
         }
+#if defined(IPPROTO_IP) && defined(IP_ONESBCAST)
+        if (ipv4_address == NULL || strcmp(ipv4_address, broadcast_ipv4_address) == 0)
+        {
+            const int ones_broadcast = 1;
+            status = (int32_t)setsockopt(sock, IPPROTO_IP, IP_ONESBCAST, (const char *)&ones_broadcast,
+                                         sizeof(ones_broadcast));
+            if (status != 0)
+            {
+                // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
+                provizio_error("provizio_set_radar_range_with_timeout: Failed to enable limited broadcasting support!");
+                provizio_socket_close(sock);
+                return status;
+                // LCOV_EXCL_STOP
+            }
+        }
+#endif
     }
 
     struct sockaddr_in my_address;
@@ -318,9 +349,30 @@ int32_t provizio_set_radar_range_with_timeout(provizio_radar_position radar_posi
         if (status < 0)
         {
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
-            provizio_error("provizio_set_radar_range_with_timeout: Failed to send provizio_set_radar_range_packet");
+#define PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE (1024)
+#define PROVIZIO__ERROR_STRING_BUFFER_SIZE (64)
+            const int32_t send_error = (int32_t)errno;
+            char strerror_buffer[PROVIZIO__ERROR_STRING_BUFFER_SIZE];
+#ifdef _WIN32
+            (void)strerror_s(strerror_buffer, sizeof(strerror_buffer), send_error);
+            const char *send_error_string = strerror_buffer;
+#else
+            if (strerror_r(send_error, strerror_buffer, sizeof(strerror_buffer)) != 0)
+            {
+                strerror_buffer[0] = '\0';
+            }
+            const char *send_error_string = strerror_buffer;
+#endif
+            char error_message_buffer[PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE];
+            (void)snprintf(error_message_buffer, PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE,
+                           "provizio_set_radar_range_with_timeout: Failed to send provizio_set_radar_range_packet - "
+                           "errno %d (%s)",
+                           (int)send_error, send_error_string[0] != '\0' ? send_error_string : "unknown");
+            provizio_error(error_message_buffer);
             provizio_socket_close(sock);
-            return status;
+            return send_error != 0 ? send_error : (int32_t)-1;
+#undef PROVIZIO__ERROR_STRING_BUFFER_SIZE
+#undef PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE
             // LCOV_EXCL_STOP
         }
 

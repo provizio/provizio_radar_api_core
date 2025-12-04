@@ -307,7 +307,9 @@ endif(NOT LINMATH_DOWNLOAD_STATUS EQUAL 0)
 add_library(
   provizio_radar_api_core STATIC
   src/common.c
+  src/quaternion.c
   src/socket.c
+  src/entities.c
   src/radar_point_cloud.c
   src/radar_points_accumulation.c
   src/radar_points_accumulation_filters.c
