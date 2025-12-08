@@ -350,28 +350,15 @@ int32_t provizio_set_radar_range_with_timeout(provizio_radar_position radar_posi
         {
             // LCOV_EXCL_START: Can't be unit-tested as it depends on the state of the OS
 #define PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE (1024)
-#define PROVIZIO__ERROR_STRING_BUFFER_SIZE (64)
             const int32_t send_error = (int32_t)errno;
-            char strerror_buffer[PROVIZIO__ERROR_STRING_BUFFER_SIZE];
-#ifdef _WIN32
-            (void)strerror_s(strerror_buffer, sizeof(strerror_buffer), send_error);
-            const char *send_error_string = strerror_buffer;
-#else
-            if (strerror_r(send_error, strerror_buffer, sizeof(strerror_buffer)) != 0)
-            {
-                strerror_buffer[0] = '\0';
-            }
-            const char *send_error_string = strerror_buffer;
-#endif
             char error_message_buffer[PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE];
             (void)snprintf(error_message_buffer, PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE,
                            "provizio_set_radar_range_with_timeout: Failed to send provizio_set_radar_range_packet - "
-                           "errno %d (%s)",
-                           (int)send_error, send_error_string[0] != '\0' ? send_error_string : "unknown");
+                           "errno %d",
+                           (int)send_error);
             provizio_error(error_message_buffer);
             provizio_socket_close(sock);
             return send_error != 0 ? send_error : (int32_t)-1;
-#undef PROVIZIO__ERROR_STRING_BUFFER_SIZE
 #undef PROVIZIO__ERROR_MESSAGE_BUFFER_SIZE
             // LCOV_EXCL_STOP
         }

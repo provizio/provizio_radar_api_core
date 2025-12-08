@@ -277,7 +277,11 @@ int32_t provizio_check_for_too_many_entities(provizio_radar_entities_frame *fram
     if ((uint32_t)frame->num_entities_received + (uint32_t)num_entities_in_packet >
         (uint32_t)frame->num_entities_expected)
     {
-        provizio_error("provizio_check_for_too_many_entities: Too many entities received");
+        provizio_error("provizio_check_for_too_many_entities: Too many entities received"
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
+                       ", consider enabling AVOID_PACKETS_DUPLICATION option"
+#endif
+        );
         return PROVIZIO_E_PROTOCOL;
     }
 
@@ -303,13 +307,20 @@ int32_t provizio_handle_entities_packet_checked(provizio_radar_entities_api_cont
     const uint16_t num_entities_in_packet =
         provizio_get_protocol_field_uint16_t(&packet->header.num_entities_in_packet);
 
-    const int32_t status = provizio_check_for_too_many_entities(frame, num_entities_in_packet);
-    if (status != 0)
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
     {
-        return status;
+        const int32_t status = provizio_check_for_too_many_entities(frame, num_entities_in_packet);
+        if (status != 0)
+        {
+            return status;
+        }
     }
-
     provizio_radar_entity *output_to = &frame->radar_entities[frame->num_entities_received];
+#else
+    provizio_radar_entity output_buffer[PROVIZIO__MAX_RADAR_ENTITIES_PER_UDP_PACKET];
+    memset(output_buffer, 0, sizeof(output_buffer));
+    provizio_radar_entity *output_to = output_buffer;
+#endif
 
     for (uint16_t i = 0; i < num_entities_in_packet; ++i)
     {
@@ -328,11 +339,55 @@ int32_t provizio_handle_entities_packet_checked(provizio_radar_entities_api_cont
         out_entity->orientation.x = provizio_get_protocol_field_float(&in_entity->orientation.x);
         out_entity->orientation.y = provizio_get_protocol_field_float(&in_entity->orientation.y);
         out_entity->orientation.z = provizio_get_protocol_field_float(&in_entity->orientation.z);
+        out_entity->size.x_meters = provizio_get_protocol_field_float(&in_entity->size.x_meters);
+        out_entity->size.y_meters = provizio_get_protocol_field_float(&in_entity->size.y_meters);
+        out_entity->size.z_meters = provizio_get_protocol_field_float(&in_entity->size.z_meters);
         out_entity->entity_class = provizio_get_protocol_field_uint8_t(&in_entity->entity_class);
         out_entity->entity_confidence = provizio_get_protocol_field_uint8_t(&in_entity->entity_confidence);
         out_entity->entity_class_confidence = provizio_get_protocol_field_uint8_t(&in_entity->entity_class_confidence);
         out_entity->reserved = provizio_get_protocol_field_uint8_t(&in_entity->reserved);
     }
+
+#ifdef PROVIZIO__AVOID_PACKETS_DUPLICATION
+    for (uint16_t past_packet_start = 0; past_packet_start + num_entities_in_packet <= frame->num_entities_received;
+         ++past_packet_start)
+    {
+        provizio_radar_entity *packet_in_cloud = &frame->radar_entities[past_packet_start];
+        if (memcmp(packet_in_cloud, output_buffer, sizeof(provizio_radar_entity) * num_entities_in_packet) == 0)
+        {
+            // Drop the duplication
+            provizio_verbose("provizio_handle_entities_packet_checked: Packet dropped as duplicated");
+            return PROVIZIO_E_SKIPPED;
+        }
+    }
+
+    {
+        int32_t status = provizio_check_for_too_many_entities(frame, num_entities_in_packet);
+        if (status != 0)
+        {
+            return status;
+        }
+    }
+
+    memcpy(&frame->radar_entities[frame->num_entities_received], output_to,
+           sizeof(provizio_radar_entity) * num_entities_in_packet);
+#endif
+
+#ifdef PROVIZIO__VERBOSE
+    for (uint16_t i = 0; i < num_entities_in_packet; ++i)
+    {
+        provizio_radar_entity *out_entity = output_to + i;
+        provizio_verbose("provizio_handle_entities_packet_checked: Got entity at frame #%d: {%d, %f, %f, %f, %f, %f, "
+                         "{%f, %f, %f, %f}, {%f, %f, %f}, %d, %d, %d}",
+                         (int)frame->frame_index, (int)out_entity->entity_id, out_entity->x_meters,
+                         out_entity->y_meters, out_entity->z_meters, out_entity->radar_relative_radial_velocity_m_s,
+                         out_entity->ground_relative_radial_velocity_m_s, out_entity->orientation.w,
+                         out_entity->orientation.x, out_entity->orientation.y, out_entity->orientation.z,
+                         out_entity->size.x_meters, out_entity->size.y_meters, out_entity->size.z_meters,
+                         (int)out_entity->entity_class, (int)out_entity->entity_confidence,
+                         (int)out_entity->entity_class_confidence);
+    }
+#endif // PROVIZIO__VERBOSE
 
     frame->num_entities_received += num_entities_in_packet;
 

@@ -95,8 +95,17 @@ static const float provizio_test_entities_float_tolerance = 0.0001F;
 static const float provizio_test_entities_first_x = 3.5F;
 static const float provizio_test_entities_first_y = 1.3F;
 static const float provizio_test_entities_first_z = 5.73F;
-static const float provizio_test_entities_first_w = 0.19F;
+static const float provizio_test_entities_first_orientation_w = 0.69F;
+static const float provizio_test_entities_first_orientation_x = 0.44F;
+static const float provizio_test_entities_first_orientation_y = -0.06F;
+static const float provizio_test_entities_first_orientation_z = -0.31F;
+static const float provizio_test_entities_first_size_x = 11.725F;
+static const float provizio_test_entities_first_size_y = 10.125F;
+static const float provizio_test_entities_first_size_z = 13.325F;
 static const float provizio_test_entities_offset_step = 1.0F;
+static const uint8_t provizio_test_entities_first_entity_class = 1;
+static const uint8_t provizio_test_entities_first_entity_confidence = 50;
+static const uint8_t provizio_test_entities_first_entity_class_confidence = 60;
 
 static void test_provizio_on_error(const char *error)
 {
@@ -366,8 +375,14 @@ static int32_t send_entities_packet(const provizio_radar_entities_packet *packet
 static int32_t send_test_entities(const uint16_t port, const uint32_t frame_index, const uint64_t timestamp,
                                   const float x_offset, const uint16_t *radar_position_ids,
                                   const uint16_t *radar_ranges, const size_t num_radars, const uint16_t num_entities,
+                                  const uint16_t num_entities_in_packet,
                                   provizio_radar_entities_packet_callback on_packet_sent, void *user_data)
 {
+    if (num_entities_in_packet > num_entities)
+    {
+        return PROVIZIO_E_ARGUMENT; // LCOV_EXCL_LINE: just a safety net, no need to achieve full coverage of test code
+    }
+
     PROVIZIO__SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (!provizio_socket_valid(sock))
     {
@@ -413,7 +428,7 @@ static int32_t send_test_entities(const uint16_t port, const uint32_t frame_inde
         status =
             provizio_test_create_entities_packet(&packet, frame_index, timestamp, radar_position_ids[i],
                                                  radar_ranges != NULL ? radar_ranges[i] : provizio_radar_range_unknown,
-                                                 num_entities, num_entities, x_offset + (float)i);
+                                                 num_entities, num_entities_in_packet, x_offset + (float)i);
         if (status != 0)
         {
             // LCOV_EXCL_START: Can't be unit-tested as helper always succeeds
@@ -684,7 +699,7 @@ static void test_receives_single_radar_entities_from_single_radar(void)
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_rear_left;
     const uint16_t radar_range = provizio_radar_range_long;
-    const uint16_t num_entities = 32;
+    const uint16_t num_entities = 24;
 
     test_provizio_radar_entities_callback_data *callback_data =
         (test_provizio_radar_entities_callback_data *)malloc(sizeof(test_provizio_radar_entities_callback_data));
@@ -703,8 +718,9 @@ static void test_receives_single_radar_entities_from_single_radar(void)
     send_test_callback_data.num_contexts = 1;
     send_test_callback_data.connection = &connection;
 
-    status = send_test_entities(port_number, frame_index, timestamp, 0.0F, &radar_position_id, &radar_range, 1,
-                                num_entities, &test_receive_entities_packet_on_packet_sent, &send_test_callback_data);
+    status =
+        send_test_entities(port_number, frame_index, timestamp, 0.0F, &radar_position_id, &radar_range, 1, num_entities,
+                           num_entities, &test_receive_entities_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     status = provizio_close_radar_connection(&connection);
@@ -726,9 +742,24 @@ static void test_receives_single_radar_entities_from_single_radar(void)
                              first_entity->y_meters);
     TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_z,
                              first_entity->z_meters);
-    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_w,
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_orientation_x,
+                             first_entity->orientation.x);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_orientation_y,
+                             first_entity->orientation.y);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_orientation_z,
+                             first_entity->orientation.z);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_orientation_w,
                              first_entity->orientation.w);
-    TEST_ASSERT_EQUAL_UINT8(1, first_entity->entity_class);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_size_x,
+                             first_entity->size.x_meters);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_size_y,
+                             first_entity->size.y_meters);
+    TEST_ASSERT_FLOAT_WITHIN(provizio_test_entities_float_tolerance, provizio_test_entities_first_size_z,
+                             first_entity->size.z_meters);
+    TEST_ASSERT_EQUAL_UINT8(provizio_test_entities_first_entity_class, first_entity->entity_class);
+    TEST_ASSERT_EQUAL_UINT8(provizio_test_entities_first_entity_confidence, first_entity->entity_confidence);
+    TEST_ASSERT_EQUAL_UINT8(provizio_test_entities_first_entity_class_confidence,
+                            first_entity->entity_class_confidence);
 
     free(callback_data);
 }
@@ -764,7 +795,8 @@ static void test_receives_single_radar_entities_from_2_radars(void)
     send_test_callback_data.connection = &connection;
 
     status = send_test_entities(port_number, frame_index, timestamp, 0.0F, radar_position_ids, radar_ranges, num_radars,
-                                num_entities, &test_receive_entities_packet_on_packet_sent, &send_test_callback_data);
+                                num_entities, num_entities, &test_receive_entities_packet_on_packet_sent,
+                                &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
     status = provizio_close_radars_connection(&connection);
@@ -890,7 +922,7 @@ static void test_receive_radar_point_cloud_frame_position_ids_mismatch(void)
                                    &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(0, status);
 
-    // Send the last missing point of the frame, but make sure it's ingored due to the radar position mismatch
+    // Send the last missing point of the frame, but make sure it's ignored due to the radar position mismatch
     status = send_test_point_cloud(port_number, frame_index, timestamp, x_offsets[1], &radar_position_ids[1], NULL, 1,
                                    num_points, 1, &test_receive_packet_on_packet_sent, &send_test_callback_data);
     TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_SKIPPED, status);
@@ -2039,11 +2071,15 @@ static void test_duplicated_packets(void)
     const uint64_t timestamp = 0x0123456789abcdef;
     const uint16_t radar_position_id = provizio_radar_position_front_left;
     const uint16_t num_points = 5;
+    const uint16_t num_entities = 3;
 
     provizio_radar_point_cloud_api_context api_context;
     provizio_radar_point_cloud_api_context_init(NULL, NULL, &api_context);
+    provizio_radar_entities_api_context entities_api_context;
+    provizio_radar_entities_api_context_init(NULL, NULL, &entities_api_context);
     provizio_radar_api_connection connection;
-    int32_t status = provizio_open_radar_connection(port_number, 0, 0, &api_context, NULL, &connection);
+    int32_t status =
+        provizio_open_radar_connection(port_number, 0, 0, &api_context, &entities_api_context, &connection);
     TEST_ASSERT_EQUAL_INT32(0, status);
     TEST_ASSERT_TRUE(provizio_socket_valid(connection.sock)); // NOLINT: clang-tidy doesn't like TEST_ASSERT_TRUE
 
@@ -2052,6 +2088,14 @@ static void test_duplicated_packets(void)
     send_test_callback_data.contexts = &api_context;
     send_test_callback_data.num_contexts = 1;
     send_test_callback_data.connection = &connection;
+
+    test_receive_entities_packet_on_packet_sent_callback_data send_test_callback_entities_data;
+    memset(&send_test_callback_entities_data, 0, sizeof(send_test_callback_entities_data));
+    send_test_callback_entities_data.contexts = &entities_api_context;
+    send_test_callback_entities_data.num_contexts = 1;
+    send_test_callback_entities_data.connection = &connection;
+
+    // Point clouds
 
     // Send all but 1 last point
     status = send_test_point_cloud(port_number, frame_index, timestamp, 0, &radar_position_id, NULL, 1, num_points,
@@ -2075,6 +2119,35 @@ static void test_duplicated_packets(void)
     TEST_ASSERT_EQUAL_STRING("", provizio_test_error);
 #endif // PROVIZIO__AVOID_PACKETS_DUPLICATION
     TEST_ASSERT_EQUAL_UINT16(num_points - 1, api_context.impl.point_clouds_being_received[1].num_points_received);
+    provizio_set_on_error(NULL);
+
+    // Entities
+
+    // Send all but 1 last entity
+    status = send_test_entities(port_number, frame_index, timestamp, 0, &radar_position_id, NULL, 1, num_entities,
+                                num_entities - 1, &test_receive_entities_packet_on_packet_sent,
+                                &send_test_callback_entities_data);
+    TEST_ASSERT_EQUAL_INT32(0, status);
+
+    // Send it again
+    provizio_set_on_error(&test_provizio_on_error);
+    provizio_test_error[0] = '\0';
+    status = send_test_entities(port_number, frame_index, timestamp, 0, &radar_position_id, NULL, 1, num_entities,
+                                num_entities - 1, &test_receive_entities_packet_on_packet_sent,
+                                &send_test_callback_entities_data);
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
+    // No duplications avoidance, i.e. it'll hit the "Too many entities received" issue
+    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_PROTOCOL, status);
+    TEST_ASSERT_EQUAL_STRING("provizio_check_for_too_many_entities: Too many entities received, consider enabling "
+                             "AVOID_PACKETS_DUPLICATION option",
+                             provizio_test_error);
+#else
+    // Duplications will be detected and dropped, and no error
+    TEST_ASSERT_EQUAL_INT32(PROVIZIO_E_SKIPPED, status);
+    TEST_ASSERT_EQUAL_STRING("", provizio_test_error);
+#endif // PROVIZIO__AVOID_PACKETS_DUPLICATION
+    TEST_ASSERT_EQUAL_UINT16(num_entities - 1,
+                             entities_api_context.impl.entities_frames_being_received[1].num_entities_received);
     provizio_set_on_error(NULL);
 
     status = provizio_close_radar_connection(&connection);

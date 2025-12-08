@@ -69,6 +69,7 @@ typedef struct
     float ground_relative_radial_velocity_m_s; // Ground relative projection to the radar forward axis (NaN if
                                                // unavailable)
     provizio_quaternion orientation;           // Orientation quaternion: (w, x, y, z)
+    provizio_size size;                        // Bounding box size (x, y, z)
     uint8_t entity_class;                      // One of provizio_entity_class values
     uint8_t entity_confidence;                 // Confidence the entity actually exists, 0..255
     uint8_t entity_class_confidence;           // Confidence the entity class is correct, 0..255
@@ -310,15 +311,14 @@ static_assert(offsetof(provizio_radar_entity, ground_relative_radial_velocity_m_
               "Unexpected position of ground_relative_radial_velocity_m_s in provizio_radar_entity");
 static_assert(offsetof(provizio_radar_entity, orientation) == 24,
               "Unexpected position of orientation in provizio_radar_entity");
-static_assert(offsetof(provizio_radar_entity, entity_class) == 40,
+static_assert(offsetof(provizio_radar_entity, size) == 40, "Unexpected position of size in provizio_radar_entity");
+static_assert(offsetof(provizio_radar_entity, entity_class) == 52,
               "Unexpected position of entity_class in provizio_radar_entity");
-static_assert(offsetof(provizio_radar_entity, entity_confidence) == 41,
+static_assert(offsetof(provizio_radar_entity, entity_confidence) == 53,
               "Unexpected position of entity_confidence in provizio_radar_entity");
-static_assert(offsetof(provizio_radar_entity, entity_class_confidence) == 42,
+static_assert(offsetof(provizio_radar_entity, entity_class_confidence) == 54,
               "Unexpected position of entity_class_confidence in provizio_radar_entity");
-static_assert(offsetof(provizio_radar_entity, reserved) == 43,
-              "Unexpected position of reserved in provizio_radar_entity");
-static_assert(sizeof(provizio_radar_entity) == 44, "Unexpected size of provizio_radar_entity");
+static_assert(sizeof(provizio_radar_entity) == 56, "Unexpected size of provizio_radar_entity");
 static_assert(offsetof(provizio_size, x_meters) == 0, "Unexpected position of x_meters in provizio_size");
 static_assert(offsetof(provizio_size, y_meters) == 4, "Unexpected position of y_meters in provizio_size");
 static_assert(offsetof(provizio_size, z_meters) == 8, "Unexpected position of z_meters in provizio_size");

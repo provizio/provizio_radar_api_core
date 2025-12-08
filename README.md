@@ -44,7 +44,7 @@ The official C library providing API for communicating with Provizio radars.
 
 ### Building and Linking
 
-**provizio_radar_api_core** is a static C Library built with CMake 3.1.0+.
+**provizio_radar_api_core** is a static C Library built with CMake 3.10+.
 There is a number of options to use it in your project. Some of the options:
 
 1. For [CMake](https://cmake.org/)-based C/C++ projects, you may use `ExternalProject_Add`, f.e.
@@ -1163,27 +1163,28 @@ Entities packets are broadcast alongside point clouds on the same UDP port. They
 `packet_type = PROVIZIO__RADAR_API_ENTITIES_PACKET_TYPE (5)` and transport up to
 `PROVIZIO__MAX_RADAR_ENTITIES_PER_UDP_PACKET` objects per UDP packet:
 
-| Field                                   | Size (bytes) | Data Type | Description                                                                                                    |
-| --------------------------------------- | ------------ | --------- | -------------------------------------------------------------------------------------------------------------- |
-| packet_type                             | 2            | uint16_t  | Always = 5                                                                                                     |
-| protocol_version                        | 2            | uint16_t  | Currently = 1                                                                                                  |
-| frame_index                             | 4            | uint32_t  | 0-based entities frame index                                                                                   |
-| timestamp                               | 8            | uint64_t  | Nanoseconds since Unix Epoch                                                                                   |
-| radar_position_id                       | 2            | uint16_t  | Either one of `provizio_radar_position` enum values or a custom id                                             |
-| total_entities_in_frame                 | 2            | uint16_t  | Total number of entities in the frame                                                                          |
-| num_entities_in_packet                  | 2            | uint16_t  | Number of entities inside this packet                                                                          |
-| radar_range                             | 2            | uint16_t  | One of `provizio_radar_range` enum values                                                                      |
-| entity_i: entity_id                     | 4            | uint32_t  | Unique identifier of the entity (may persist across frames)                                                    |
-| entity_i: *_meters                      | 12           | float     | Radar-relative position (X forward, Y left, Z up)                                                              |
-| entity_i: radar_relative_radial_velocity_m_s  | 4      | float     | Radar-relative radial velocity along the forward axis                                                          |
-| entity_i: ground_relative_radial_velocity_m_s | 4      | float     | Ground-relative forward projection (NaN if unavailable)                                                        |
-| entity_i: orientation                   | 16           | float     | Quaternion `(w, x, y, z)` describing orientation                                                               |
-| entity_i: entity_class                  | 1            | uint8_t   | One of `provizio_entity_class` enum values (pedestrian, car, etc.)                                             |
-| entity_i: entity_confidence             | 1            | uint8_t   | Confidence the entity exists (0–255, higher means more confident)                                              |
-| entity_i: entity_class_confidence       | 1            | uint8_t   | Confidence the entity class is correct (0–255)                                                                 |
-| entity_i: reserved                      | 1            | uint8_t   | Reserved for future use                                                                                        |
-| ...                                     |              |           | Repeated for each entity in the packet                                                                         |
-| **Total**                               | **24 + 44 * num_entities_in_packet** |           | Never exceeds 1472 bytes                                                                                       |
+| Field                                            | Size (bytes) | Data Type | Description                                                           |
+| ---------------------------------------------    | ------------ | --------- | --------------------------------------------------------------------- |
+| packet_type                                      | 2            | uint16_t  | Always = 5                                                            |
+| protocol_version                                 | 2            | uint16_t  | Currently = 1                                                         |
+| frame_index                                      | 4            | uint32_t  | 0-based entities frame index                                          |
+| timestamp                                        | 8            | uint64_t  | Nanoseconds since Unix Epoch                                          |
+| radar_position_id                                | 2            | uint16_t  | Either one of `provizio_radar_position` enum values or a custom id    |
+| total_entities_in_frame                          | 2            | uint16_t  | Total number of entities in the frame                                 |
+| num_entities_in_packet                           | 2            | uint16_t  | Number of entities inside this packet                                 |
+| radar_range                                      | 2            | uint16_t  | One of `provizio_radar_range` enum values                             |
+| entity_i: entity_id                              | 4            | uint32_t  | Unique identifier of the entity (may persist across frames)           |
+| entity_i: *_meters                               | 12           | float     | Radar-relative position (X forward, Y left, Z up)                     |
+| entity_i: radar_relative_radial_velocity_m_s     | 4            | float     | Radar-relative radial velocity along the forward axis                 |
+| entity_i: ground_relative_radial_velocity_m_s    | 4            | float     | Ground-relative forward projection (NaN if unavailable)               |
+| entity_i: orientation                            | 16           | float     | Quaternion `(w, x, y, z)` describing orientation                      |
+| entity_i: size                                   | 12           | float     | Bounding box size `(x, y, z)` in meters                               |
+| entity_i: entity_class                           | 1            | uint8_t   | One of `provizio_entity_class` enum values (pedestrian, car, etc.)    |
+| entity_i: entity_confidence                      | 1            | uint8_t   | Confidence the entity exists (0–255, higher means more confident)     |
+| entity_i: entity_class_confidence                | 1            | uint8_t   | Confidence the entity class is correct (0–255)                        |
+| entity_i: reserved                               | 1            | uint8_t   | Reserved for future use                                               |
+| ...                                              |              |           | Repeated for each entity in the packet                                |
+| **Total** | **24 + 56 * num_entities_in_packet** |                          | Never exceeds 1472 bytes                                              |
 
 Entities are gathered into `provizio_radar_entities_frame` objects internally (same frame/timestamp metadata, plus a
 buffer with up to `PROVIZIO__MAX_RADAR_ENTITIES_PER_FRAME` padded entries) before being dispatched to your callback.

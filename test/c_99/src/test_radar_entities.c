@@ -209,6 +209,8 @@ static void test_provizio_handle_entities_packet_warnings(void)
 
     provizio_set_on_warning(&test_provizio_on_warning);
 
+    packet.radar_entities[0].x_meters +=
+        provizio_test_entities_offset_step; // So the packet is not detected as duplicated
     provizio_set_protocol_field_uint16_t(&packet.header.total_entities_in_frame, num_entities + 1);
     TEST_ASSERT_EQUAL_INT32(
         0, provizio_handle_entities_packet(&api_context, &packet, provizio_radar_entities_packet_size(&packet.header)));
@@ -217,6 +219,8 @@ static void test_provizio_handle_entities_packet_warnings(void)
                              provizio_test_warning);
     provizio_set_protocol_field_uint16_t(&packet.header.total_entities_in_frame, num_entities);
 
+    packet.radar_entities[0].x_meters +=
+        provizio_test_entities_offset_step; // So the packet is not detected as duplicated
     provizio_set_protocol_field_uint16_t(&packet.header.radar_range, provizio_radar_range_medium);
     TEST_ASSERT_EQUAL_INT32(
         0, provizio_handle_entities_packet(&api_context, &packet, provizio_radar_entities_packet_size(&packet.header)));
@@ -613,7 +617,12 @@ static void test_provizio_handle_entities_packet_too_many_entities(void)
     TEST_ASSERT_EQUAL_INT32(
         PROVIZIO_E_PROTOCOL,
         provizio_handle_entities_packet(&api_context, &packet, provizio_radar_entities_packet_size(&packet.header)));
-    TEST_ASSERT_EQUAL_STRING("provizio_check_for_too_many_entities: Too many entities received", provizio_test_error);
+    const char *expected_message = "provizio_check_for_too_many_entities: Too many entities received"
+#ifndef PROVIZIO__AVOID_PACKETS_DUPLICATION
+                                   ", consider enabling AVOID_PACKETS_DUPLICATION option"
+#endif
+        ;
+    TEST_ASSERT_EQUAL_STRING(expected_message, provizio_test_error);
     provizio_set_on_error(NULL);
 }
 
