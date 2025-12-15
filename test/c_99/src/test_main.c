@@ -27,10 +27,12 @@ void tearDown(void) // NOLINT: this exact name is required by the unit testing f
 int provizio_run_test_common(void);
 int provizio_run_test_util(void);
 int provizio_run_test_radar_point_cloud(void);
+int provizio_run_test_radar_entities(void);
 int provizio_run_test_core(void);
 int provizio_run_test_radar_points_accumulation_types(void);
 int provizio_run_test_radar_points_accumulation_filters(void);
 int provizio_run_test_points_accumulation(void);
+int provizio_run_test_quaternion(void);
 
 int main(int argc, char *argv[])
 {
@@ -42,10 +44,12 @@ int main(int argc, char *argv[])
     PROVIZIO__RUN_TEST(provizio_run_test_common);
     PROVIZIO__RUN_TEST(provizio_run_test_util);
     PROVIZIO__RUN_TEST(provizio_run_test_radar_point_cloud);
+    PROVIZIO__RUN_TEST(provizio_run_test_radar_entities);
     PROVIZIO__RUN_TEST(provizio_run_test_core);
     PROVIZIO__RUN_TEST(provizio_run_test_radar_points_accumulation_types);
     PROVIZIO__RUN_TEST(provizio_run_test_radar_points_accumulation_filters);
     PROVIZIO__RUN_TEST(provizio_run_test_points_accumulation);
+    PROVIZIO__RUN_TEST(provizio_run_test_quaternion);
 #undef PROVIZIO__RUN_TEST
 
     return result;

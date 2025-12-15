@@ -13,6 +13,9 @@
       - [Example of Point Clouds Accumulation](#example-of-point-clouds-accumulation)
       - [Accumulation Initialization](#accumulation-initialization)
       - [Storing Localization Information in provizio\_enu\_fix](#storing-localization-information-in-provizio_enu_fix)
+    - [Receiving Radar Entities](#receiving-radar-entities)
+      - [Live UDP (Entities)](#live-udp-entities)
+      - [Replay or Custom Transport (Entities)](#replay-or-custom-transport-entities)
       - [Accumulating Point Clouds](#accumulating-point-clouds)
       - [Accumulation Filters](#accumulation-filters)
       - [Retrieving Accumulated Points](#retrieving-accumulated-points)
@@ -21,6 +24,7 @@
     - [Shutting Down](#shutting-down)
   - [UDP Protocol](#udp-protocol)
     - [Radar Point Clouds](#radar-point-clouds)
+    - [Radar Entities](#radar-entities)
     - [Radar Ranges](#radar-ranges)
 
 The official C library providing API for communicating with Provizio radars.
@@ -40,7 +44,7 @@ The official C library providing API for communicating with Provizio radars.
 
 ### Building and Linking
 
-**provizio_radar_api_core** is a static C Library built with CMake 3.1.0+.
+**provizio_radar_api_core** is a static C Library built with CMake 3.10+.
 There is a number of options to use it in your project. Some of the options:
 
 1. For [CMake](https://cmake.org/)-based C/C++ projects, you may use `ExternalProject_Add`, f.e.
@@ -195,7 +199,7 @@ Optionally, a number of CMake arguments can be specified when configuring the li
     * @param user_data Custom argument to be passed to the callback, may be NULL
     * @param context The provizio_radar_point_cloud_api_context object to initialize
     *
-    * @warning radar_position_id of all packets handled by this context must be same
+    * @note radar_position_id of all packets handled by this context must be same
     */
     provizio_radar_point_cloud_api_context_init(&your_radar_point_cloud_callback, your_callback_data, &api_context);
     ```
@@ -228,6 +232,47 @@ Optionally, a number of CMake arguments can be specified when configuring the li
     provizio_radar_point_cloud_api_contexts_init(&your_radar_point_cloud_callback, your_callback_data, api_contexts, num_contexts);
     ```
 
+5. Create and initialize a `provizio_radar_entities_api_context` (or several of them) if you also want to receive high-level radar entities:
+
+    ```C
+    // Somewhere in a header
+
+    void your_radar_entities_callback(const provizio_radar_entities_frame *entities_frame,
+                                      provizio_radar_entities_api_context *context);
+
+    // In a C/C++ function
+
+    void *your_entities_callback_data = <your optional callback data, may be NULL>;
+
+    provizio_radar_entities_api_context entities_context;
+
+    /**
+    * @brief Initializes a provizio_radar_entities_api_context object to handle a single radar
+    *
+    * @param callback Function to be called on receiving a complete or partial radar entities frame
+    * @param user_data Custom argument to be passed to the callback, may be NULL
+    * @param context The provizio_radar_entities_api_context object to initialize
+    */
+    provizio_radar_entities_api_context_init(&your_radar_entities_callback, your_entities_callback_data,
+                                             &entities_context);
+    ```
+
+    or
+
+    ```C
+    const uint16_t num_entities_contexts = <your max number of radars on the same UDP port>;
+    void *your_entities_callback_data = <your optional callback data, may be NULL>;
+
+    provizio_radar_entities_api_context *entities_contexts = (provizio_radar_entities_api_context *)malloc(
+        sizeof(provizio_radar_entities_api_context) * num_entities_contexts);
+
+    /**
+    * @brief Initializes multiple provizio_radar_entities_api_context objects to handle packets from multiple radars
+    */
+    provizio_radar_entities_api_contexts_init(&your_radar_entities_callback, your_entities_callback_data,
+                                              entities_contexts, num_entities_contexts);
+    ```
+
 ### Connection
 
 When the API is used in live UDP mode, [initialization](#initialization) is followed by connection.
@@ -254,12 +299,15 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
      * returning a successful result
      * @param radar_point_cloud_api_context Initialized provizio_radar_point_cloud_api_context to handle point cloud packets
      * (may be NULL to skip any point cloud packets)
+     * @param radar_entities_api_context Initialized provizio_radar_entities_api_context to handle entities packets (may
+     * be NULL to skip any entities packets)
      * @param out_connection A provizio_radar_api_connection to store the connection handle
      * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
      *
      * @note The connection has to be eventually closed with provizio_close_radar_connection
      */
-    int32_t status = provizio_open_radar_connection(udp_port, receive_timeout_ns, check_connection, &api_context, &connection);
+    int32_t status = provizio_open_radar_connection(udp_port, receive_timeout_ns, check_connection, &api_context,
+                                                    &entities_context, &connection);
     ```
 
 - Multiple radars on the same UDP port use case:
@@ -286,12 +334,17 @@ When the API is used in live UDP mode, [initialization](#initialization) is foll
     * cloud packets (may be NULL to skip any point cloud packets)
     * @param num_radar_point_cloud_api_contexts Number of radar_point_cloud_api_contexts, i.e. max numbers of radars to
     * handle (may be 0 to skip any point cloud packets)
+    * @param radar_entities_api_contexts Array of initialized provizio_radar_entities_api_context to handle entities
+    * packets (may be NULL to skip any entities packets)
+    * @param num_radar_entities_api_contexts Number of radar_entities_api_contexts, i.e. max numbers of radars to handle
+    * (may be 0 to skip any entities packets)
     * @param out_connection A provizio_radar_api_connection to store the connection handle
     * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
     *
     * @note The connection has to be eventually closed with provizio_close_radars_connection
     */
-    int32_t status = provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection, api_contexts, num_contexts, &connection);
+    int32_t status = provizio_open_radars_connection(udp_port, receive_timeout_ns, check_connection, api_contexts,
+                                                     num_contexts, entities_contexts, num_entities_contexts, &connection);
     ```
 
 ### Receiving Point Clouds
@@ -315,7 +368,7 @@ void your_radar_point_cloud_callback(const provizio_radar_point_cloud *point_clo
     // 0-based radar frame index
     const uint32_t frame_index = point_cloud->frame_index;
 
-    // Time of the frame capture measured in absolute number of nanoseconds since the start of the GPS Epoch (midnight on Jan 6, 1980)
+    // Time of the frame capture measured in number of nanoseconds since the Unix Epoch
     const uint64_t timestamp = point_cloud->timestamp;
 
     // Either one of provizio_radar_position enum values or a custom position id
@@ -394,7 +447,7 @@ There are a few options for this:
     * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
     * other error code in case of another error
     *
-    * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
+    * @note radar_position_id of all packets handled by this context must be same (returns an error otherwise)
     */
     int32_t status = provizio_handle_radar_point_cloud_packet(&context, packet, packet_size);
     ```
@@ -435,7 +488,7 @@ There are a few options for this:
     * a provizio_radar_point_cloud_packet, other error code if it's a provizio_radar_point_cloud_packet but its handling
     * failed for another reason
     *
-    * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
+    * @note if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
     * be same (returns an error otherwise)
     */
     int32_t status = provizio_handle_possible_radar_point_cloud_packet(&context, payload, payload_size);
@@ -566,6 +619,99 @@ radar_fix.position.east_meters = float_east_meters;
 radar_fix.position.north_meters = float_north_meters;
 radar_fix.position.up_meters = float_up_meters;
 ```
+
+### Receiving Radar Entities
+
+Radar entities are higher-level objects (pedestrians, vehicles, etc.) derived from radar detections. Their handling
+closely mirrors point cloud reception: packets may be missing or reordered and entity frames can therefore be incomplete.
+Like point clouds, callbacks are invoked in monotonically increasing `frame_index` order and `timestamp` values never
+decrease.
+
+```C
+void your_radar_entities_callback(const provizio_radar_entities_frame *entities_frame,
+                                  provizio_radar_entities_api_context *context)
+{
+    const provizio_radar_position radar_position_id = (provizio_radar_position)context->radar_position_id;
+    my_custom_user_data_type *user_data = (my_custom_user_data_type *)context->user_data;
+
+    const uint32_t frame_index = entities_frame->frame_index;
+    const uint64_t timestamp = entities_frame->timestamp;
+    const uint16_t num_entities_expected = entities_frame->num_entities_expected;
+    const uint16_t num_entities_received = entities_frame->num_entities_received;
+    const provizio_radar_range radar_range = (provizio_radar_range)entities_frame->radar_range;
+
+    if (num_entities_received < num_entities_expected)
+    {
+        // Still missing one or more packets for this frame
+    }
+    else
+    {
+        assert(num_entities_received == num_entities_expected);
+    }
+
+    for (uint16_t i = 0; i < num_entities_received; ++i)
+    {
+        const provizio_radar_entity *entity = &entities_frame->radar_entities[i];
+
+        const uint32_t entity_id = entity->entity_id;
+        const float x_meters = entity->x_meters;   // Forward, radar relative
+        const float y_meters = entity->y_meters;   // Left, radar relative
+        const float z_meters = entity->z_meters;   // Up, radar relative
+        const float radar_relative_velocity = entity->radar_relative_radial_velocity_m_s;
+        const float ground_relative_velocity = entity->ground_relative_radial_velocity_m_s;
+        const provizio_quaternion orientation = entity->orientation;
+        const uint8_t entity_class = entity->entity_class;
+        const uint8_t entity_confidence = entity->entity_confidence;
+
+        // Use the entity data as needed
+        (void)entity_id;
+        (void)radar_relative_velocity;
+        (void)ground_relative_velocity;
+        (void)orientation;
+        (void)entity_class;
+        (void)entity_confidence;
+    }
+}
+```
+
+#### Live UDP (Entities)
+
+`provizio_radar_api_receive_packet` automatically dispatches entities packets to the `provizio_radar_entities_api_context`
+instances that you supplied when opening the connection (if any). The callback may therefore be invoked multiple times per
+call, up to `PROVIZIO__RADAR_ENTITIES_API_CONTEXT_IMPL_FRAMES_BEING_RECEIVED_COUNT` (2 by default).
+
+#### Replay or Custom Transport (Entities)
+
+You can reuse the same helper APIs as with point clouds, but the entities equivalents should be called:
+
+- Single-radar:
+
+    ```C
+    const provizio_radar_entities_packet *packet = your_packet;
+    const size_t packet_size = your_packet_size;
+
+    int32_t status = provizio_handle_entities_packet(&entities_context, (provizio_radar_entities_packet *)packet,
+                                                     packet_size);
+    ```
+
+- Multiple radars:
+
+    ```C
+    int32_t status = provizio_handle_radars_entities_packet(entities_contexts, num_entities_contexts,
+                                                            (provizio_radar_entities_packet *)packet, packet_size);
+    ```
+
+- Unknown packet type (e.g. logs/replay):
+
+    ```C
+    int32_t status = provizio_handle_possible_radar_entities_packet(&entities_context, payload, payload_size);
+    // or
+    int32_t status = provizio_handle_possible_radars_entities_packet(entities_contexts, num_entities_contexts, payload,
+                                                                     payload_size);
+    ```
+
+All of the above functions obey the same error semantics (`0` success, `PROVIZIO_E_SKIPPED` when filtered out, protocol
+errors otherwise) as their point cloud counterparts.
 
 #### Accumulating Point Clouds
 
@@ -888,7 +1034,7 @@ and `provizio_set_radar_range_with_timeout`:
  * @param udp_port UDP port to send change range message, by default = PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT
  * (if 0)
  * @param ipv4_address IP address to send change range message, in the standard IPv4 dotted decimal notation. By default
- * = "255.255.255.255" - broadcast (if NULL)
+ * = "255.255.255.255" - broadcast (if NULL). Note: broadcasting to 255.255.255.255 may be unsupported in macOS.
  * @param out_actual_radar_range If not NULL, actual radar range after the operation will be stored here if received
  * from the radar (will be provizio_radar_range_unknown otherwise)
  * @return 0 if set successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
@@ -909,7 +1055,7 @@ PROVIZIO__EXTERN_C int32_t provizio_set_radar_range(provizio_radar_position rada
  * @param udp_port UDP port to send change range message, by default = PROVIZIO__RADAR_API_SET_RANGE_DEFAULT_PORT
  * (if 0)
  * @param ipv4_address IP address to send change range message, in the standard IPv4 dotted decimal notation. By default
- * = "255.255.255.255" - broadcast (if NULL)
+ * = "255.255.255.255" - broadcast (if NULL). Note: broadcasting to 255.255.255.255 may be unsupported in macOS.
  * @param out_actual_radar_range If not NULL, actual radar range after the operation will be stored here if received
  * from the radar (will be provizio_radar_range_unknown otherwise)
  * @param timeout_ns The operation timeout (nanoseconds)
@@ -933,7 +1079,7 @@ You can also request the current radar range (instead of waiting for a point clo
  * @param udp_port UDP port to send the request message, by default = PROVIZIO__RADAR_API_REQUEST_RANGE_DEFAULT_PORT
  * (if 0)
  * @param ipv4_address IP address to send request range message, in the standard IPv4 dotted decimal notation. By
- * default = "255.255.255.255" - broadcast (if NULL)
+ * default = "255.255.255.255" - broadcast (if NULL). Note: broadcasting to 255.255.255.255 may be unsupported in macOS.
  * @param out_current_radar_range Current radar range is stored here if successful (will be provizio_radar_range_unknown
  * otherwise)
  * @return 0 if received successfully, PROVIZIO_E_TIMEOUT if timed out, other error value if failed for another reason
@@ -996,7 +1142,7 @@ Each packet has the following structure (all fields use network bytes order when
 | packet_type                                           | 2                                    | uint16_t  | Always = 1, can't change even on protocol updates                                                                               |
 | protocol_version                                      | 2                                    | uint16_t  | Currently = 2, to be incremented on any protocol changes (used for backward compatibility)                                      |
 | frame_index                                           | 4                                    | uint32_t  | 0-based frame index (resets back to 0 if ever exceeds 4294967295)                                                               |
-| timestamp                                             | 8                                    | uint64_t  | Time of the frame capture measured in absolute number of nanoseconds since the start of the GPS Epoch (midnight on Jan 6, 1980) |
+| timestamp                                             | 8                                    | uint64_t  | Time of the frame capture measured in number of nanoseconds since the Unix Epoch |
 | radar_position_id                                     | 2                                    | uint16_t  | Either one of provizio_radar_position enum values or a custom position id                                                       |
 | total_points_in_frame                                 | 2                                    | uint16_t  | Total number of points in the frame #frame_index, never exceeds 65535                                                           |
 | num_points_in_packet                                  | 2                                    | uint16_t  | Number of points in the current packet, never exceeds (1472 - 24) / 24                                                          |
@@ -1010,6 +1156,38 @@ Each packet has the following structure (all fields use network bytes order when
 | point_1: ...                                          |                                      |           |                                                                                                                                 |
 | ...                                                   |                                      |           |                                                                                                                                 |
 | **Total**                                             | **24 + (24 * num_points_in_packet)** |           | Never exceeds 1472 bytes                                                                                                        |
+
+### Radar Entities
+
+Entities packets are broadcast alongside point clouds on the same UDP port. They reuse the same protocol header with
+`packet_type = PROVIZIO__RADAR_API_ENTITIES_PACKET_TYPE (5)` and transport up to
+`PROVIZIO__MAX_RADAR_ENTITIES_PER_UDP_PACKET` objects per UDP packet:
+
+| Field                                            | Size (bytes) | Data Type | Description                                                           |
+| ---------------------------------------------    | ------------ | --------- | --------------------------------------------------------------------- |
+| packet_type                                      | 2            | uint16_t  | Always = 5                                                            |
+| protocol_version                                 | 2            | uint16_t  | Currently = 1                                                         |
+| frame_index                                      | 4            | uint32_t  | 0-based entities frame index                                          |
+| timestamp                                        | 8            | uint64_t  | Nanoseconds since Unix Epoch                                          |
+| radar_position_id                                | 2            | uint16_t  | Either one of `provizio_radar_position` enum values or a custom id    |
+| total_entities_in_frame                          | 2            | uint16_t  | Total number of entities in the frame                                 |
+| num_entities_in_packet                           | 2            | uint16_t  | Number of entities inside this packet                                 |
+| radar_range                                      | 2            | uint16_t  | One of `provizio_radar_range` enum values                             |
+| entity_i: entity_id                              | 4            | uint32_t  | Unique identifier of the entity (may persist across frames)           |
+| entity_i: *_meters                               | 12           | float     | Radar-relative position (X forward, Y left, Z up)                     |
+| entity_i: radar_relative_radial_velocity_m_s     | 4            | float     | Radar-relative radial velocity along the forward axis                 |
+| entity_i: ground_relative_radial_velocity_m_s    | 4            | float     | Ground-relative forward projection (NaN if unavailable)               |
+| entity_i: orientation                            | 16           | float     | Quaternion `(w, x, y, z)` describing orientation                      |
+| entity_i: size                                   | 12           | float     | Bounding box size `(x, y, z)` in meters                               |
+| entity_i: entity_class                           | 1            | uint8_t   | One of `provizio_entity_class` enum values (pedestrian, car, etc.)    |
+| entity_i: entity_confidence                      | 1            | uint8_t   | Confidence the entity exists (0–255, higher means more confident)     |
+| entity_i: entity_class_confidence                | 1            | uint8_t   | Confidence the entity class is correct (0–255)                        |
+| entity_i: reserved                               | 1            | uint8_t   | Reserved for future use                                               |
+| ...                                              |              |           | Repeated for each entity in the packet                                |
+| **Total** | **24 + 56 * num_entities_in_packet** |                          | Never exceeds 1472 bytes                                              |
+
+Entities are gathered into `provizio_radar_entities_frame` objects internally (same frame/timestamp metadata, plus a
+buffer with up to `PROVIZIO__MAX_RADAR_ENTITIES_PER_FRAME` padded entries) before being dispatched to your callback.
 
 ### Radar Ranges
 

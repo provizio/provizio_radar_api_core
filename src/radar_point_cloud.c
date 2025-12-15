@@ -63,7 +63,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     provizio_radar_point_cloud_api_context *context, provizio_radar_point_cloud_packet_header *packet_header)
 {
     const uint32_t small_frame_index_cap = 0x0000ffff;
-    const uint32_t large_frame_index_threashold = 0xffff0000;
+    const uint32_t large_frame_index_threshold = 0xffff0000;
 
     provizio_radar_point_cloud *point_cloud = NULL;
 
@@ -72,7 +72,7 @@ provizio_radar_point_cloud *provizio_get_point_cloud_being_received(
     const uint16_t total_points_in_frame = provizio_get_protocol_field_uint16_t(&packet_header->total_points_in_frame);
     const uint16_t radar_range = provizio_get_protocol_field_uint16_t(&packet_header->radar_range);
 
-    if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threashold)
+    if (frame_index < small_frame_index_cap && context->impl.latest_frame > large_frame_index_threshold)
     {
         // A very special case: frame indices seem to have exceeded the 0xffffffff and have been reset. Let's reset the
         // state of the API to avoid complicated state-related issues.
@@ -185,7 +185,7 @@ size_t provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_p
     }
     else
     {
-        result = sizeof(provizio_radar_point_cloud_packet_header) + sizeof(provizio_radar_point) * num_points;
+        result = sizeof(provizio_radar_point_cloud_packet_header) + (sizeof(provizio_radar_point) * num_points);
     }
 
     return result;
@@ -395,18 +395,15 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
     }
 
 #ifdef PROVIZIO__AVOID_PACKETS_DUPLICATION
-    if (cloud->num_points_received >= num_points_in_packet)
+    for (uint16_t past_packet_start = 0; past_packet_start + num_points_in_packet <= cloud->num_points_received;
+         ++past_packet_start)
     {
-        for (uint16_t past_packet_start = 0, max_past_packet_start = cloud->num_points_received - num_points_in_packet;
-             past_packet_start <= max_past_packet_start; ++past_packet_start)
+        provizio_radar_point *packet_in_cloud = &cloud->radar_points[past_packet_start];
+        if (memcmp(packet_in_cloud, output_buffer, sizeof(provizio_radar_point) * num_points_in_packet) == 0)
         {
-            provizio_radar_point *packet_in_cloud = &cloud->radar_points[past_packet_start];
-            if (memcmp(packet_in_cloud, output_buffer, sizeof(provizio_radar_point) * num_points_in_packet) == 0)
-            {
-                // Drop the duplication
-                provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Packet dropped as duplicated");
-                return PROVIZIO_E_SKIPPED;
-            }
+            // Drop the duplication
+            provizio_verbose("provizio_handle_radar_point_cloud_packet_checked: Packet dropped as duplicated");
+            return PROVIZIO_E_SKIPPED;
         }
     }
 
@@ -418,7 +415,7 @@ int32_t provizio_handle_radar_point_cloud_packet_checked(provizio_radar_point_cl
         }
     }
 
-    memcpy(&cloud->radar_points[cloud->num_points_received], output_buffer,
+    memcpy(&cloud->radar_points[cloud->num_points_received], output_to,
            sizeof(provizio_radar_point) * num_points_in_packet);
 #endif
 

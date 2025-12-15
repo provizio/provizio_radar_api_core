@@ -64,9 +64,8 @@ typedef struct provizio_radar_point_cloud_packet_header
 {
     provizio_radar_api_protocol_header protocol_header;
 
-    uint32_t frame_index; // 0-based
-    uint64_t timestamp;   // Time of the frame capture measured in absolute number of nanoseconds since the start of the
-                          // GPS Epoch (midnight on Jan 6, 1980)
+    uint32_t frame_index;           // 0-based
+    uint64_t timestamp;             // Time of the frame capture measured in number of nanoseconds since the Unix Epoch
     uint16_t radar_position_id;     // Either one of provizio_radar_position enum values or a custom position id
     uint16_t total_points_in_frame; // Number of points in the entire frame
     uint16_t num_points_in_packet;  // Number of points in this single packet
@@ -116,9 +115,8 @@ provizio_radar_point_cloud_packet_size(const provizio_radar_point_cloud_packet_h
  */
 typedef struct provizio_radar_point_cloud
 {
-    uint32_t frame_index; // 0-based
-    uint64_t timestamp;   // Time of the frame capture measured in absolute number of nanoseconds since the start of the
-                          // GPS Epoch (midnight on Jan 6, 1980)
+    uint32_t frame_index;         // 0-based
+    uint64_t timestamp;           // Time of the frame capture measured in number of nanoseconds since the Unix Epoch
     uint16_t radar_position_id;   // Either one of provizio_radar_position enum values or a custom position id
     uint16_t num_points_expected; // Number of points in the entire frame
     uint16_t num_points_received; // Number of points in the frame received so far
@@ -159,7 +157,7 @@ typedef struct provizio_radar_point_cloud_api_context
  * @param user_data Custom argument to be passed to the callback, may be NULL
  * @param context The provizio_radar_point_cloud_api_context object to initialize
  *
- * @warning radar_position_id of all packets handled by this context must be same
+ * @note radar_position_id of all packets handled by this context must be same
  */
 PROVIZIO__EXTERN_C void provizio_radar_point_cloud_api_context_init(provizio_radar_point_cloud_callback callback,
                                                                     void *user_data,
@@ -198,7 +196,7 @@ PROVIZIO__EXTERN_C int32_t provizio_radar_point_cloud_api_context_assign(
  * @return 0 in case the packet was handled successfully, PROVIZIO_E_SKIPPED in case the packet was skipped as obsolete,
  * other error code in case of another error
  *
- * @warning radar_position_id of all packets handled by this context must be same (returns an error otherwise)
+ * @note radar_position_id of all packets handled by this context must be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_radar_point_cloud_packet(provizio_radar_point_cloud_api_context *context,
                                                                     provizio_radar_point_cloud_packet *packet,
@@ -230,7 +228,7 @@ PROVIZIO__EXTERN_C int32_t provizio_handle_radars_point_cloud_packet(provizio_ra
  * a provizio_radar_point_cloud_packet, other error code if it's a provizio_radar_point_cloud_packet but its handling
  * failed for another reason
  *
- * @warning if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
+ * @note if it's a provizio_radar_point_cloud_packet, radar_position_id of all packets handled by this context must
  * be same (returns an error otherwise)
  */
 PROVIZIO__EXTERN_C int32_t provizio_handle_possible_radar_point_cloud_packet(

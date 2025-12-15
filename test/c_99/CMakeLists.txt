@@ -60,8 +60,10 @@ add_executable(
   provizio_radar_api_core_test_c_99
   src/test_main.c
   src/test_common.c
+  src/test_quaternion.c
   src/test_util.c
   src/test_radar_point_cloud.c
+  src/test_radar_entities.c
   src/test_radar_points_accumulation_types.c
   src/test_radar_points_accumulation_filters.c
   src/test_radar_points_accumulation.c

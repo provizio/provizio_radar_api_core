@@ -16,96 +16,6 @@
 
 #include "unity/unity.h"
 
-#include <linmath.h>
-
-void test_provizio_quaternion_set_identity(void)
-{
-    provizio_quaternion quaternion = {2.0F, 3.0F, 4.0F, 5.0F}; // NOLINT Some "garbage" to make sure it gets overwritten
-    provizio_quaternion_set_identity(&quaternion);
-
-    TEST_ASSERT_EQUAL_FLOAT(1.0F, quaternion.w); // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, quaternion.x); // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, quaternion.y); // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, quaternion.z); // NOLINT
-
-    vec3 in_vec = {10.0F, 100.0F, 1000.0F}; // NOLINT
-    quat in_quat = {quaternion.x, quaternion.y, quaternion.z, quaternion.w};
-    vec3 out_vec = {0, 0, 0};
-    quat_mul_vec3(out_vec, in_quat, in_vec);
-    TEST_ASSERT_EQUAL_FLOAT(in_vec[0], out_vec[0]); // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(in_vec[1], out_vec[1]); // NOLINT
-    TEST_ASSERT_EQUAL_FLOAT(in_vec[2], out_vec[2]); // NOLINT
-}
-
-void test_provizio_quaternion_set_euler_angles(void)
-{
-    provizio_quaternion quaternion = {2.0F, 3.0F, 4.0F, 5.0F}; // NOLINT Some "garbage" to make sure it gets overwritten
-
-    vec3 in_vec = {5.0F, 10.0F, 30.0F}; // NOLINT
-
-    // Rotate around X
-    {
-        provizio_quaternion_set_euler_angles((float)M_PI_2, 0.0F, 0.0F, &quaternion);
-        quat in_quat = {quaternion.x, quaternion.y, quaternion.z, quaternion.w};
-        vec3 out_vec = {0, 0, 0};
-        quat_mul_vec3(out_vec, in_quat, in_vec);
-        TEST_ASSERT_EQUAL_FLOAT(5.0F, out_vec[0]);   // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-30.0F, out_vec[1]); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(10.0F, out_vec[2]);  // NOLINT
-    }
-
-    // Rotate around Y
-    {
-        provizio_quaternion_set_euler_angles(0.0F, (float)M_PI_2, 0.0F, &quaternion);
-        quat in_quat = {quaternion.x, quaternion.y, quaternion.z, quaternion.w};
-        vec3 out_vec = {0, 0, 0};
-        quat_mul_vec3(out_vec, in_quat, in_vec);
-        TEST_ASSERT_EQUAL_FLOAT(30.0F, out_vec[0]); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(10.0F, out_vec[1]); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(-5.0F, out_vec[2]); // NOLINT
-    }
-
-    // Rotate around Z
-    {
-        provizio_quaternion_set_euler_angles(0.0F, 0.0F, (float)M_PI_2, &quaternion);
-        quat in_quat = {quaternion.x, quaternion.y, quaternion.z, quaternion.w};
-        vec3 out_vec = {0, 0, 0};
-        quat_mul_vec3(out_vec, in_quat, in_vec);
-        TEST_ASSERT_EQUAL_FLOAT(-10.0F, out_vec[0]); // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(5.0F, out_vec[1]);   // NOLINT
-        TEST_ASSERT_EQUAL_FLOAT(30.0F, out_vec[2]);  // NOLINT
-    }
-}
-
-void test_provizio_quaternion_is_valid_rotation(void)
-{
-    // Invalid: zero
-    {
-        const provizio_quaternion quaternion = {0, 0, 0, 0};
-        TEST_ASSERT_EQUAL(0, provizio_quaternion_is_valid_rotation(&quaternion));
-    }
-
-    // Invalid: garbage
-    {
-        const provizio_quaternion quaternion = {2.0F, 3.0F, 4.0F, 5.0F};
-        TEST_ASSERT_EQUAL(0, provizio_quaternion_is_valid_rotation(&quaternion));
-    }
-
-    // Valid: Identity
-    {
-        provizio_quaternion quaternion = {2.0F, 3.0F, 4.0F, 5.0F}; // NOLINT
-        provizio_quaternion_set_identity(&quaternion);
-        TEST_ASSERT_NOT_EQUAL(0, provizio_quaternion_is_valid_rotation(&quaternion));
-    }
-
-    // Valid: Rotation
-    {
-        provizio_quaternion quaternion = {2.0F, 3.0F, 4.0F, 5.0F}; // NOLINT
-        provizio_quaternion_set_euler_angles((float)M_PI_2, (float)M_PI_4, (float)M_E, &quaternion);
-        TEST_ASSERT_NOT_EQUAL(0, provizio_quaternion_is_valid_rotation(&quaternion));
-    }
-}
-
 void test_provizio_enu_distance(void)
 {
     {
@@ -142,9 +52,6 @@ int provizio_run_test_radar_points_accumulation_types(void)
 {
     UNITY_BEGIN();
 
-    RUN_TEST(test_provizio_quaternion_set_identity);
-    RUN_TEST(test_provizio_quaternion_set_euler_angles);
-    RUN_TEST(test_provizio_quaternion_is_valid_rotation);
     RUN_TEST(test_provizio_enu_distance);
 
     return UNITY_END();

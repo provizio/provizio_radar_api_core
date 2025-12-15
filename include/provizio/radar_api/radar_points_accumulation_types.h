@@ -16,23 +16,8 @@
 #define PROVIZIO_RADAR_API_RADAR_POINTS_ACCUMULATION_TYPES
 
 #include "provizio/common.h"
+#include "provizio/quaternion.h"
 #include "provizio/radar_api/radar_point_cloud.h"
-
-/**
- * @brief Represents a quaternion, normally a unit quaternion storing a spatial orientation.
- *
- * @see https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
- * @see provizio_quaternion_set_identity
- * @see provizio_quaternion_set_euler_angles
- * @see provizio_quaternion_is_valid_rotation
- */
-typedef struct provizio_quaternion
-{
-    float w;
-    float x;
-    float y;
-    float z;
-} provizio_quaternion;
 
 /**
  * @brief Represents a position as right-handed cartesian coordinates (East, North, Up) in meters, relative to whatever
@@ -95,38 +80,6 @@ typedef struct provizio_accumulated_radar_point_cloud_iterator
     size_t point_cloud_index;
     size_t point_index;
 } provizio_accumulated_radar_point_cloud_iterator;
-
-/**
- * @brief Sets the specified quaternion to identity, i.e. east-looking orientation.
- *
- * @param out_quaternion The quaternion to be set.
- * @see provizio_quaternion
- */
-PROVIZIO__EXTERN_C void provizio_quaternion_set_identity(provizio_quaternion *out_quaternion);
-
-/**
- * @brief Sets the specified quaternion from the specified Euler angles, as applied in this order: z, y, x (yaw, pitch,
- * roll).
- *
- * @param x_rad Rotation around the forward (roll) or east axis, depending on the context (radians).
- * @param y_rad Rotation around the left (pitch) or north axis, depending on the context (radians).
- * @param z_rad Rotation around the up (yaw) axis (radians).
- * @param out_quaternion The rotation/orientation quaternion to be set.
- * @see https://en.wikipedia.org/wiki/Euler_angles
- * @see provizio_quaternion
- * @see provizio_quaternion_set_identity
- */
-PROVIZIO__EXTERN_C void provizio_quaternion_set_euler_angles(float x_rad, float y_rad, float z_rad,
-                                                             provizio_quaternion *out_quaternion);
-
-/**
- * @brief Checks if the specified quaternion is a valid rotation/orientation quaternion.
- *
- * @param quaternion The quaternion to be checked.
- * @return Non-zero if valid, zero otherwise.
- * @see provizio_quaternion
- */
-PROVIZIO__EXTERN_C uint8_t provizio_quaternion_is_valid_rotation(const provizio_quaternion *quaternion);
 
 /**
  * @brief Measures distance (in meters) between two ENU positions
